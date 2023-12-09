@@ -1,0 +1,53 @@
+serviceTree:
+  landscape: &landscape tauros
+
+consumer:
+  enabled: true
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+zinc:
+  enable: true
+  serviceTree:
+    landscape: *landscape
+
+  api:
+    enabled: true
+    serviceTree:
+      landscape: *landscape
+    imagePullSecrets: []
+    replicaCount: 1
+    configMountPath: /app/Config
+    service:
+      type: ClusterIP
+      port: 80
+      containerPort: 9030
+    ingress:
+      enabled: true
+      className: traefik
+      hosts:
+        - host: api.zinc.nitroso.tauros.lvh.me
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls: []
+
+  migration:
+    enabled: true
+    serviceTree:
+      landscape: *landscape
+
+  maindb:
+    enable: true
+
+  maincache:
+    enable: true
+
+  mainstorage:
+    enable: true

@@ -1,0 +1,11 @@
+cache:
+  MAIN:
+    connectTimeout: 5000
+    abortConnect: true
+    allowAdmin: false
+    connectRetry: 3
+    password: supersecret
+    ssl: false
+    syncTimeout: 5000
+    endpoints:
+      0: nitroso-zinc-main-cache:6379

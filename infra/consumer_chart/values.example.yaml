@@ -1,0 +1,63 @@
+serviceTree:
+  landscape: lapras
+  platform: nitroso
+  service: golang
+  module: api
+
+replicaCount: 1
+
+appSettings: {}
+
+annotations: {}
+
+envFromSecret: nitroso-tin
+
+configMountPath: /app/config
+
+command:
+  - /bin/sh
+  - -c
+  - sleep infinity
+
+image:
+  repository: golang-chart
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: {}

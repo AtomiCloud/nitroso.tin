@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "golang-chart.fullname" . }}
+  labels: {{- include "golang-chart.labels" . | nindent 4 }}
+  annotations: {{- include "golang-chart.annotations" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "golang-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations: {{- include "golang-chart.annotations" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "golang-chart.labels" . | nindent 8 }}
+        {{- include "golang-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "golang-chart.serviceAccountName" . }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.command }}
+          command: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.envFromSecret }}
+          {{- end }}
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: LANDSCAPE
+              value: {{ .Values.serviceTree.landscape }}
+            - name: BASE_CONFIG
+              value: "{{ .Values.configMountPath }}"
+          volumeMounts:
+            - mountPath: "{{ .Values.configMountPath }}/settings.yaml"
+              name: config-volume
+              subPath: settings.yaml
+            - mountPath: "{{ .Values.configMountPath }}/settings.{{ .Values.serviceTree.landscape }}.yaml"
+              name: config-volume
+              subPath: "settings.{{ .Values.serviceTree.landscape }}.yaml"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "golang-chart.fullname-with-suffix" (dict "arg" "config" "root" .) }}
+            items:
+              - key: settings.yaml
+                path: settings.yaml
+              - key: settings.{{ .Values.serviceTree.landscape }}.yaml
+                path: settings.{{ .Values.serviceTree.landscape }}.yaml
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+         {{- toYaml . | nindent 8 }}
+      {{- end -}}

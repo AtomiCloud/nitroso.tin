@@ -1,0 +1,20 @@
+apiVersion: k3d.io/v1alpha4
+kind: Simple
+metadata:
+  name: tauros
+servers: 1
+agents: 0
+network: tauros
+image: rancher/k3s:v1.25.12-k3s1
+ports:
+  - port: 20013:80
+    nodeFilters:
+      - loadbalancer
+  - port: 20014:443
+    nodeFilters:
+      - loadbalancer
+registries:
+  create:
+    name: tauros.registry.lvh.me
+    host: "0.0.0.0"
+    hostPort: "20015"

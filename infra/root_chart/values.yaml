@@ -1,0 +1,79 @@
+serviceTree: &serviceTree
+  landscape: lapras
+  platform: nitroso
+  service: tin
+  layer: "2"
+
+bromine:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  enable: false
+  # -- Store name to create
+  storeName: nitroso-tin
+  # -- Secret of Secrets reference
+  rootSecret:
+    # -- DOPPLER Token Reference
+    ref: "NITROSO_TIN"
+
+consumer:
+  enabled: true
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+
+  fullnameOverride: "tin-consumer"
+
+  serviceTree:
+    <<: *serviceTree
+    module: consumer
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings: {}
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-consumer
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    create: false
+    annotations: {}
+    name: ""
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
+zinc:
+  api:
+    configMountPath: /app/Config
+    image:
+      repository: ghcr.io/atomicloud/nitroso.zinc/api-arm
+
+  migration:
+    enabled: false

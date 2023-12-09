@@ -1,0 +1,4 @@
+cache:
+  MAIN:
+    connectTimeout: 5000
+    ssl: true
