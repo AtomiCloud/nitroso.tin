@@ -1,9 +1,16 @@
 def start(landscape, platform, service, port, live):
 
     # build API image
-    api_image_name = platform + "-" + service + "-consumer"
+    cdc_image_name = platform + "-" + service + "-cdc"
     docker_build(
-        api_image_name,
+        cdc_image_name,
+        '.',
+        dockerfile = './infra/Dockerfile',
+    )
+
+    poller_image_name = platform + "-" + service + "-poller"
+    docker_build(
+        poller_image_name,
         '.',
         dockerfile = './infra/Dockerfile',
     )

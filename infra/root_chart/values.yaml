@@ -15,16 +15,22 @@ bromine:
     # -- DOPPLER Token Reference
     ref: "NITROSO_TIN"
 
-consumer:
+  target: &target "nitroso-tin"
+cdc:
   enabled: true
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
-  fullnameOverride: "tin-consumer"
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: "tin-cdc"
 
   serviceTree:
     <<: *serviceTree
-    module: consumer
+    module: cdc
 
   imagePullSecrets: []
 
@@ -35,7 +41,7 @@ consumer:
   configMountPath: /app/config
 
   image:
-    repository: nitroso-tin-consumer
+    repository: nitroso-tin-cdc
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
@@ -51,13 +57,62 @@ consumer:
 
   securityContext: {}
 
-  resources:
-    limits:
-      cpu: "1"
-      memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 128Mi
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
+poller:
+  enabled: true
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: true
+    annotations:
+      argocd.argoproj.io/sync-wave: "4"
+
+  nameOverride: "tin-poller"
+
+  serviceTree:
+    <<: *serviceTree
+    module: poller
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings: {}
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-poller
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    create: true
+    annotations:
+      argocd.argoproj.io/sync-wave: "4"
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
 
   autoscaling: {}
 
@@ -77,3 +132,23 @@ zinc:
 
   migration:
     enabled: false
+
+helium:
+  enable: false
+  fullnameOverride: "helium-poller"
+  bromine:
+    target: "nitroso-helium"
+    enable: true
+    rootSecret:
+      name: helium-doppler-secret
+
+livecache:
+  nameOverride: tin-livecache
+  storage:
+    enabled: false
+
+  passwordFromSecret:
+    enable: true
+    existingSecret:
+      key: ATOMI_CACHE__LIVE__PASSWORD
+      name: *target

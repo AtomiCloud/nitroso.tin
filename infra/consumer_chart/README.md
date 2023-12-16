@@ -17,6 +17,8 @@ A Chart to deploy Golang Microservice
 | image.repository | string | `"golang-chart"` |  |
 | image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
+| jobRbac.annotations | object | `{}` |  |
+| jobRbac.create | bool | `false` |  |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations | object | `{}` |  |

@@ -45,3 +45,46 @@ kubectl --context "k3d-$input" -n kube-system wait --for=jsonpath=.status.succee
 kubectl --context "k3d-$input" -n kube-system wait --for=jsonpath=.status.succeeded=1 --timeout=300s job helm-install-traefik
 kubectl --context "k3d-$input" -n kube-system wait --for=jsonpath=.status.readyReplicas=1 --timeout=300s deployment traefik
 echo "✅ Cluster is ready!"
+
+# install external-secrets operator
+echo "🛠 Installing external-secrets operator..."
+helm repo add external-secrets https://charts.external-secrets.io
+helm upgrade --install --kube-context "k3d-$input" external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
+kubectl --context "k3d-$input" -n external-secrets wait --for=jsonpath=.status.readyReplicas=1 --timeout=300s deployment external-secrets-webhook
+kubectl --context "k3d-$input" -n external-secrets wait --for=jsonpath=.status.readyReplicas=1 --timeout=300s deployment external-secrets-cert-controller
+kubectl --context "k3d-$input" -n external-secrets wait --for=jsonpath=.status.readyReplicas=1 --timeout=300s deployment external-secrets
+echo "✅ Installed external-secrets operator!"
+
+# create doppler secret
+echo "🛠 Creating doppler secret..."
+root_token="$(doppler secrets get SULFOXIDE_SOS -p "sulfoxide-sos" -c "$input" --plain | base64)"
+
+kubectl --context "k3d-$input" -n external-secrets apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: root-token
+type: Opaque
+data:
+  "ROOT_TOKEN": "$root_token"
+EOF
+echo "✅ Created doppler secret!"
+
+# create doppler cluster secret store
+echo "🛠 Creating doppler cluster secret store..."
+kubectl --context "k3d-$input" -n external-secrets apply -f - <<EOF
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: doppler
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            name: root-token
+            key: ROOT_TOKEN
+            namespace: external-secrets
+EOF
+echo "✅ Created doppler cluster secret store!"

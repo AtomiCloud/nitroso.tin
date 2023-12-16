@@ -25,8 +25,8 @@ type OtelPubSub struct {
 }
 
 type OtelRedisMessage struct {
-	Message interface{}
-	Context propagation.MapCarrier
+	Message interface{}            `json:"message"`
+	Context propagation.MapCarrier `json:"context"`
 }
 
 func New(cfg config.CacheConfig) OtelRedis {
@@ -61,21 +61,25 @@ func (r OtelRedis) StreamAdd(ctx context.Context, tracer trace.Tracer, stream st
 
 	mc := propagation.MapCarrier{}
 	otel.GetTextMapPropagator().Inject(ctx, mc)
-	message := OtelRedisMessage{
-		Message: any,
-		Context: mc,
-	}
-	marshal, err := json.Marshal(message)
+
+	messageJson, err := json.Marshal(any)
 	if err != nil {
 		return nil, err
 	}
-	childSpan.SetAttributes(attribute.String("message", string(marshal)))
+	contextJson, err := json.Marshal(mc)
+	if err != nil {
+		return nil, err
+	}
+
+	childSpan.SetAttributes(attribute.String("message", string(messageJson)))
+	childSpan.SetAttributes(attribute.String("context", string(contextJson)))
 
 	return r.XAdd(ctx, &redis.XAddArgs{
 		Stream: stream,
 		MaxLen: 50,
 		Values: map[string]interface{}{
-			"message": marshal,
+			"message": messageJson,
+			"context": contextJson,
 		},
 	}), nil
 }
@@ -99,17 +103,24 @@ func (r OtelRedis) StreamRead(ctx context.Context, tracer trace.Tracer, stream s
 		return err
 	}
 	values := streams[0].Messages[0].Values
-	message := fmt.Sprintf("%v", values["message"])
+	msgJson := fmt.Sprintf("%v", values["message"])
+	mcJson := fmt.Sprintf("%v", values["context"])
 
-	var msg OtelRedisMessage
-	err = json.Unmarshal([]byte(message), &msg)
+	var msg json.RawMessage
+	err = json.Unmarshal([]byte(msgJson), &msg)
 	if err != nil {
 		return err
 	}
-	ctx = propagator.Extract(ctx, msg.Context)
+	var mc propagation.MapCarrier
+	err = json.Unmarshal([]byte(mcJson), &mc)
+	if err != nil {
+		return err
+	}
+
+	ctx = propagator.Extract(ctx, mc)
 	ctx, childSpan := tracer.Start(ctx, "redis read from stream: "+stream, opts...)
 	defer childSpan.End()
-	marshal, err := json.Marshal(msg.Message)
+	marshal, err := json.Marshal(msg)
 	return handler(ctx, marshal)
 }
 
@@ -135,19 +146,24 @@ func (r OtelRedis) StreamGroupRead(ctx context.Context, tracer trace.Tracer, str
 		return err
 	}
 	values := streams[0].Messages[0].Values
-	message := fmt.Sprintf("%v", values["message"])
+	msgJson := fmt.Sprintf("%v", values["message"])
+	mcJson := fmt.Sprintf("%v", values["context"])
 
-	var msg OtelRedisMessage
-	err = json.Unmarshal([]byte(message), &msg)
+	var msg json.RawMessage
+	err = json.Unmarshal([]byte(msgJson), &msg)
 	if err != nil {
 		return err
 	}
-	ctx = propagator.Extract(ctx, msg.Context)
+	var mc propagation.MapCarrier
+	err = json.Unmarshal([]byte(mcJson), &mc)
+	if err != nil {
+		return err
+	}
+	ctx = propagator.Extract(ctx, mc)
 	ctx, childSpan := tracer.Start(ctx, "redis read from stream: "+stream, opts...)
 	defer childSpan.End()
 	childSpan.SetAttributes(attribute.String("redis.consumer.group", groupId), attribute.String("redis.consumer.id", consumerId))
-	marshal, err := json.Marshal(msg.Message)
-	return handler(ctx, marshal)
+	return handler(ctx, msg)
 }
 
 func (r OtelRedis) Pub(ctx context.Context, tracer trace.Tracer, logger zerolog.Logger, channel string, any interface{}) (*redis.IntCmd, error) {

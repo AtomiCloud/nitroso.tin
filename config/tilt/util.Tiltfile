@@ -3,11 +3,15 @@ def helm_watch(landscape, platform, service, t):
     ns = platform
     release = platform + "-" + service
 
-    setApi = ''
+    extraVals = []
     if t == 'local':
-        setApi = 'api.enabled=false'
+        extraVals = [
+            'tags.active=false',
+        ]
     elif t == 'cluster':
-        setApi = 'api.enabled=true'
+        extraVals = [
+            'tags.active=true',
+        ]
     else:
         fail('Unknown type: ' + t)
     watch_file('infra/api_chart')
@@ -41,9 +45,7 @@ def helm_watch(landscape, platform, service, t):
                 './infra/root_chart/values.yaml',
                 './infra/root_chart/values.' + landscape + '.yaml',
             ],
-            set = [
-                setApi
-            ]
+            set = extraVals
 
         )
     )

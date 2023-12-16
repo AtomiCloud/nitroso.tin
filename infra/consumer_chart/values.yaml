@@ -18,6 +18,10 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+jobRbac:
+  create: false
+  annotations: {}
+
 serviceAccount:
   create: false
   annotations: {}

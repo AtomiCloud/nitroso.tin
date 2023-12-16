@@ -1,0 +1,15 @@
+{{- if and .Values.serviceAccount.create .Values.jobRbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "golang-chart.serviceAccountName" . }}
+  labels: {{- include "golang-chart.labels" . | nindent 4 }}
+  annotations: {{- include "golang-chart.annotations" . | nindent 4 }}
+  {{- with .Values.jobRbac.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+rules:
+  - apiGroups: ["batch", ""]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+{{- end -}}

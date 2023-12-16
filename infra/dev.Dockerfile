@@ -10,4 +10,4 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-CMD [ "air", "--", "start" ]
+CMD [ "air", "--", "cdc" ]

@@ -1,17 +1,68 @@
 package config
 
 type RootConfig struct {
-	Cache map[string]CacheConfig
-	App   AppConfig
-	Otel  OtelConfig
+	Cache  map[string]CacheConfig
+	App    AppConfig
+	Otel   OtelConfig
+	Cdc    CdcConfig
+	Stream StreamConfig
+	Auth   AuthConfig
+	Poller PollerConfig
 }
 
+// Auth Config
+type AuthConfig struct {
+	Descope DescopeConfig
+}
+
+type DescopeConfig struct {
+	DescopeId        string
+	DescopeAccessKey string
+}
+
+// Poller
+type PollerConfig struct {
+	Group        string
+	BackoffLimit int
+
+	Pollee PolleeConfig
+}
+
+type PolleeConfig struct {
+	Namespace string
+	Image     string
+	Version   string
+	SecretRef string
+	ConfigRef string
+}
+
+// Stream
+type StreamConfig struct {
+	Cdc    string
+	Update string
+}
+
+// Cdc
+type CdcConfig struct {
+	Group string
+
+	BackoffLimit int
+
+	Scheme string
+	Host   string
+	Port   string
+
+	Parallelism int
+}
+
+// Cache
 type CacheConfig struct {
 	Password  string
 	Ssl       bool
 	Endpoints map[int]string
 }
 
+// App
 type AppConfig struct {
 	Landscape string
 	Platform  string

@@ -36,11 +36,15 @@ let
           sd
           bash
           git
+          jq
+          yq-go
+          curl
 
           # go
           go
           golangci-lint
           air
+          oapi-codegen
 
           # lint
           treefmt

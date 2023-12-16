@@ -6,6 +6,8 @@ with packages;
     sd
     bash
     findutils
+    jq
+    yq-go
   ];
 
   dev = [
@@ -14,6 +16,8 @@ with packages;
     git
     air
     doppler
+    oapi-codegen
+    curl
   ];
 
   infra = [

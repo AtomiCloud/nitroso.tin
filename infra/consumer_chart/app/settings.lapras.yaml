@@ -1,4 +1,59 @@
 cache:
   MAIN:
-    connectTimeout: 5000
-    ssl: true
+    password: "supersecret"
+    ssl: false
+    endpoints:
+      0: zinc-maincache:6379
+app:
+  landscape: lapras
+
+auth:
+  descope:
+    descopeId: P2Ya46UVwFV8nTwNGZWpxRtyL7Jj
+    descopeAccessKey: ""
+
+stream:
+  cdc: cdc
+  update: update
+cdc:
+  group: cdc
+  scheme: http
+  host: zinc-api
+  port: 80
+  parallelism: 8
+
+poller:
+  backoffLimit: 3
+  pollee:
+    namespace: "nitroso"
+    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-arm"
+    version: "1.3.0"
+    secretRef: "nitroso-helium"
+    configRef: "helium-poller-config"
+
+otel:
+  log:
+    zerolog:
+      stacktrace: true
+      pretty: true
+      caller: false
+  metric:
+    enable: false
+    reader: {}
+    exporter:
+      exporterType: console
+      console:
+        prettyPrint: true
+        timestamp: true
+  trace:
+    enable: false
+    processor:
+      processorType: batch
+      batchProcessorConfig: {}
+    exporter:
+      exporterType: otlp
+      otlp:
+        protocol: http
+        endpoint: localhost:4318
+        insecure: true
+        compression: gzip

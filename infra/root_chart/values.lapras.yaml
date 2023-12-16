@@ -1,12 +1,30 @@
 serviceTree:
   landscape: &landscape lapras
 
-consumer:
+bromine:
+  enable: true
+
+cdc:
   enabled: true
   serviceTree:
     landscape: *landscape
 
   imagePullSecrets: []
+
+  fullnameOverride: "tin-cdc"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+poller:
+  enabled: true
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-poller"
 
   replicaCount: 1
 
@@ -16,10 +34,12 @@ zinc:
   enable: true
   serviceTree:
     landscape: *landscape
+
   api:
     enabled: true
     replicaCount: 1
     configMountPath: /app/Config
+    fullnameOverride: "zinc-api"
     appSettings:
       Database:
         MAIN:
@@ -44,7 +64,16 @@ zinc:
     enabled: false
   maincache:
     enable: true
+    fullnameOverride: "zinc-maincache"
   maindb:
     enable: true
+    fullnameOverride: "zinc-maindb"
   mainstorage:
     enable: true
+    fullnameOverride: "zinc-mainstorage"
+
+helium:
+  enable: true
+
+livecache:
+  fullnameOverride: "tin-livecache"

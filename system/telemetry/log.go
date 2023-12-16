@@ -91,11 +91,6 @@ func (l LoggerFactory) Get() (zerolog.Logger, error) {
 		zerolog.TimeFieldFormat = format
 		zerolog.SetGlobalLevel(level)
 
-		zerolog.DurationFieldInteger = zl.DurationFieldInteger
-		if zl.Stacktrace {
-			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		}
-
 		// fields
 		if zl.Fields.Caller != nil {
 			zerolog.CallerFieldName = *zl.Fields.Caller
@@ -117,8 +112,18 @@ func (l LoggerFactory) Get() (zerolog.Logger, error) {
 		}
 		loggerContext := zerolog.New(os.Stdout).With()
 
+		zerolog.DurationFieldInteger = zl.DurationFieldInteger
+		if zl.Stacktrace {
+			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+			loggerContext = loggerContext.Stack()
+		}
+
 		if zl.Caller {
 			loggerContext = loggerContext.Caller()
+		}
+
+		if zl.Timestamp {
+			loggerContext = loggerContext.Timestamp()
 		}
 
 		logger := loggerContext.Logger()

@@ -13,3 +13,4 @@ pkg/
 .pre-commit-config.yaml
 debug.yaml
 tmp
+swagger.*

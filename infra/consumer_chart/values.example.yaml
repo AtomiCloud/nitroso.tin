@@ -14,6 +14,10 @@ envFromSecret: nitroso-tin
 
 configMountPath: /app/config
 
+jobRbac:
+  create: false
+  annotations: {}
+
 command:
   - /bin/sh
   - -c

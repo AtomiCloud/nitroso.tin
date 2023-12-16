@@ -62,6 +62,7 @@ func (l *Loader) Load() (RootConfig, error) {
 		log.Println("🚨error merging base with landscape config", err)
 		return RootConfig{}, err
 	}
+
 	var c RootConfig
 
 	err = base.Unmarshal(&c)

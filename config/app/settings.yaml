@@ -1,6 +1,6 @@
 cache:
   MAIN:
-    password: supersecret
+    password: ""
     ssl: false
     endpoints:
       0: nitroso-zinc-main-cache:6379
@@ -10,6 +10,28 @@ app:
   service: tin
   module: cdc
   version: 1.0.0
+
+stream:
+  cdc: cdc
+  update: update
+
+cdc:
+  group: cdc
+  scheme: http
+  host: localhost
+  port: 9000
+  parallelism: 8
+  backoffLimit: 3
+
+poller:
+  group: poller
+  backoffLimit: 3
+  pollee:
+    namespace: "nitroso"
+    image: ""
+    version: ""
+    secretRef: ""
+    configRef: ""
 
 otel:
   metric:
@@ -43,38 +65,3 @@ otel:
         message: message
         traceId: traceId
         spanId: spanId
-#  // Setup
-#
-#  landscape := os.Getenv("LANDSCAPE")
-#  if landscape == "" {
-#  landscape = "lapras"
-#}
-#  baseConfig := os.Getenv("BASE_CONFIG")
-#  if baseConfig == "" {
-#  baseConfig = "./config/app"
-#}
-#
-#  loader := config.Loader{
-#Landscape:  landscape,
-#BaseConfig: baseConfig,
-#}
-#  cfg, cfgErr := loader.Load()
-#  if cfgErr != nil {
-#  panic(cfgErr)
-#}
-#
-#metricConfigurator := telemetry.MetricConfigurator{Cfg: cfg.Otel.Metric}
-#traceConfigurator := telemetry.TraceConfigurator{Cfg: cfg.Otel.Trace}
-#  otelConfigurator := telemetry.OtelConfigurator{
-#App:    cfg.App,
-#Otel:   cfg.Otel,
-#Trace:  traceConfigurator,
-#Metric: metricConfigurator,
-#}
-#  logFactory := telemetry.LoggerFactory{
-#Cfg: cfg.Otel.Log,
-#}
-#  logger, loggerErr := logFactory.Get()
-#  if loggerErr != nil {
-#  panic(loggerErr)
-#}

@@ -16,6 +16,9 @@ includes:
 tasks:
   setup:
     desc: "Setup the repository"
+    env:
+      PLATFORM: "{{.PLATFORM}}"
+      SERVICE: "{{.SERVICE}}"
     cmds:
       - ./scripts/local/secrets.sh
       - go mod tidy
@@ -25,8 +28,6 @@ tasks:
       - go build -o bin/{{.PLATFORM}}-{{.SERVICE}} .
   run:
     desc: "Run the application"
-    env:
-      ATOMI_CACHE__MAIN__PASSWORD: lmao
     cmds:
       - go run . {{.CLI_ARGS}}
 
@@ -46,3 +47,8 @@ tasks:
         vars:
           NAME: zinc
           OCI: ghcr.io/atomicloud/nitroso.zinc/root-chart
+
+  sdk:gen:
+    desc: Generate the SDK
+    cmds:
+      - ./scripts/local/gen-sdk.sh
