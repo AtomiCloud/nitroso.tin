@@ -1,0 +1,107 @@
+name: CI-CD
+
+on:
+  push:
+
+env:
+  # Docker
+  DOCKER_DOMAIN: ghcr.io
+  DOCKER_USER: ${{ github.actor }}
+  DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  DOCKER_LATEST_BRANCH: main
+
+  DOCKER_CACHE_KEY_ID: ${{ secrets.R2_KEY_ID }}
+  DOCKER_CACHE_KEY_SECRET: ${{ secrets.R2_KEY_SECRET }}
+  DOCKER_CACHE_URL: "https://9f21cac25548ad04899fc78c8101e7de.r2.cloudflarestorage.com"
+  DOCKER_CACHE_BUCKET: "ci-cache"
+  DOCKER_CACHE_REGION: "APAC"
+
+  # Helm
+
+jobs:
+  precommit:
+    name: Pre-commit Check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Run pre-commit
+        run: nix develop .#ci -c ./scripts/ci/pre-commit.sh
+  build:
+    name: Build Docker
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        configs:
+          - image-name: nitroso-tin-arm
+            dockerfile: infra/Dockerfile
+            context: .
+            platform: linux/arm
+          - image-name: nitroso-tin-amd
+            dockerfile: infra/Dockerfile
+            context: .
+            platform: linux/amd64
+    env:
+      STRAT_DOCKER_IMAGE: ${{ matrix.configs.image-name }}
+      STRAT_DOCKERFILE: ${{ matrix.configs.dockerfile }}
+      STRAT_DOCKER_CONTEXT: ${{ matrix.configs.context }}
+      STRAT_DOCKER_PLATFORM: ${{ matrix.configs.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rlespinasse/github-slug-action@v3.x
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v3
+      - name: Build and Push Docker
+        run: ./scripts/ci/ci-docker.sh
+        env:
+          CI_DOCKER_IMAGE: ${{ env.STRAT_DOCKER_IMAGE }}
+          CI_DOCKER_CONTEXT: ${{ env.STRAT_DOCKER_CONTEXT }}
+          CI_DOCKERFILE: ${{ env.STRAT_DOCKERFILE }}
+          CI_DOCKER_PLATFORM: ${{ env.STRAT_DOCKER_PLATFORM }}
+
+          DOMAIN: ${{ env.DOCKER_DOMAIN }}
+
+          GITHUB_REPO_REF: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_BRANCH: ${{ env.GITHUB_REF_SLUG }}
+
+          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
+          DOCKER_USER: ${{ env.DOCKER_USER }}
+
+          S3_KEY_ID: ${{ env.DOCKER_CACHE_KEY_ID }}
+          S3_KEY_SECRET: ${{ env.DOCKER_CACHE_KEY_SECRET }}
+          S3_URL: ${{ env.DOCKER_CACHE_URL }}
+          S3_BUCKET: ${{ env.DOCKER_CACHE_BUCKET }}
+          S3_REGION: ${{ env.DOCKER_CACHE_REGION }}
+
+          LATEST_BRANCH: ${{ env.DOCKER_LATEST_BRANCH}}
+
+  release:
+    name: Semantic Release
+    needs:
+      - precommit
+      - build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: rlespinasse/github-slug-action@v3.x
+
+      - name: Release
+        env:
+          GITHUB_REPO_REF: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_BRANCH: ${{ env.GITHUB_REF_SLUG_URL }}
+          CI_DOCKER_IMAGES: "sulfone-boron-amd,sulfone-boron-arm"
+
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          DOMAIN: ${{ env.DOCKER_DOMAIN }}
+
+          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
+          DOCKER_USER: ${{ env.DOCKER_USER }}
+
+        run: nix develop .#releaser -c scripts/ci/release.sh

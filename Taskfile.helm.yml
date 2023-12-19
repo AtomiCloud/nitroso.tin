@@ -1,0 +1,48 @@
+version: "3"
+
+includes:
+  lapras:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".lapras"
+  tauros:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".tauros"
+  pinsir:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".pinsir"
+  absol:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".absol"
+  raichu:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".raichu"
+  pichu:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".pichu"
+  pikachu:
+    taskfile: tasks/Taskfile.helm.yml
+    vars:
+      LANDSCAPE: ".pikachu"
+
+tasks:
+  latest:
+    desc: Get latest helm chart dependency versions
+    cmds:
+      - >-
+        echo "sulfoxide-bromine: $(skopeo list-tags docker://ghcr.io/atomicloud/sulfoxide.bromine/sulfoxide-bromine 
+        | jq -r '.Tags[]' | sort -V | tail -n 1)"
+      - >-
+        echo "postgresql: $(skopeo list-tags docker://registry-1.docker.io/bitnamicharts/postgresql 
+        | jq -r '.Tags[]' | sort -V | tail -n 1)"
+      - >-
+        echo "minio: $(skopeo list-tags docker://registry-1.docker.io/bitnamicharts/minio 
+        | jq -r '.Tags[]' | sort -V | tail -n 1)"
+      - >-
+        echo "dragonfly: $(skopeo list-tags docker://ghcr.io/dragonflydb/dragonfly/helm/dragonfly 
+        | jq -r '.Tags[]' | sort -V | tail -n 1)"

@@ -1,0 +1,16 @@
+.direnv
+.idea
+.task
+.git
+*.a
+*.o
+*.so
+*.exe
+*.test
+*.prof
+bin/
+pkg/
+.pre-commit-config.yaml
+debug.yaml
+tmp
+swagger.*

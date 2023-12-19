@@ -1,0 +1,46 @@
+serviceTree:
+  landscape: lapras
+  platform: nitroso
+  service: tin
+  module: consumer
+
+replicaCount: 1
+appSettings: {}
+
+configMountPath: /app/config
+
+image:
+  repository: golang-chart
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+jobRbac:
+  create: false
+  annotations: {}
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources: {}
+
+autoscaling: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: {}

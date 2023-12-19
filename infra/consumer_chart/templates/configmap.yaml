@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "golang-chart.fullname-with-suffix" (dict "arg" "config" "root" .) }}
+  labels: {{- include "golang-chart.labels" . | nindent 4 }}
+  annotations: {{- include "golang-chart.annotations" . | nindent 4 }}
+data:
+  settings.yaml: |
+    {{- $pathBase := printf "%ssettings.yaml" "app/" -}}
+    {{- $fileContentBase := .Files.Get $pathBase -}}
+    {{- $configBase := fromYaml $fileContentBase -}}
+    {{- $finalBase := deepCopy $configBase | merge (deepCopy .Values.appSettings) -}}
+    {{- toYaml $finalBase | nindent 4 }}
+  settings.{{ .Values.serviceTree.landscape }}.yaml: |
+    {{- $path := printf "%ssettings.%s.yaml" "app/" .Values.serviceTree.landscape -}}
+    {{- $fileContent := .Files.Get $path -}}
+    {{- $config := fromYaml $fileContent -}}
+    {{- $final := deepCopy $config | merge (deepCopy .Values.appSettings)  -}}
+    {{- toYaml $final | nindent 4 }}

@@ -1,0 +1,104 @@
+cache:
+  MAIN:
+    password: ""
+    ssl: false
+    endpoints:
+      0: nitroso-zinc-main-cache:6379
+  LIVE:
+    password: ""
+    ssl: false
+    endpoints:
+      0: tin-livecache:6379
+ktmb:
+  apiUrl: https://online-api.ktmb.com.my
+  appUrl: https://shuttleonline-api.ktmb.com.my
+  requestSignature: ""
+
+buyer:
+  group: buyer
+  backoffLimit: 3
+  contactNumber: "+6581272251"
+  scheme: http
+  host: localhost
+  port: 9000
+
+app:
+  landscape: lapras
+  platform: nitroso
+  service: tin
+  module: cdc
+  version: 1.0.0
+
+stream:
+  cdc: cdc
+  update: update
+  enrich: enricher
+  reserver: reserver
+
+encryptor:
+  key: ""
+
+reserver:
+  group: reserver
+  backoffLimit: 3
+
+enricher:
+  group: enricher
+  backoffLimit: 3
+
+  email: kirinnee97@gmail.com
+  password: ""
+
+  userDataKey: ktmb:userData
+  storeKey: ktmb:store
+
+cdc:
+  group: cdc
+  scheme: http
+  host: localhost
+  port: 9000
+  parallelism: 8
+  backoffLimit: 3
+
+poller:
+  group: poller
+  backoffLimit: 3
+  pollee:
+    namespace: "nitroso"
+    image: ""
+    version: ""
+    secretRef: ""
+    configRef: ""
+
+otel:
+  metric:
+    enable: false
+    reader: {}
+    exporter:
+      exporterType: console
+  trace:
+    enable: false
+    processor:
+      processorType: sync
+    exporter:
+      exporterType: console
+  log:
+    zerolog:
+      timeFormat: unix # unix, unixms, unixmicro, unixnano, rfc3339, rfc3339Nano, rfc822, rfc850, rfc822z, rfc1123, rfc1123Z
+      durationFieldInteger: true
+      logLevel: debug # trace, debug, info, warn, error, fatal, panic, none
+
+      stacktrace: true
+      caller: true
+      timestamp: true
+      pretty: false
+
+      fields:
+        caller: caller
+        timestamp: timestamp
+        error: error
+        errorStack: stack
+        level: level
+        message: message
+        traceId: traceId
+        spanId: spanId

@@ -1,0 +1,54 @@
+version: "3"
+
+vars:
+  PLATFORM: nitroso
+  SERVICE: zinc
+
+  CHART_PATH: infra/root_chart
+  RELEASE_NAME: nitroso-zinc
+
+includes:
+  helm: Taskfile.helm.yml
+  tear: tasks/Taskfile.tear.yml
+  stop: tasks/Taskfile.stop.yml
+  util: tasks/Taskfile.util.yml
+
+tasks:
+  setup:
+    desc: "Setup the repository"
+    env:
+      PLATFORM: "{{.PLATFORM}}"
+      SERVICE: "{{.SERVICE}}"
+    cmds:
+      - ./scripts/local/secrets.sh
+      - go mod tidy
+  build:
+    desc: "Build the binary"
+    cmds:
+      - go build -o bin/{{.PLATFORM}}-{{.SERVICE}} .
+  run:
+    desc: "Run the application"
+    cmds:
+      - ./scripts/local/dev.sh ./config/dev.yaml go run . -- {{.CLI_ARGS}}
+
+  dev:
+    desc: Run in development
+    cmds:
+      - ./scripts/local/dev.sh ./config/dev.yaml air -- {{.CLI_ARGS}}
+
+  latest:
+    desc: Get the latest versions of dependencies
+    cmds:
+      - task: util:latest-oci
+        vars:
+          NAME: bromine
+          OCI: ghcr.io/atomicloud/sulfoxide.bromine/sulfoxide-bromine
+      - task: util:latest-oci
+        vars:
+          NAME: zinc
+          OCI: ghcr.io/atomicloud/nitroso.zinc/root-chart
+
+  sdk:gen:
+    desc: Generate the SDK
+    cmds:
+      - ./scripts/local/gen-sdk.sh

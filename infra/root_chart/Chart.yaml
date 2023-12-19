@@ -1,0 +1,64 @@
+apiVersion: v2
+name: root-chart
+description: Root Chart to a single Service
+
+type: application
+version: 0.1.0
+appVersion: "1.16.0"
+
+dependencies:
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
+    condition: cdc.enabled
+    alias: cdc
+    tags:
+      - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
+    condition: poller.enabled
+    alias: poller
+    tags:
+      - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
+    condition: enricher.enabled
+    alias: enricher
+    tags:
+      - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
+    condition: reserver.enabled
+    alias: reserver
+    tags:
+      - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
+    condition: buyer.enabled
+    alias: buyer
+    tags:
+      - active
+  - name: dragonfly
+    repository: oci://ghcr.io/dragonflydb/dragonfly/helm
+    version: v1.13.0
+    alias: livecache
+    condition: livecache.enable
+  - name: sulfoxide-bromine
+    version: 1.3.0
+    condition: bromine.enable
+    alias: bromine
+    repository: oci://ghcr.io/atomicloud/sulfoxide.bromine
+  - name: root-chart
+    version: 1.8.0
+    condition: zinc.enable
+    alias: zinc
+    repository: oci://ghcr.io/atomicloud/nitroso.zinc
+  - name: root-chart
+    version: 1.4.1
+    condition: helium.enable
+    alias: helium
+    repository: oci://ghcr.io/atomicloud/nitroso.helium

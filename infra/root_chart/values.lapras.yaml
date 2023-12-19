@@ -1,0 +1,124 @@
+serviceTree:
+  landscape: &landscape lapras
+
+bromine:
+  enable: true
+
+buyer:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-buyer"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+cdc:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-cdc"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+poller:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-poller"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+enricher:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-enricher"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+reserver:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-reserver"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+zinc:
+  enable: true
+  serviceTree:
+    landscape: *landscape
+
+  api:
+    enabled: true
+    replicaCount: 1
+    configMountPath: /app/Config
+    fullnameOverride: "zinc-api"
+    appSettings:
+      Database:
+        MAIN:
+          AutoMigrate: true
+    service:
+      type: ClusterIP
+      port: 80
+      containerPort: 9001
+    serviceTree:
+      landscape: *landscape
+    ingress:
+      enabled: true
+      className: traefik
+      hosts:
+        - host: api.zinc.nitroso.lapras.lvh.me
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls: []
+
+  migration:
+    enabled: false
+  maincache:
+    enable: true
+    fullnameOverride: "zinc-maincache"
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"
+  maindb:
+    enable: true
+    fullnameOverride: "zinc-maindb"
+  mainstorage:
+    enable: true
+    fullnameOverride: "zinc-mainstorage"
+
+helium:
+  enable: true
+  appSettings:
+    cache:
+      live:
+        endpoints:
+          0: tin-livecache:6379
+livecache:
+  fullnameOverride: "tin-livecache"
