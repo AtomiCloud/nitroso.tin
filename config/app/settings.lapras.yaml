@@ -4,6 +4,11 @@ cache:
     ssl: false
     endpoints:
       0: zinc-maincache:6379
+  LIVE:
+    password: ""
+    ssl: false
+    endpoints:
+      0: tin-livecache:6379
 app:
   landscape: lapras
 
@@ -12,9 +17,15 @@ auth:
     descopeId: P2Ya46UVwFV8nTwNGZWpxRtyL7Jj
     descopeAccessKey: ""
 
+buyer:
+  scheme: http
+  host: zinc-api
+  port: 80
+
 stream:
   cdc: cdc
   update: update
+
 cdc:
   group: cdc
   scheme: http
@@ -27,7 +38,7 @@ poller:
   pollee:
     namespace: "nitroso"
     image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-arm"
-    version: "1.3.1"
+    version: "1.4.1"
     secretRef: "nitroso-helium"
     configRef: "helium-poller-config"
 
@@ -36,7 +47,7 @@ otel:
     zerolog:
       stacktrace: true
       pretty: true
-      caller: false
+      caller: true
   metric:
     enable: false
     reader: {}

@@ -15,4 +15,4 @@ WORKDIR /app
 COPY --from=builder /app/nitroso-tin /app/nitroso-tin
 
 ENTRYPOINT [ "/app/nitroso-tin" ]
-CMD [ "start" ]
+CMD [ "cdc" ]

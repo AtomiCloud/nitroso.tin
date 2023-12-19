@@ -23,20 +23,80 @@ securityContext: &securityContext
     drop:
       - ALL
 
-consumer:
+cdc:
   enabled: true
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/consumer-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-
+  fullnameOverride: "tin-cdc"
   replicaCount: 1
-
   configMountPath: /app/config
+  command: ["/app/nitroso-tin", "cdc"]
+
+enricher:
+  enabled: true
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  fullnameOverride: "tin-enricher"
+  replicaCount: 1
+  configMountPath: /app/config
+  command: ["/app/nitroso-tin", "enricher"]
+
+poller:
+  enabled: true
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  fullnameOverride: "tin-poller"
+  replicaCount: 1
+  configMountPath: /app/config
+  command: ["/app/nitroso-tin", "poller"]
+
+reserver:
+  enabled: true
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  fullnameOverride: "tin-reserver"
+  replicaCount: 1
+  configMountPath: /app/config
+  command: ["/app/nitroso-tin", "reserver"]
+
+buyer:
+  enabled: true
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  fullnameOverride: "tin-buyer"
+  replicaCount: 1
+  configMountPath: /app/config
+  command: ["/app/nitroso-tin", "buyer"]
 
 zinc:
   enable: false

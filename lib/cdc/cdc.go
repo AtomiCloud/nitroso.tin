@@ -1,4 +1,4 @@
-package lib
+package cdc
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 
 var baseDelay = 1 * time.Second
 
-// What your applicaiton needs
+// What your application needs
 
 type Cdc struct {
 	redis            *otelredis.OtelRedis
@@ -52,7 +52,7 @@ func (c *Cdc) createGroup(ctx context.Context) {
 
 func (c *Cdc) Start(ctx context.Context, consumerId string) error {
 
-	maxCounter := c.cdcConfig.Parallelism
+	maxCounter := c.cdcConfig.BackoffLimit
 
 	errorCounter := 0
 
@@ -65,7 +65,7 @@ func (c *Cdc) Start(ctx context.Context, consumerId string) error {
 				return err
 			}
 			secRetry := math.Pow(2, float64(errorCounter))
-			c.logger.Info().Msgf("Retrying operation in %f seconds", secRetry)
+			c.logger.Info().Msgf("Retrying operation in %f seconds\n", secRetry)
 			delay := time.Duration(secRetry) * baseDelay
 			time.Sleep(delay)
 			errorCounter++
@@ -123,7 +123,7 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 	c.logger.Info().Ctx(ctx).Msg("Calling Zinc API endpoint: " + endpoint)
 	resp, er := client.GetApiVVersionBookingCounts(ctx, "1.0")
 	if er != nil {
-		c.logger.Error().Err(er).Msgf("Failed to call CDC endpoint")
+		c.logger.Error().Err(er).Msg("Failed to call CDC endpoint")
 		return er
 	} else {
 		c.logger.Info().Ctx(ctx).Msg("CDC endpoint response: " + resp.Status)
@@ -180,14 +180,14 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 		c.logger.Error().Err(er).
 			Str("redisKey", key).
 			Str("redisCmd", result).
-			Msgf("Failed to set key: %s. Result: %s", key, result)
+			Msgf("Failed to set key: %s. Result: %s\n", key, result)
 		return er
 	}
 
 	// notify the stream
 	cmdErr, redErr := c.redis.StreamAdd(ctx, tracer, c.streamConfig.Update, "ping")
 	if redErr != nil {
-		c.logger.Error().Err(redErr).Msgf("Failed to notify enricher and pollers: %s", cmdErr)
+		c.logger.Error().Err(redErr).Msgf("Failed to notify enricher and pollers: %s\n", cmdErr)
 		return redErr
 	}
 	return nil

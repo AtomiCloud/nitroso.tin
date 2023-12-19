@@ -1,4 +1,4 @@
-package poller
+package enricher
 
 import (
 	"context"
@@ -6,10 +6,10 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
-	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"math"
+	"math/rand"
 	"time"
 )
 
@@ -19,38 +19,42 @@ type Trigger struct {
 	channel          chan string
 	redis            *otelredis.OtelRedis
 	stream           config.StreamConfig
-	poller           config.PollerConfig
+	enricher         config.EnricherConfig
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
 	psd              string
 }
 
-func NewTrigger(channel chan string, logger *zerolog.Logger, rds *otelredis.OtelRedis, streams config.StreamConfig, pollers config.PollerConfig, otelConfigurator *telemetry.OtelConfigurator, psd string) *Trigger {
+func NewTrigger(channel chan string, logger *zerolog.Logger, rds *otelredis.OtelRedis,
+	streams config.StreamConfig, enricher config.EnricherConfig, otelConfigurator *telemetry.OtelConfigurator,
+	psd string) *Trigger {
 
 	return &Trigger{
 		channel:          channel,
 		redis:            rds,
 		stream:           streams,
-		poller:           pollers,
+		enricher:         enricher,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
 		psd:              psd,
 	}
 }
 
-func (p *Trigger) Cron(ctx context.Context) {
+func (p *Trigger) RandomTrigger(ctx context.Context) {
+	source := rand.NewSource(time.Now().UnixNano())
+	random := rand.New(source)
 
-	c := cron.New()
-	c.AddFunc("@every 1m", func() {
-		p.channel <- "cron"
-	})
-	c.Start()
-
+	for {
+		p.channel <- "random"
+		randomInt := random.Intn(7200) + 7200
+		duration := time.Duration(randomInt) * time.Second
+		time.Sleep(duration)
+	}
 }
 
 func (p *Trigger) RedisStream(ctx context.Context, consumerId string) error {
 
-	maxCounter := p.poller.BackoffLimit
+	maxCounter := p.enricher.BackoffLimit
 
 	errorCounter := 0
 
@@ -80,7 +84,7 @@ func (p *Trigger) RedisStream(ctx context.Context, consumerId string) error {
 }
 
 func (p *Trigger) createGroup(ctx context.Context) {
-	status := p.redis.XGroupCreateMkStream(ctx, p.stream.Update, p.poller.Group, "0")
+	status := p.redis.XGroupCreateMkStream(ctx, p.stream.Update, p.enricher.Group, "0")
 	p.logger.Info().Msg("Group Create Status: " + status.String())
 }
 
@@ -100,7 +104,7 @@ func (p *Trigger) redisLoop(ctx context.Context, consumerId string) (bool, error
 	ctx, span := tracer.Start(ctx, "CDC Poller")
 	defer span.End()
 	p.logger.Info().Ctx(ctx).Msg("Waiting for CDC messages...")
-	err = p.redis.StreamGroupRead(ctx, tracer, p.stream.Update, p.poller.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {
+	err = p.redis.StreamGroupRead(ctx, tracer, p.stream.Update, p.enricher.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {
 		p.logger.Info().Ctx(ctx).Msg("Received CDC signal")
 		p.channel <- "redis-stream"
 		return nil

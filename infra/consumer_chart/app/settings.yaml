@@ -4,6 +4,24 @@ cache:
     ssl: false
     endpoints:
       0: nitroso-zinc-main-cache:6379
+  LIVE:
+    password: ""
+    ssl: false
+    endpoints:
+      0: tin-livecache:6379
+ktmb:
+  apiUrl: https://online-api.ktmb.com.my
+  appUrl: https://shuttleonline-api.ktmb.com.my
+  requestSignature: ""
+
+buyer:
+  group: buyer
+  backoffLimit: 3
+  contactNumber: "+6581272251"
+  scheme: http
+  host: localhost
+  port: 9000
+
 app:
   landscape: lapras
   platform: nitroso
@@ -14,6 +32,25 @@ app:
 stream:
   cdc: cdc
   update: update
+  enrich: enricher
+  reserver: reserver
+
+encryptor:
+  key: ""
+
+reserver:
+  group: reserver
+  backoffLimit: 3
+
+enricher:
+  group: enricher
+  backoffLimit: 3
+
+  email: kirinnee97@gmail.com
+  password: ""
+
+  userDataKey: ktmb:userData
+  storeKey: ktmb:store
 
 cdc:
   group: cdc

@@ -34,11 +34,11 @@ jobs:
     strategy:
       matrix:
         configs:
-          - image-name: sulfone-boron-arm
+          - image-name: nitroso-tin-arm
             dockerfile: Dockerfile
             context: .
             platform: linux/arm
-          - image-name: sulfone-boron-amd
+          - image-name: nitroso-tin-amd
             dockerfile: Dockerfile
             context: .
             platform: linux/amd64

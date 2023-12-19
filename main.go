@@ -80,6 +80,18 @@ func main() {
 				Name:   "poller",
 				Action: state.Poller,
 			},
+			{
+				Name:   "enricher",
+				Action: state.Enricher,
+			},
+			{
+				Name:   "reserver",
+				Action: state.Reserver,
+			},
+			{
+				Name:   "buyer",
+				Action: state.Buyer,
+			},
 		},
 	}
 

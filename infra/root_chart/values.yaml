@@ -16,8 +16,8 @@ bromine:
     ref: "NITROSO_TIN"
 
   target: &target "nitroso-tin"
+
 cdc:
-  enabled: true
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
@@ -70,7 +70,6 @@ cdc:
   topologySpreadConstraints: {}
 
 poller:
-  enabled: true
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
@@ -124,6 +123,160 @@ poller:
 
   topologySpreadConstraints: {}
 
+enricher:
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: "tin-enricher"
+
+  serviceTree:
+    <<: *serviceTree
+    module: enricher
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings: {}
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-enricher
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    create: true
+    annotations:
+      argocd.argoproj.io/sync-wave: "4"
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
+reserver:
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: "tin-reserver"
+
+  serviceTree:
+    <<: *serviceTree
+    module: reserver
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings: {}
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-reserver
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    create: true
+    annotations:
+      argocd.argoproj.io/sync-wave: "4"
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
+buyer:
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: "tin-buyer"
+
+  serviceTree:
+    <<: *serviceTree
+    module: buyer
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings: {}
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-buyer
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    create: false
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
 zinc:
   api:
     configMountPath: /app/Config
@@ -146,6 +299,14 @@ livecache:
   nameOverride: tin-livecache
   storage:
     enabled: false
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
 
   passwordFromSecret:
     enable: true

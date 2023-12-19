@@ -4,8 +4,19 @@ serviceTree:
 bromine:
   enable: true
 
+buyer:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-buyer"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 cdc:
-  enabled: true
   serviceTree:
     landscape: *landscape
 
@@ -18,13 +29,36 @@ cdc:
   configMountPath: /app/config
 
 poller:
-  enabled: true
   serviceTree:
     landscape: *landscape
 
   imagePullSecrets: []
 
   fullnameOverride: "tin-poller"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+enricher:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-enricher"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
+reserver:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-reserver"
 
   replicaCount: 1
 
@@ -65,6 +99,13 @@ zinc:
   maincache:
     enable: true
     fullnameOverride: "zinc-maincache"
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"
   maindb:
     enable: true
     fullnameOverride: "zinc-maindb"
@@ -74,6 +115,10 @@ zinc:
 
 helium:
   enable: true
-
+  appSettings:
+    cache:
+      live:
+        endpoints:
+          0: tin-livecache:6379
 livecache:
   fullnameOverride: "tin-livecache"

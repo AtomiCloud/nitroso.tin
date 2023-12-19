@@ -48,7 +48,7 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 	name := fmt.Sprintf("helium-pollee-%s-%s-%s",
 		strings.ToLower(date),
 		strings.ToLower(direction),
-		random[len(random)-5:])
+		random)
 
 	configMapKey := fmt.Sprintf("%s.config.yaml", h.appConfig.Landscape)
 
@@ -73,7 +73,7 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 				Command: []string{
 					"bun",
 					"run",
-					"src/index.ts",
+					"index.js",
 					"watch",
 					"-d",
 					date,

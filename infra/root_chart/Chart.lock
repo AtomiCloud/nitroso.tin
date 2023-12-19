@@ -5,6 +5,15 @@ dependencies:
 - name: golang-chart
   repository: file://../consumer_chart
   version: 0.1.0
+- name: golang-chart
+  repository: file://../consumer_chart
+  version: 0.1.0
+- name: golang-chart
+  repository: file://../consumer_chart
+  version: 0.1.0
+- name: golang-chart
+  repository: file://../consumer_chart
+  version: 0.1.0
 - name: dragonfly
   repository: oci://ghcr.io/dragonflydb/dragonfly/helm
   version: v1.13.0
@@ -13,9 +22,9 @@ dependencies:
   version: 1.3.0
 - name: root-chart
   repository: oci://ghcr.io/atomicloud/nitroso.zinc
-  version: 1.6.5
+  version: 1.8.0
 - name: root-chart
   repository: oci://ghcr.io/atomicloud/nitroso.helium
-  version: 1.3.0
-digest: sha256:8aa02719aeda8767bda8bb601be60018b3bb63eaad80ba94fcf9bca158d64e19
-generated: "2023-12-14T00:09:31.896926+08:00"
+  version: 1.4.1
+digest: sha256:2668f886f2849a3bb97a34a16182e21263b0894ce75228e94f5f82583636c09a
+generated: "2023-12-18T23:26:32.805745+08:00"

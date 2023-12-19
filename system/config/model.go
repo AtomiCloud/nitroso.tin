@@ -1,13 +1,36 @@
 package config
 
 type RootConfig struct {
-	Cache  map[string]CacheConfig
-	App    AppConfig
-	Otel   OtelConfig
-	Cdc    CdcConfig
-	Stream StreamConfig
-	Auth   AuthConfig
-	Poller PollerConfig
+	Cache     map[string]CacheConfig
+	App       AppConfig
+	Otel      OtelConfig
+	Cdc       CdcConfig
+	Stream    StreamConfig
+	Auth      AuthConfig
+	Poller    PollerConfig
+	Reserver  ReserverConfig
+	Encryptor EncryptorConfig
+	Enricher  EnricherConfig
+	Ktmb      KtmbConfig
+	Buyer     BuyerConfig
+}
+
+// Buyer Config
+type BuyerConfig struct {
+	Group         string
+	BackoffLimit  int
+	ContactNumber string
+
+	Scheme string
+	Host   string
+	Port   string
+}
+
+// KTMB Config
+type KtmbConfig struct {
+	ApiUrl           string
+	AppUrl           string
+	RequestSignature string
 }
 
 // Auth Config
@@ -18,6 +41,29 @@ type AuthConfig struct {
 type DescopeConfig struct {
 	DescopeId        string
 	DescopeAccessKey string
+}
+
+// Encryptor
+type EncryptorConfig struct {
+	Key string
+}
+
+// Reserver
+type ReserverConfig struct {
+	Group        string
+	BackoffLimit int
+}
+
+// Enricher
+type EnricherConfig struct {
+	Group        string
+	BackoffLimit int
+
+	Email    string
+	Password string
+
+	UserDataKey string
+	StoreKey    string
 }
 
 // Poller
@@ -38,8 +84,10 @@ type PolleeConfig struct {
 
 // Stream
 type StreamConfig struct {
-	Cdc    string
-	Update string
+	Cdc      string
+	Update   string
+	Enrich   string
+	Reserver string
 }
 
 // Cdc

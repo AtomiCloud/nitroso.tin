@@ -53,14 +53,15 @@ type BookingPassengerRes struct {
 
 // BookingPrincipalRes defines model for BookingPrincipalRes.
 type BookingPrincipalRes struct {
-	CompletedAt *time.Time             `json:"completedAt"`
-	CreatedAt   *time.Time             `json:"createdAt,omitempty"`
-	Date        *string                `json:"date"`
-	Direction   *string                `json:"direction"`
-	Id          *openapi_types.UUID    `json:"id,omitempty"`
-	Passengers  *[]BookingPassengerRes `json:"passengers"`
-	Status      *string                `json:"status"`
-	Time        *string                `json:"time"`
+	CompletedAt *time.Time           `json:"completedAt"`
+	CreatedAt   *time.Time           `json:"createdAt,omitempty"`
+	Date        *string              `json:"date"`
+	Direction   *string              `json:"direction"`
+	Id          *openapi_types.UUID  `json:"id,omitempty"`
+	Passenger   *BookingPassengerRes `json:"passenger,omitempty"`
+	Status      *string              `json:"status"`
+	TicketLink  *string              `json:"ticketLink"`
+	Time        *string              `json:"time"`
 }
 
 // BookingRes defines model for BookingRes.
@@ -71,10 +72,10 @@ type BookingRes struct {
 
 // CreateBookingReq defines model for CreateBookingReq.
 type CreateBookingReq struct {
-	Date       *string                `json:"date"`
-	Direction  *string                `json:"direction"`
-	Passengers *[]BookingPassengerReq `json:"passengers"`
-	Time       *string                `json:"time"`
+	Date      *string              `json:"date"`
+	Direction *string              `json:"direction"`
+	Passenger *BookingPassengerReq `json:"passenger,omitempty"`
+	Time      *string              `json:"time"`
 }
 
 // CreatePassengerReq defines model for CreatePassengerReq.
@@ -199,6 +200,16 @@ type GetApiVVersionBookingParams struct {
 	Skip      *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
 }
 
+// PostApiVVersionBookingCompleteIdJSONBody defines parameters for PostApiVVersionBookingCompleteId.
+type PostApiVVersionBookingCompleteIdJSONBody struct {
+	File *openapi_types.File `json:"file,omitempty"`
+}
+
+// PostApiVVersionBookingCompleteIdMultipartBody defines parameters for PostApiVVersionBookingCompleteId.
+type PostApiVVersionBookingCompleteIdMultipartBody struct {
+	File *openapi_types.File `json:"file,omitempty"`
+}
+
 // GetApiVVersionPassengerParams defines parameters for GetApiVVersionPassenger.
 type GetApiVVersionPassengerParams struct {
 	UserId *string `form:"UserId,omitempty" json:"UserId,omitempty"`
@@ -217,6 +228,12 @@ type GetApiVVersionUserParams struct {
 
 // PostApiVVersionBookingBypassUserIdJSONRequestBody defines body for PostApiVVersionBookingBypassUserId for application/json ContentType.
 type PostApiVVersionBookingBypassUserIdJSONRequestBody = CreateBookingReq
+
+// PostApiVVersionBookingCompleteIdJSONRequestBody defines body for PostApiVVersionBookingCompleteId for application/json ContentType.
+type PostApiVVersionBookingCompleteIdJSONRequestBody PostApiVVersionBookingCompleteIdJSONBody
+
+// PostApiVVersionBookingCompleteIdMultipartRequestBody defines body for PostApiVVersionBookingCompleteId for multipart/form-data ContentType.
+type PostApiVVersionBookingCompleteIdMultipartRequestBody PostApiVVersionBookingCompleteIdMultipartBody
 
 // PostApiVVersionPassengerUserIdJSONRequestBody defines body for PostApiVVersionPassengerUserId for application/json ContentType.
 type PostApiVVersionPassengerUserIdJSONRequestBody = CreatePassengerReq
@@ -318,6 +335,9 @@ type ClientInterface interface {
 	// GetApiVVersionBooking request
 	GetApiVVersionBooking(ctx context.Context, version string, params *GetApiVVersionBookingParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PostApiVVersionBookingBuyingId request
+	PostApiVVersionBookingBuyingId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PostApiVVersionBookingBypassUserIdWithBody request with any body
 	PostApiVVersionBookingBypassUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -326,11 +346,16 @@ type ClientInterface interface {
 	// PostApiVVersionBookingCancelBypassId request
 	PostApiVVersionBookingCancelBypassId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostApiVVersionBookingCompleteId request
-	PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostApiVVersionBookingCompleteIdWithBody request with any body
+	PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetApiVVersionBookingCounts request
 	GetApiVVersionBookingCounts(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionBookingReserveDirectionDateTime request
+	GetApiVVersionBookingReserveDirectionDateTime(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetApiVVersionBookingUserIdId request
 	GetApiVVersionBookingUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -443,6 +468,18 @@ func (c *Client) GetApiVVersionBooking(ctx context.Context, version string, para
 	return c.Client.Do(req)
 }
 
+func (c *Client) PostApiVVersionBookingBuyingId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingBuyingIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) PostApiVVersionBookingBypassUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostApiVVersionBookingBypassUserIdRequestWithBody(c.Server, version, userId, contentType, body)
 	if err != nil {
@@ -479,8 +516,20 @@ func (c *Client) PostApiVVersionBookingCancelBypassId(ctx context.Context, versi
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostApiVVersionBookingCompleteIdRequest(c.Server, version, id)
+func (c *Client) PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingCompleteIdRequestWithBody(c.Server, version, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingCompleteIdRequest(c.Server, version, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -493,6 +542,18 @@ func (c *Client) PostApiVVersionBookingCompleteId(ctx context.Context, version s
 
 func (c *Client) GetApiVVersionBookingCounts(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionBookingCountsRequest(c.Server, version)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionBookingReserveDirectionDateTime(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionBookingReserveDirectionDateTimeRequest(c.Server, version, direction, date, time)
 	if err != nil {
 		return nil, err
 	}
@@ -1038,6 +1099,47 @@ func NewGetApiVVersionBookingRequest(server string, version string, params *GetA
 	return req, nil
 }
 
+// NewPostApiVVersionBookingBuyingIdRequest generates requests for PostApiVVersionBookingBuyingId
+func NewPostApiVVersionBookingBuyingIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/buying/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewPostApiVVersionBookingBypassUserIdRequest calls the generic PostApiVVersionBookingBypassUserId builder with application/json body
 func NewPostApiVVersionBookingBypassUserIdRequest(server string, version string, userId string, body PostApiVVersionBookingBypassUserIdJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1133,8 +1235,19 @@ func NewPostApiVVersionBookingCancelBypassIdRequest(server string, version strin
 	return req, nil
 }
 
-// NewPostApiVVersionBookingCompleteIdRequest generates requests for PostApiVVersionBookingCompleteId
-func NewPostApiVVersionBookingCompleteIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+// NewPostApiVVersionBookingCompleteIdRequest calls the generic PostApiVVersionBookingCompleteId builder with application/json body
+func NewPostApiVVersionBookingCompleteIdRequest(server string, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionBookingCompleteIdRequestWithBody(server, version, id, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionBookingCompleteIdRequestWithBody generates requests for PostApiVVersionBookingCompleteId with any type of body
+func NewPostApiVVersionBookingCompleteIdRequestWithBody(server string, version string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1166,10 +1279,12 @@ func NewPostApiVVersionBookingCompleteIdRequest(server string, version string, i
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1191,6 +1306,61 @@ func NewGetApiVVersionBookingCountsRequest(server string, version string) (*http
 	}
 
 	operationPath := fmt.Sprintf("/api/v%s/Booking/counts", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionBookingReserveDirectionDateTimeRequest generates requests for GetApiVVersionBookingReserveDirectionDateTime
+func NewGetApiVVersionBookingReserveDirectionDateTimeRequest(server string, version string, direction string, date string, time string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "Direction", runtime.ParamLocationPath, direction)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "Date", runtime.ParamLocationPath, date)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam3 string
+
+	pathParam3, err = runtime.StyleParamWithLocation("simple", false, "Time", runtime.ParamLocationPath, time)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/reserve/%s/%s/%s", pathParam0, pathParam1, pathParam2, pathParam3)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2458,6 +2628,9 @@ type ClientWithResponsesInterface interface {
 	// GetApiVVersionBookingWithResponse request
 	GetApiVVersionBookingWithResponse(ctx context.Context, version string, params *GetApiVVersionBookingParams, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingResponse, error)
 
+	// PostApiVVersionBookingBuyingIdWithResponse request
+	PostApiVVersionBookingBuyingIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBuyingIdResponse, error)
+
 	// PostApiVVersionBookingBypassUserIdWithBodyWithResponse request with any body
 	PostApiVVersionBookingBypassUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBypassUserIdResponse, error)
 
@@ -2466,11 +2639,16 @@ type ClientWithResponsesInterface interface {
 	// PostApiVVersionBookingCancelBypassIdWithResponse request
 	PostApiVVersionBookingCancelBypassIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCancelBypassIdResponse, error)
 
-	// PostApiVVersionBookingCompleteIdWithResponse request
-	PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
+	// PostApiVVersionBookingCompleteIdWithBodyWithResponse request with any body
+	PostApiVVersionBookingCompleteIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
+
+	PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
 
 	// GetApiVVersionBookingCountsWithResponse request
 	GetApiVVersionBookingCountsWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingCountsResponse, error)
+
+	// GetApiVVersionBookingReserveDirectionDateTimeWithResponse request
+	GetApiVVersionBookingReserveDirectionDateTimeWithResponse(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingReserveDirectionDateTimeResponse, error)
 
 	// GetApiVVersionBookingUserIdIdWithResponse request
 	GetApiVVersionBookingUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingUserIdIdResponse, error)
@@ -2602,6 +2780,28 @@ func (r GetApiVVersionBookingResponse) StatusCode() int {
 	return 0
 }
 
+type PostApiVVersionBookingBuyingIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionBookingBuyingIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionBookingBuyingIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type PostApiVVersionBookingBypassUserIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2684,6 +2884,28 @@ func (r GetApiVVersionBookingCountsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetApiVVersionBookingCountsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionBookingReserveDirectionDateTimeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionBookingReserveDirectionDateTimeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionBookingReserveDirectionDateTimeResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3232,6 +3454,15 @@ func (c *ClientWithResponses) GetApiVVersionBookingWithResponse(ctx context.Cont
 	return ParseGetApiVVersionBookingResponse(rsp)
 }
 
+// PostApiVVersionBookingBuyingIdWithResponse request returning *PostApiVVersionBookingBuyingIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingBuyingIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBuyingIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingBuyingId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingBuyingIdResponse(rsp)
+}
+
 // PostApiVVersionBookingBypassUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionBookingBypassUserIdResponse
 func (c *ClientWithResponses) PostApiVVersionBookingBypassUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBypassUserIdResponse, error) {
 	rsp, err := c.PostApiVVersionBookingBypassUserIdWithBody(ctx, version, userId, contentType, body, reqEditors...)
@@ -3258,9 +3489,17 @@ func (c *ClientWithResponses) PostApiVVersionBookingCancelBypassIdWithResponse(c
 	return ParsePostApiVVersionBookingCancelBypassIdResponse(rsp)
 }
 
-// PostApiVVersionBookingCompleteIdWithResponse request returning *PostApiVVersionBookingCompleteIdResponse
-func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
-	rsp, err := c.PostApiVVersionBookingCompleteId(ctx, version, id, reqEditors...)
+// PostApiVVersionBookingCompleteIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionBookingCompleteIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingCompleteIdWithBody(ctx, version, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingCompleteIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingCompleteId(ctx, version, id, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3274,6 +3513,15 @@ func (c *ClientWithResponses) GetApiVVersionBookingCountsWithResponse(ctx contex
 		return nil, err
 	}
 	return ParseGetApiVVersionBookingCountsResponse(rsp)
+}
+
+// GetApiVVersionBookingReserveDirectionDateTimeWithResponse request returning *GetApiVVersionBookingReserveDirectionDateTimeResponse
+func (c *ClientWithResponses) GetApiVVersionBookingReserveDirectionDateTimeWithResponse(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingReserveDirectionDateTimeResponse, error) {
+	rsp, err := c.GetApiVVersionBookingReserveDirectionDateTime(ctx, version, direction, date, time, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionBookingReserveDirectionDateTimeResponse(rsp)
 }
 
 // GetApiVVersionBookingUserIdIdWithResponse request returning *GetApiVVersionBookingUserIdIdResponse
@@ -3593,6 +3841,35 @@ func ParseGetApiVVersionBookingResponse(rsp *http.Response) (*GetApiVVersionBook
 	return response, nil
 }
 
+// ParsePostApiVVersionBookingBuyingIdResponse parses an HTTP response from a PostApiVVersionBookingBuyingIdWithResponse call
+func ParsePostApiVVersionBookingBuyingIdResponse(rsp *http.Response) (*PostApiVVersionBookingBuyingIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionBookingBuyingIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParsePostApiVVersionBookingBypassUserIdResponse parses an HTTP response from a PostApiVVersionBookingBypassUserIdWithResponse call
 func ParsePostApiVVersionBookingBypassUserIdResponse(rsp *http.Response) (*PostApiVVersionBookingBypassUserIdResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -3696,6 +3973,35 @@ func ParseGetApiVVersionBookingCountsResponse(rsp *http.Response) (*GetApiVVersi
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []BookingCountRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionBookingReserveDirectionDateTimeResponse parses an HTTP response from a GetApiVVersionBookingReserveDirectionDateTimeWithResponse call
+func ParseGetApiVVersionBookingReserveDirectionDateTimeResponse(rsp *http.Response) (*GetApiVVersionBookingReserveDirectionDateTimeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionBookingReserveDirectionDateTimeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4362,6 +4668,9 @@ type ServerInterface interface {
 	// (GET /api/v{version}/Booking)
 	GetApiVVersionBooking(ctx echo.Context, version string, params GetApiVVersionBookingParams) error
 
+	// (POST /api/v{version}/Booking/buying/{id})
+	PostApiVVersionBookingBuyingId(ctx echo.Context, version string, id openapi_types.UUID) error
+
 	// (POST /api/v{version}/Booking/bypass/{userId})
 	PostApiVVersionBookingBypassUserId(ctx echo.Context, version string, userId string) error
 
@@ -4373,6 +4682,9 @@ type ServerInterface interface {
 
 	// (GET /api/v{version}/Booking/counts)
 	GetApiVVersionBookingCounts(ctx echo.Context, version string) error
+
+	// (GET /api/v{version}/Booking/reserve/{Direction}/{Date}/{Time})
+	GetApiVVersionBookingReserveDirectionDateTime(ctx echo.Context, version string, direction string, date string, time string) error
 
 	// (GET /api/v{version}/Booking/{userId}/{id})
 	GetApiVVersionBookingUserIdId(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
@@ -4525,6 +4837,32 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBooking(ctx echo.Context) error {
 	return err
 }
 
+// PostApiVVersionBookingBuyingId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingBuyingId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingBuyingId(ctx, version, id)
+	return err
+}
+
 // PostApiVVersionBookingBypassUserId converts echo context to params.
 func (w *ServerInterfaceWrapper) PostApiVVersionBookingBypassUserId(ctx echo.Context) error {
 	var err error
@@ -4618,6 +4956,48 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBookingCounts(ctx echo.Context) e
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetApiVVersionBookingCounts(ctx, version)
+	return err
+}
+
+// GetApiVVersionBookingReserveDirectionDateTime converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionBookingReserveDirectionDateTime(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "Direction" -------------
+	var direction string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "Direction", runtime.ParamLocationPath, ctx.Param("Direction"), &direction)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Direction: %s", err))
+	}
+
+	// ------------- Path parameter "Date" -------------
+	var date string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "Date", runtime.ParamLocationPath, ctx.Param("Date"), &date)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Date: %s", err))
+	}
+
+	// ------------- Path parameter "Time" -------------
+	var time string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "Time", runtime.ParamLocationPath, ctx.Param("Time"), &time)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Time: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionBookingReserveDirectionDateTime(ctx, version, direction, date, time)
 	return err
 }
 
@@ -5319,10 +5699,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/", wrapper.Get)
 	router.GET(baseURL+"/api/v:version/Booking", wrapper.GetApiVVersionBooking)
+	router.POST(baseURL+"/api/v:version/Booking/buying/:id", wrapper.PostApiVVersionBookingBuyingId)
 	router.POST(baseURL+"/api/v:version/Booking/bypass/:userId", wrapper.PostApiVVersionBookingBypassUserId)
 	router.POST(baseURL+"/api/v:version/Booking/cancel/bypass/:id", wrapper.PostApiVVersionBookingCancelBypassId)
 	router.POST(baseURL+"/api/v:version/Booking/complete/:id", wrapper.PostApiVVersionBookingCompleteId)
 	router.GET(baseURL+"/api/v:version/Booking/counts", wrapper.GetApiVVersionBookingCounts)
+	router.GET(baseURL+"/api/v:version/Booking/reserve/:Direction/:Date/:Time", wrapper.GetApiVVersionBookingReserveDirectionDateTime)
 	router.GET(baseURL+"/api/v:version/Booking/:userId/:id", wrapper.GetApiVVersionBookingUserIdId)
 	router.GET(baseURL+"/api/v:version/Passenger", wrapper.GetApiVVersionPassenger)
 	router.POST(baseURL+"/api/v:version/Passenger/:userId", wrapper.PostApiVVersionPassengerUserId)
@@ -5353,39 +5735,41 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

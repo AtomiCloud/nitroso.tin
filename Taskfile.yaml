@@ -29,7 +29,7 @@ tasks:
   run:
     desc: "Run the application"
     cmds:
-      - go run . {{.CLI_ARGS}}
+      - ./scripts/local/dev.sh ./config/dev.yaml go run . -- {{.CLI_ARGS}}
 
   dev:
     desc: Run in development
