@@ -127,10 +127,11 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 		RestartPolicy: v1.RestartPolicyNever,
 	}
 
+	ttl := int32(600)
 	jb := &batchv1.Job{
 		ObjectMeta: meta,
 		Spec: batchv1.JobSpec{
-
+			TTLSecondsAfterFinished: &ttl,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: labels,
