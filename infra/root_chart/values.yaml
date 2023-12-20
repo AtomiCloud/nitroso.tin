@@ -1,8 +1,13 @@
 serviceTree: &serviceTree
-  landscape: lapras
-  platform: nitroso
-  service: tin
+  landscape: "lapras"
+  platform: "nitroso"
+  service: "tin"
   layer: "2"
+
+tags: &tags
+  atomi.cloud/platform: "nitroso"
+  atomi.cloud/service: "tin"
+  atomi.cloud/layer: "2"
 
 bromine:
   annotations:
@@ -291,16 +296,18 @@ helium:
 
 livecache:
   nameOverride: tin-livecache
-  storage:
-    enabled: false
 
-  podAnnotations:
-    atomi.cloud/landscape: lapras
-    atomi.cloud/platform: nitroso
-    atomi.cloud/service: tin
+  commonAnnotations:
+    <<: *tags
     atomi.cloud/module: livecache
-    atomi.cloud/layer: "2"
-
+    argocd.argoproj.io/sync-wave: "2"
+  commonLabels:
+    <<: *tags
+    atomi.cloud/module: livecache
+  podAnnotations:
+    <<: *tags
+    atomi.cloud/module: livecache
+    argocd.argoproj.io/sync-wave: "2"
   resources:
     requests:
       memory: "256Mi"
@@ -309,8 +316,16 @@ livecache:
       memory: "512Mi"
       cpu: "250m"
 
-  passwordFromSecret:
-    enable: true
-    existingSecret:
-      key: ATOMI_CACHE__LIVE__PASSWORD
-      name: *target
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: *target
+    existingSecretPasswordKey: ATOMI_CACHE__LIVE__PASSWORD
+
+  master:
+    persistence:
+      enabled: false
+
+  replica:
+    persistence:
+      enabled: false

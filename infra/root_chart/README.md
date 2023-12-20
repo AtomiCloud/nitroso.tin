@@ -13,10 +13,10 @@ Root Chart to a single Service
 | file://../consumer_chart | enricher(golang-chart) | 0.1.0 |
 | file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
 | file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
-| oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.4.1 |
+| oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.4.3 |
 | oci://ghcr.io/atomicloud/nitroso.zinc | zinc(root-chart) | 1.8.0 |
 | oci://ghcr.io/atomicloud/sulfoxide.bromine | bromine(sulfoxide-bromine) | 1.3.0 |
-| oci://ghcr.io/dragonflydb/dragonfly/helm | livecache(dragonfly) | v1.13.0 |
+| oci://registry-1.docker.io/bitnamicharts | livecache(redis) | 18.6.1 |
 
 ## Values
 
@@ -111,20 +111,31 @@ Root Chart to a single Service
 | helium.bromine.target | string | `"nitroso-helium"` |  |
 | helium.enable | bool | `false` |  |
 | helium.fullnameOverride | string | `"helium-poller"` |  |
+| livecache.architecture | string | `"standalone"` |  |
+| livecache.auth.enabled | bool | `true` |  |
+| livecache.auth.existingSecret | string | `"nitroso-tin"` |  |
+| livecache.auth.existingSecretPasswordKey | string | `"ATOMI_CACHE__LIVE__PASSWORD"` |  |
+| livecache.commonAnnotations."argocd.argoproj.io/sync-wave" | string | `"2"` |  |
+| livecache.commonAnnotations."atomi.cloud/module" | string | `"livecache"` |  |
+| livecache.commonAnnotations.<<."atomi.cloud/layer" | string | `"2"` |  |
+| livecache.commonAnnotations.<<."atomi.cloud/platform" | string | `"nitroso"` |  |
+| livecache.commonAnnotations.<<."atomi.cloud/service" | string | `"tin"` |  |
+| livecache.commonLabels."atomi.cloud/module" | string | `"livecache"` |  |
+| livecache.commonLabels.<<."atomi.cloud/layer" | string | `"2"` |  |
+| livecache.commonLabels.<<."atomi.cloud/platform" | string | `"nitroso"` |  |
+| livecache.commonLabels.<<."atomi.cloud/service" | string | `"tin"` |  |
+| livecache.master.persistence.enabled | bool | `false` |  |
 | livecache.nameOverride | string | `"tin-livecache"` |  |
-| livecache.passwordFromSecret.enable | bool | `true` |  |
-| livecache.passwordFromSecret.existingSecret.key | string | `"ATOMI_CACHE__LIVE__PASSWORD"` |  |
-| livecache.passwordFromSecret.existingSecret.name | string | `"nitroso-tin"` |  |
-| livecache.podAnnotations."atomi.cloud/landscape" | string | `"lapras"` |  |
-| livecache.podAnnotations."atomi.cloud/layer" | string | `"2"` |  |
+| livecache.podAnnotations."argocd.argoproj.io/sync-wave" | string | `"2"` |  |
 | livecache.podAnnotations."atomi.cloud/module" | string | `"livecache"` |  |
-| livecache.podAnnotations."atomi.cloud/platform" | string | `"nitroso"` |  |
-| livecache.podAnnotations."atomi.cloud/service" | string | `"tin"` |  |
+| livecache.podAnnotations.<<."atomi.cloud/layer" | string | `"2"` |  |
+| livecache.podAnnotations.<<."atomi.cloud/platform" | string | `"nitroso"` |  |
+| livecache.podAnnotations.<<."atomi.cloud/service" | string | `"tin"` |  |
+| livecache.replica.persistence.enabled | bool | `false` |  |
 | livecache.resources.limits.cpu | string | `"250m"` |  |
 | livecache.resources.limits.memory | string | `"512Mi"` |  |
 | livecache.resources.requests.cpu | string | `"100m"` |  |
 | livecache.resources.requests.memory | string | `"256Mi"` |  |
-| livecache.storage.enabled | bool | `false` |  |
 | poller.affinity | object | `{}` |  |
 | poller.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
 | poller.appSettings | object | `{}` |  |
@@ -183,6 +194,9 @@ Root Chart to a single Service
 | serviceTree.layer | string | `"2"` |  |
 | serviceTree.platform | string | `"nitroso"` |  |
 | serviceTree.service | string | `"tin"` |  |
+| tags."atomi.cloud/layer" | string | `"2"` |  |
+| tags."atomi.cloud/platform" | string | `"nitroso"` |  |
+| tags."atomi.cloud/service" | string | `"tin"` |  |
 | zinc.api.configMountPath | string | `"/app/Config"` |  |
 | zinc.api.image.repository | string | `"ghcr.io/atomicloud/nitroso.zinc/api-arm"` |  |
 | zinc.migration.enabled | bool | `false` |  |

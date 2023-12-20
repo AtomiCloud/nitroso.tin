@@ -1,20 +1,17 @@
 cache:
   MAIN:
-    password: "supersecret"
-    ssl: false
-    endpoints:
-      0: zinc-maincache:6379
+    ssl: true
   LIVE:
     password: ""
     ssl: false
     endpoints:
       0: tin-livecache-master:6379
 app:
-  landscape: lapras
+  landscape: pichu
 
 auth:
   descope:
-    descopeId: P2Ya46UVwFV8nTwNGZWpxRtyL7Jj
+    descopeId: P2Ya3WPmBmUBwJzhWoVB5uNeK7gg
     descopeAccessKey: ""
 
 buyer:
@@ -33,7 +30,7 @@ poller:
   backoffLimit: 3
   pollee:
     namespace: "nitroso"
-    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-arm"
+    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-amd"
     version: "1.4.3"
     secretRef: "nitroso-helium"
     configRef: "helium-poller-config"
@@ -41,6 +38,7 @@ poller:
 otel:
   log:
     zerolog:
+      timeFormat: rfc3339
       stacktrace: true
       pretty: true
       caller: true
@@ -53,14 +51,14 @@ otel:
         prettyPrint: true
         timestamp: true
   trace:
-    enable: false
+    enable: true
     processor:
       processorType: batch
       batchProcessorConfig: {}
     exporter:
-      exporterType: console
+      exporterType: otlp
       otlp:
         protocol: http
-        endpoint: localhost:4318
+        endpoint: http://silicon-otlp-collector.sulfoxide.svc:4318
         insecure: true
         compression: gzip

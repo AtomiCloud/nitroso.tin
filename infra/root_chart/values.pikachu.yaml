@@ -154,22 +154,9 @@ helium:
 
 livecache:
   fullnameOverride: tin-livecache
-  storage:
-    enabled: false
-
-  podSecurityContext: *podSecurityContext
-  securityContext: *securityContext
-  resources:
-    requests:
-      memory: "256Mi"
-      cpu: "100m"
-    limits:
-      memory: "512Mi"
-      cpu: "250m"
+  commonAnnotations:
+    atomi.cloud/landscape: *landscape
+  commonLabels:
+    atomi.cloud/landscape: *landscape
   podAnnotations:
     atomi.cloud/landscape: *landscape
-  passwordFromSecret:
-    enable: true
-    existingSecret:
-      key: ATOMI_CACHE__LIVE__PASSWORD
-      name: *target

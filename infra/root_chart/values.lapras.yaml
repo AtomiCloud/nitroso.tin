@@ -119,6 +119,13 @@ helium:
     cache:
       live:
         endpoints:
-          0: tin-livecache:6379
+          0: tin-livecache-master:6379
+
 livecache:
   fullnameOverride: "tin-livecache"
+  commonAnnotations:
+    atomi.cloud/landscape: *landscape
+  commonLabels:
+    atomi.cloud/landscape: *landscape
+  podAnnotations:
+    atomi.cloud/landscape: *landscape

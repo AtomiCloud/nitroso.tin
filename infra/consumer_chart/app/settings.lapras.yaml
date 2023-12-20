@@ -8,7 +8,7 @@ cache:
     password: ""
     ssl: false
     endpoints:
-      0: tin-livecache:6379
+      0: tin-livecache-master:6379
 app:
   landscape: lapras
 
@@ -22,10 +22,6 @@ buyer:
   host: zinc-api
   port: 80
 
-stream:
-  cdc: cdc
-  update: update
-
 cdc:
   group: cdc
   scheme: http
@@ -38,7 +34,7 @@ poller:
   pollee:
     namespace: "nitroso"
     image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-arm"
-    version: "1.4.1"
+    version: "1.4.3"
     secretRef: "nitroso-helium"
     configRef: "helium-poller-config"
 
@@ -62,7 +58,7 @@ otel:
       processorType: batch
       batchProcessorConfig: {}
     exporter:
-      exporterType: otlp
+      exporterType: console
       otlp:
         protocol: http
         endpoint: localhost:4318
