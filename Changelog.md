@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.4...v1.1.5) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* use upstash recommend way for connecting to redis ([ba4f9af](https://github.com/AtomiCloud/nitroso.tin/commit/ba4f9af86c2ca69a3d6a011a0ddfff71fbfe24e8))
+
 ## [1.1.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.3...v1.1.4) (2023-12-20)
 
 
