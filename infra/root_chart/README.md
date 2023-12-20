@@ -115,6 +115,11 @@ Root Chart to a single Service
 | livecache.passwordFromSecret.enable | bool | `true` |  |
 | livecache.passwordFromSecret.existingSecret.key | string | `"ATOMI_CACHE__LIVE__PASSWORD"` |  |
 | livecache.passwordFromSecret.existingSecret.name | string | `"nitroso-tin"` |  |
+| livecache.podAnnotations."atomi.cloud/landscape" | string | `"lapras"` |  |
+| livecache.podAnnotations."atomi.cloud/layer" | string | `"2"` |  |
+| livecache.podAnnotations."atomi.cloud/module" | string | `"livecache"` |  |
+| livecache.podAnnotations."atomi.cloud/platform" | string | `"nitroso"` |  |
+| livecache.podAnnotations."atomi.cloud/service" | string | `"tin"` |  |
 | livecache.resources.limits.cpu | string | `"250m"` |  |
 | livecache.resources.limits.memory | string | `"512Mi"` |  |
 | livecache.resources.requests.cpu | string | `"100m"` |  |

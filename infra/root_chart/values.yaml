@@ -294,6 +294,13 @@ livecache:
   storage:
     enabled: false
 
+  podAnnotations:
+    atomi.cloud/landscape: lapras
+    atomi.cloud/platform: nitroso
+    atomi.cloud/service: tin
+    atomi.cloud/module: livecache
+    atomi.cloud/layer: "2"
+
   resources:
     requests:
       memory: "256Mi"

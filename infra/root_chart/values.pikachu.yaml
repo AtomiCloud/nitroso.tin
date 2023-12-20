@@ -166,7 +166,8 @@ livecache:
     limits:
       memory: "512Mi"
       cpu: "250m"
-
+  podAnnotations:
+    atomi.cloud/landscape: *landscape
   passwordFromSecret:
     enable: true
     existingSecret:
