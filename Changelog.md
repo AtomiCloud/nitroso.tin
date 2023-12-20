@@ -1,3 +1,14 @@
+## [1.1.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.1...v1.1.2) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* dragonfly cannot use annotation, migrate to redis ([f44249f](https://github.com/AtomiCloud/nitroso.tin/commit/f44249f18aeeeefd12c583919f49674c849e4fb6))
+* incorrect CI yaml ([f5cddf2](https://github.com/AtomiCloud/nitroso.tin/commit/f5cddf20b92849bf744230e35a8f70865da983eb))
+* remove linux arm ([bff6cbc](https://github.com/AtomiCloud/nitroso.tin/commit/bff6cbc0f08376c215c1c41a9a7aeffa6c77dfa2))
+* upgrade helium version and use master cache endpoint ([68f70c7](https://github.com/AtomiCloud/nitroso.tin/commit/68f70c71adb18688c922a46c3de5db9942420112))
+* use arm64 arch ([86a04db](https://github.com/AtomiCloud/nitroso.tin/commit/86a04dbb45f2e60276497584dd28047fbdc0befb))
+
 ## [1.1.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.0...v1.1.1) (2023-12-20)
 
 
