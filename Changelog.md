@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.5...v1.1.6) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* attempt solve CA issue ([4c08fbf](https://github.com/AtomiCloud/nitroso.tin/commit/4c08fbf8ab910e61a48d56d2645301da6e61da7b))
+
 ## [1.1.5](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.4...v1.1.5) (2023-12-20)
 
 
