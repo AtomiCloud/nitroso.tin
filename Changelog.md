@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.0...v1.2.1) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* pollee config oncce and for all ([4663c7f](https://github.com/AtomiCloud/nitroso.tin/commit/4663c7fdddbd7e2517eb0ab51bcc515506cc2c24))
+
 ## [1.2.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.7...v1.2.0) (2023-12-20)
 
 
