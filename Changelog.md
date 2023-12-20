@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.2...v1.1.3) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing tzdata ([644ad20](https://github.com/AtomiCloud/nitroso.tin/commit/644ad20f8f85456469ae1e5e8954e7e1ae4ef211))
+
 ## [1.1.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.1...v1.1.2) (2023-12-20)
 
 
