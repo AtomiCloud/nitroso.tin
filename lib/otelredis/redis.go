@@ -2,7 +2,6 @@ package otelredis
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
@@ -31,22 +30,14 @@ type OtelRedisMessage struct {
 
 func New(cfg config.CacheConfig) OtelRedis {
 
-	ep := cfg.Endpoints[0]
-
-	var tlsConfig *tls.Config = nil
+	ssl := ""
 	if cfg.Ssl {
-		tlsConfig = &tls.Config{
-			ServerName: ep,
-			MinVersion: tls.VersionTLS12,
-		}
+		ssl = "s"
 	}
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:      ep,
-		Password:  cfg.Password,
-		DB:        0,
-		TLSConfig: tlsConfig,
-	})
+	ep := fmt.Sprintf("redis%s://default:%s@%s", ssl, cfg.Password, cfg.Endpoints[0])
+	opt, _ := redis.ParseURL(ep)
+	rdb := redis.NewClient(opt)
 	return OtelRedis{rdb}
 }
 
