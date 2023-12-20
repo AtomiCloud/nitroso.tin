@@ -1,3 +1,15 @@
+## [1.2.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.7...v1.2.0) (2023-12-20)
+
+
+### ✨ Features ✨
+
+* ttl for jobs ([a2d82e9](https://github.com/AtomiCloud/nitroso.tin/commit/a2d82e9b61ceb06269042350629eda219789152a))
+
+
+### 🐛 Bug Fixes 🐛
+
+* pollee config not propogated ([e803c9d](https://github.com/AtomiCloud/nitroso.tin/commit/e803c9d6ad35ede17427a0703503ec47be2094e0))
+
 ## [1.1.7](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.6...v1.1.7) (2023-12-20)
 
 
