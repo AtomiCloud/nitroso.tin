@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.3...v1.1.4) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing ca-certificates ([2837129](https://github.com/AtomiCloud/nitroso.tin/commit/2837129e7e311f2ce9558b27435f75664f91ee33))
+
 ## [1.1.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.2...v1.1.3) (2023-12-20)
 
 
