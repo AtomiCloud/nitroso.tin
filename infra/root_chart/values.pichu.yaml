@@ -25,6 +25,10 @@ securityContext: &securityContext
 
 cdc:
   enabled: true
+
+  fullnameOverride: "tin-cdc"
+  command: ["/app/nitroso-tin", "cdc"]
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
@@ -33,13 +37,22 @@ cdc:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  fullnameOverride: "tin-cdc"
   replicaCount: 1
   configMountPath: /app/config
-  command: ["/app/nitroso-tin", "cdc"]
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 enricher:
   enabled: true
+
+  fullnameOverride: "tin-enricher"
+  command: ["/app/nitroso-tin", "enricher"]
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
@@ -48,13 +61,22 @@ enricher:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  fullnameOverride: "tin-enricher"
   replicaCount: 1
   configMountPath: /app/config
-  command: ["/app/nitroso-tin", "enricher"]
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 poller:
   enabled: true
+
+  fullnameOverride: "tin-poller"
+  command: ["/app/nitroso-tin", "poller"]
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
@@ -63,13 +85,23 @@ poller:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  fullnameOverride: "tin-poller"
   replicaCount: 1
   configMountPath: /app/config
-  command: ["/app/nitroso-tin", "poller"]
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 reserver:
   enabled: true
+
+  fullnameOverride: "tin-reserver"
+  command: ["/app/nitroso-tin", "reserver"]
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
@@ -78,13 +110,22 @@ reserver:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  fullnameOverride: "tin-reserver"
   replicaCount: 1
   configMountPath: /app/config
-  command: ["/app/nitroso-tin", "reserver"]
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 buyer:
   enabled: true
+  fullnameOverride: "tin-buyer"
+  command: ["/app/nitroso-tin", "buyer"]
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
@@ -93,10 +134,41 @@ buyer:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  fullnameOverride: "tin-buyer"
+
   replicaCount: 1
   configMountPath: /app/config
-  command: ["/app/nitroso-tin", "buyer"]
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 zinc:
   enable: false
+
+helium:
+  enable: false
+
+livecache:
+  fullnameOverride: tin-livecache
+  storage:
+    enabled: false
+
+  podSecurityContext: *podSecurityContext
+  securityContext: *securityContext
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
+
+  passwordFromSecret:
+    enable: true
+    existingSecret:
+      key: ATOMI_CACHE__LIVE__PASSWORD
+      name: *target

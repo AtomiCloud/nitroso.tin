@@ -23,25 +23,152 @@ securityContext: &securityContext
     drop:
       - ALL
 
-consumer:
+cdc:
   enabled: true
+
+  fullnameOverride: "tin-cdc"
+  command: ["/app/nitroso-tin", "cdc"]
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/consumer-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 2
+  configMountPath: /app/config
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+enricher:
+  enabled: true
+
+  fullnameOverride: "tin-enricher"
+  command: ["/app/nitroso-tin", "enricher"]
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 2
+  configMountPath: /app/config
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+poller:
+  enabled: true
+
+  fullnameOverride: "tin-poller"
+  command: ["/app/nitroso-tin", "poller"]
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 1
+  configMountPath: /app/config
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+reserver:
+  enabled: true
+
+  fullnameOverride: "tin-reserver"
+  command: ["/app/nitroso-tin", "reserver"]
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 1
+  configMountPath: /app/config
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+buyer:
+  enabled: true
+  fullnameOverride: "tin-buyer"
+  command: ["/app/nitroso-tin", "buyer"]
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
 
-  autoscaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 80
-
+  replicaCount: 1
   configMountPath: /app/config
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
 
 zinc:
   enable: false
+
+helium:
+  enable: false
+
+livecache:
+  fullnameOverride: tin-livecache
+  storage:
+    enabled: false
+
+  podSecurityContext: *podSecurityContext
+  securityContext: *securityContext
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
+
+  passwordFromSecret:
+    enable: true
+    existingSecret:
+      key: ATOMI_CACHE__LIVE__PASSWORD
+      name: *target

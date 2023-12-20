@@ -72,9 +72,7 @@ Root Chart to a single Service
 | cdc.replicaCount | int | `1` |  |
 | cdc.resources | object | `{}` |  |
 | cdc.securityContext | object | `{}` |  |
-| cdc.serviceAccount.annotations | object | `{}` |  |
 | cdc.serviceAccount.create | bool | `false` |  |
-| cdc.serviceAccount.name | string | `""` |  |
 | cdc.serviceTree.<<.landscape | string | `"lapras"` |  |
 | cdc.serviceTree.<<.layer | string | `"2"` |  |
 | cdc.serviceTree.<<.platform | string | `"nitroso"` |  |
@@ -100,8 +98,7 @@ Root Chart to a single Service
 | enricher.replicaCount | int | `1` |  |
 | enricher.resources | object | `{}` |  |
 | enricher.securityContext | object | `{}` |  |
-| enricher.serviceAccount.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| enricher.serviceAccount.create | bool | `true` |  |
+| enricher.serviceAccount.create | bool | `false` |  |
 | enricher.serviceTree.<<.landscape | string | `"lapras"` |  |
 | enricher.serviceTree.<<.layer | string | `"2"` |  |
 | enricher.serviceTree.<<.platform | string | `"nitroso"` |  |
@@ -169,8 +166,7 @@ Root Chart to a single Service
 | reserver.replicaCount | int | `1` |  |
 | reserver.resources | object | `{}` |  |
 | reserver.securityContext | object | `{}` |  |
-| reserver.serviceAccount.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| reserver.serviceAccount.create | bool | `true` |  |
+| reserver.serviceAccount.create | bool | `false` |  |
 | reserver.serviceTree.<<.landscape | string | `"lapras"` |  |
 | reserver.serviceTree.<<.layer | string | `"2"` |  |
 | reserver.serviceTree.<<.platform | string | `"nitroso"` |  |

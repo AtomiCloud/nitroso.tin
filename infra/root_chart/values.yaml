@@ -48,8 +48,6 @@ cdc:
 
   serviceAccount:
     create: false
-    annotations: {}
-    name: ""
 
   podAnnotations: {}
 
@@ -153,9 +151,7 @@ enricher:
     tag: ""
 
   serviceAccount:
-    create: true
-    annotations:
-      argocd.argoproj.io/sync-wave: "4"
+    create: false
 
   podAnnotations: {}
 
@@ -205,9 +201,7 @@ reserver:
     tag: ""
 
   serviceAccount:
-    create: true
-    annotations:
-      argocd.argoproj.io/sync-wave: "4"
+    create: false
 
   podAnnotations: {}
 
