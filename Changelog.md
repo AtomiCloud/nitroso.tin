@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.6...v1.1.7) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect job configuration ([2bd9ad7](https://github.com/AtomiCloud/nitroso.tin/commit/2bd9ad7b6b8018352b2e7453e5ac13a5bdf14446))
+
 ## [1.1.6](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.5...v1.1.6) (2023-12-20)
 
 
