@@ -11,6 +11,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/nitroso-tin
 
 FROM alpine:3.18
+RUN apk add --no-cache tzdata=2023c-r1
 WORKDIR /app
 COPY --from=builder /app/nitroso-tin /app/nitroso-tin
 
