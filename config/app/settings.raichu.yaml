@@ -56,6 +56,6 @@ otel:
       exporterType: otlp
       otlp:
         protocol: http
-        endpoint: http://silicon-otlp-collector.sulfoxide.svc:4318
+        endpoint: silicon-otlp-collector.sulfoxide.svc:4318
         insecure: true
         compression: gzip
