@@ -1,3 +1,10 @@
+## [1.1.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.0.0...v1.1.0) (2023-12-20)
+
+
+### ✨ Features ✨
+
+* configure pichu, pikachu, raichu ([7cb0593](https://github.com/AtomiCloud/nitroso.tin/commit/7cb05930d9f54ed3c046b271a58549843c3e83ce))
+
 ## 1.0.0 (2023-12-20)
 
 
