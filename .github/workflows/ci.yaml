@@ -34,10 +34,6 @@ jobs:
     strategy:
       matrix:
         configs:
-          - image-name: nitroso-tin-arm
-            dockerfile: infra/Dockerfile
-            context: .
-            platform: linux/arm64
           - image-name: nitroso-tin-amd
             dockerfile: infra/Dockerfile
             context: .
