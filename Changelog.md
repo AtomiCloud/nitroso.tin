@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.1.0...v1.1.1) (2023-12-20)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing annotations ([1adf382](https://github.com/AtomiCloud/nitroso.tin/commit/1adf3821f2540d1cb1272d5488cc1261cc588984))
+
 ## [1.1.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.0.0...v1.1.0) (2023-12-20)
 
 
