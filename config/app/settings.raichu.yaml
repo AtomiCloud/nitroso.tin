@@ -30,7 +30,7 @@ poller:
     image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-amd"
     version: "1.4.4"
     secretRef: "nitroso-helium"
-    configRef: "helium-poller-config"
+    configRef: "helium-pollee-config"
 
 otel:
   log:
