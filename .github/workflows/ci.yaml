@@ -91,7 +91,7 @@ jobs:
           GITHUB_REPO_REF: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_BRANCH: ${{ env.GITHUB_REF_SLUG_URL }}
-          CI_DOCKER_IMAGES: "sulfone-boron-amd,sulfone-boron-arm"
+          CI_DOCKER_IMAGES: "sulfone-boron-amd"
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
