@@ -41,7 +41,7 @@ pre-commit-lib.run {
       enable = true;
       name = "Golang CI Lint";
       description = "Lint Golang code";
-      entry = "${packages.golangci-lint}/bin/golangci-lint run .";
+      entry = "${packages.golangci-lint}/bin/golangci-lint run --timeout 10m0s .";
       language = "system";
       files = ".*go$";
       pass_filenames = false;
