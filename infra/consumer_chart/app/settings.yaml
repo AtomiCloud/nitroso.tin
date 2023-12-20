@@ -8,7 +8,7 @@ cache:
     password: ""
     ssl: false
     endpoints:
-      0: tin-livecache:6379
+      0: tin-livecache-master6379
 ktmb:
   apiUrl: https://online-api.ktmb.com.my
   appUrl: https://shuttleonline-api.ktmb.com.my

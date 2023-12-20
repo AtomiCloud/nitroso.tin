@@ -3,9 +3,6 @@ cache:
     ssl: true
   LIVE:
     password: ""
-    ssl: false
-    endpoints:
-      0: tin-livecache-master:6379
 app:
   landscape: pichu
 
@@ -31,9 +28,9 @@ poller:
   pollee:
     namespace: "nitroso"
     image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-amd"
-    version: "1.4.3"
+    version: "1.4.4"
     secretRef: "nitroso-helium"
-    configRef: "helium-poller-config"
+    configRef: "helium-pollee-config"
 
 otel:
   log:
@@ -59,6 +56,6 @@ otel:
       exporterType: otlp
       otlp:
         protocol: http
-        endpoint: http://silicon-otlp-collector.sulfoxide.svc:4318
+        endpoint: silicon-otlp-collector.sulfoxide.svc:4318
         insecure: true
         compression: gzip
