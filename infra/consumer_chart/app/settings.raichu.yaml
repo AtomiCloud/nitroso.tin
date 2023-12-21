@@ -28,7 +28,7 @@ poller:
   pollee:
     namespace: "nitroso"
     image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-amd"
-    version: "1.4.4"
+    version: "1.4.5"
     secretRef: "nitroso-helium"
     configRef: "helium-pollee-config"
 
@@ -37,7 +37,7 @@ otel:
     zerolog:
       timeFormat: rfc3339
       stacktrace: true
-      pretty: true
+      pretty: false
       caller: true
   metric:
     enable: false
