@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.1...v1.2.2) (2023-12-21)
+
+
+### 🐛 Bug Fixes 🐛
+
+* upstream helium to 1.4.5 ([2c559c0](https://github.com/AtomiCloud/nitroso.tin/commit/2c559c02922c0c3335bf1f2250a022d03f929be6))
+
 ## [1.2.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.0...v1.2.1) (2023-12-20)
 
 
