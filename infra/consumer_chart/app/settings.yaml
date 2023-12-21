@@ -3,12 +3,12 @@ cache:
     password: ""
     ssl: false
     endpoints:
-      0: nitroso-zinc-main-cache:6379
+      0: "nitroso-zinc-main-cache:6379"
   LIVE:
     password: ""
     ssl: false
     endpoints:
-      0: tin-livecache-master6379
+      0: "tin-livecache-master:6379"
 ktmb:
   apiUrl: https://online-api.ktmb.com.my
   appUrl: https://shuttleonline-api.ktmb.com.my
