@@ -1,3 +1,11 @@
+## [1.2.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.2...v1.2.3) (2023-12-21)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect livecache endpoint ([f664fd6](https://github.com/AtomiCloud/nitroso.tin/commit/f664fd6222cfe6b48ecfa58deb74f440655d10ab))
+* upstream helium to 1.4.5 ([7914b0e](https://github.com/AtomiCloud/nitroso.tin/commit/7914b0e1a6ffa62f3589a1f7173490debf68de08))
+
 ## [1.2.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.1...v1.2.2) (2023-12-21)
 
 
