@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.3...v1.2.4) (2023-12-21)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect descope ID ([4b578b5](https://github.com/AtomiCloud/nitroso.tin/commit/4b578b5cf4f00ddb6cc424e22ef9cc3c77f61834))
+
 ## [1.2.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.2...v1.2.3) (2023-12-21)
 
 
