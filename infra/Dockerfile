@@ -11,7 +11,9 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/nitroso-tin
 
 FROM alpine:3.18
-RUN apk add --no-cache tzdata=2023c-r1 ca-certificates=20230506-r0 && update-ca-certificates
+
+# hadolint ignore=DL3018
+RUN apk add --no-cache tzdata ca-certificates && update-ca-certificates
 WORKDIR /app
 COPY --from=builder /app/nitroso-tin /app/nitroso-tin
 
