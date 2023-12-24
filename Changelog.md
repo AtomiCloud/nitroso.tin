@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.0...v1.3.1) (2023-12-24)
+
+
+### 🐛 Bug Fixes 🐛
+
+* reduce cpu and ram usage for buyer ([03f53d1](https://github.com/AtomiCloud/nitroso.tin/commit/03f53d1af6faf264b044fc595a23924ff3f1dce6))
+
 ## [1.3.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.5...v1.3.0) (2023-12-24)
 
 
