@@ -141,10 +141,10 @@ buyer:
   resources:
     requests:
       memory: "2Gi"
-      cpu: "2000"
+      cpu: "2000m"
     limits:
       memory: "4Gi"
-      cpu: "4000"
+      cpu: "4000m"
 
 zinc:
   enable: false
