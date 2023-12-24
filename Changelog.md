@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.4...v1.2.5) (2023-12-24)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect ca cert and tzdata ([5082c60](https://github.com/AtomiCloud/nitroso.tin/commit/5082c609f7fbad7913a73261ea6f8092855c5996))
+
 ## [1.2.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.3...v1.2.4) (2023-12-21)
 
 
