@@ -1,3 +1,10 @@
+## [1.3.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.5...v1.3.0) (2023-12-24)
+
+
+### ✨ Features ✨
+
+* increase system usage ([f2daab7](https://github.com/AtomiCloud/nitroso.tin/commit/f2daab75108cec12670b95dc70a5a4f2040ad799))
+
 ## [1.2.5](https://github.com/AtomiCloud/nitroso.tin/compare/v1.2.4...v1.2.5) (2023-12-24)
 
 
