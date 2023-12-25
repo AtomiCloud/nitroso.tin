@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.1...v1.3.2) (2023-12-25)
+
+
+### 🐛 Bug Fixes 🐛
+
+* increase to 100 replicas ([de6431f](https://github.com/AtomiCloud/nitroso.tin/commit/de6431f222bfa29a66ea27811c7c0892fa1cee05))
+
 ## [1.3.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.0...v1.3.1) (2023-12-24)
 
 
