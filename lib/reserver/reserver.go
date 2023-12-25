@@ -183,25 +183,26 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		})
 		return deferred
 	}
-	go func(ct context.Context, userData, searchData, tripData string) {
-
-		err := c.blockIfMaintenance()
-		if err != nil {
-			c.logger.Error().Err(err).Msg("Failed to block if maintenance")
-			return
-		}
-		c.logger.Info().Msg("Starting reserve")
-		for i := 0; i < 100; i++ {
-			err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
+	for replica := 0; replica < 100; replica++ {
+		go func(ct context.Context, replica int, userData, searchData, tripData string) {
+			err := c.blockIfMaintenance()
 			if err != nil {
-				c.logger.Error().Err(err).Msg("Failed to reserve")
-			} else {
-				c.logger.Info().Msg("Successfully booked")
+				c.logger.Error().Err(err).Msg("Failed to block if maintenance")
 				return
 			}
+			c.logger.Info().Int("replica", replica).Msg("Starting reserve")
+			for i := 0; i < 100; i++ {
+				err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
+				if err != nil {
+					c.logger.Error().Err(err).Int("attempt", i).Msg("Failed to reserve")
+				} else {
+					c.logger.Info().Msg("Successfully booked")
+					return
+				}
+			}
+		}(ctx, replica, loginCache.UserData, find.SearchData, find.TripData)
+	}
 
-		}
-	}(ctx, loginCache.UserData, find.SearchData, find.TripData)
 	return deferred
 }
 
@@ -236,7 +237,7 @@ func (c *Client) maintenanceOver(t time.Time) (time.Time, error) {
 
 	now := t.In(c.loc)
 
-	targetTime, err := time.ParseInLocation("2006-01-02 15:04:05", now.Format("2006-01-02")+" 00:14:55", c.loc)
+	targetTime, err := time.ParseInLocation("2006-01-02 15:04:05", now.Format("2006-01-02")+" 00:14:58", c.loc)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to parse time")
 		return now, err
@@ -253,21 +254,6 @@ func (c *Client) maintenanceOver(t time.Time) (time.Time, error) {
 }
 
 func (c *Client) reserve(ctx context.Context, direction, date, t, userData, searchData, tripData string) error {
-
-	shutdown, err := c.otelConfigurator.Configure(ctx)
-	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to configure telemetry")
-		return err
-	}
-	defer func() {
-		deferErr := shutdown(ctx)
-		if deferErr != nil {
-			panic(deferErr)
-		}
-	}()
-	tracer := otel.Tracer(c.psd)
-	ctx, span := tracer.Start(ctx, "Enricher notify start")
-	defer span.End()
 
 	reserve, err := c.ktmb.Reserve(userData, c.appInfo, searchData, tripData)
 	if err != nil {
@@ -293,6 +279,23 @@ func (c *Client) reserve(ctx context.Context, direction, date, t, userData, sear
 		c.logger.Error().Err(err).Msg("Failed to encrypt")
 		return err
 	}
+
+	shutdown, err := c.otelConfigurator.Configure(ctx)
+	if err != nil {
+		c.logger.Error().Err(err).Msg("Failed to configure telemetry")
+		return err
+	}
+
+	defer func() {
+		deferErr := shutdown(ctx)
+		if deferErr != nil {
+			panic(deferErr)
+		}
+	}()
+
+	tracer := otel.Tracer(c.psd)
+	ctx, span := tracer.Start(ctx, "Enricher notify start")
+	defer span.End()
 
 	add, err := c.redis.StreamAdd(ctx, tracer, c.stream.Reserver, encrypted)
 	if err != nil {
