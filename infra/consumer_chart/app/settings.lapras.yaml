@@ -17,6 +17,9 @@ auth:
     descopeId: P2Ya46UVwFV8nTwNGZWpxRtyL7Jj
     descopeAccessKey: ""
 
+enricher:
+  email: xxluna001@gmail.com
+
 buyer:
   scheme: http
   host: zinc-api
