@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.2...v1.3.3) (2023-12-27)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing sync config ([cbb2279](https://github.com/AtomiCloud/nitroso.tin/commit/cbb2279cd59f65b84a965e272aa9a512e8570f67))
+
 ## [1.3.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.1...v1.3.2) (2023-12-25)
 
 
