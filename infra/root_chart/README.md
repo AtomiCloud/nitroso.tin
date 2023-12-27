@@ -24,7 +24,7 @@ Root Chart to a single Service
 |-----|------|---------|-------------|
 | bromine.annotations."argocd.argoproj.io/sync-wave" | string | `"1"` |  |
 | bromine.enable | bool | `false` |  |
-| bromine.rootSecret | object | `{"ref":"NITROSO_TIN"}` | Secret of Secrets reference |
+| bromine.rootSecret | object | `{"name":"nitroso-tin-doppler","ref":"NITROSO_TIN"}` | Secret of Secrets reference |
 | bromine.rootSecret.ref | string | `"NITROSO_TIN"` | DOPPLER Token Reference |
 | bromine.storeName | string | `"nitroso-tin"` | Store name to create |
 | bromine.target | string | `"nitroso-tin"` |  |

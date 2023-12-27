@@ -20,6 +20,8 @@ bromine:
     # -- DOPPLER Token Reference
     ref: "NITROSO_TIN"
 
+    name: nitroso-tin-doppler
+
   target: &target "nitroso-tin"
 
 cdc:
