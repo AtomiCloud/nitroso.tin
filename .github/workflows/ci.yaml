@@ -34,6 +34,10 @@ jobs:
     strategy:
       matrix:
         configs:
+          - image-name: nitroso-tin-arm
+            dockerfile: infra/Dockerfile
+            context: .
+            platform: linux/arm64
           - image-name: nitroso-tin-amd
             dockerfile: infra/Dockerfile
             context: .
@@ -91,7 +95,7 @@ jobs:
           GITHUB_REPO_REF: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_BRANCH: ${{ env.GITHUB_REF_SLUG_URL }}
-          CI_DOCKER_IMAGES: "sulfone-boron-amd"
+          CI_DOCKER_IMAGES: "nitroso-tin-amd,nitroso-tin-arm"
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
