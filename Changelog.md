@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.3...v1.3.4) (2023-12-27)
+
+
+### 🐛 Bug Fixes 🐛
+
+* trigger semantic-releaser ([799830d](https://github.com/AtomiCloud/nitroso.tin/commit/799830d6bf375f2d8e20246d29af03a30adb4f12))
+
 ## [1.3.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.2...v1.3.3) (2023-12-27)
 
 
