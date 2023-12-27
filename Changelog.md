@@ -1,3 +1,10 @@
+## [1.4.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.4...v1.4.0) (2023-12-27)
+
+
+### ✨ Features ✨
+
+* release arm images ([da0c9f7](https://github.com/AtomiCloud/nitroso.tin/commit/da0c9f7142a29c13e7a1e21701af2a9fc3453030))
+
 ## [1.3.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.3...v1.3.4) (2023-12-27)
 
 
