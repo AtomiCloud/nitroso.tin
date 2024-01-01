@@ -73,7 +73,7 @@ func (o OtelConfigurator) Configure(ctx context.Context) (shutdown func(context.
 
 func (o OtelConfigurator) newResource() (*resource.Resource, error) {
 
-	lpsd := resource.NewSchemaless([]attribute.KeyValue{
+	lpsm := resource.NewSchemaless([]attribute.KeyValue{
 		attribute.String("atomicloud.landscape", o.App.Landscape),
 		attribute.String("atomicloud.platform", o.App.Platform),
 		attribute.String("atomicloud.service", o.App.Service),
@@ -89,7 +89,7 @@ func (o OtelConfigurator) newResource() (*resource.Resource, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resource.Merge(m, lpsd)
+	return resource.Merge(m, lpsm)
 }
 
 func (o OtelConfigurator) newPropagator() propagation.TextMapPropagator {

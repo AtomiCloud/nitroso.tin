@@ -22,10 +22,10 @@ type Trigger struct {
 	poller           config.PollerConfig
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
-	psd              string
+	psm              string
 }
 
-func NewTrigger(channel chan string, logger *zerolog.Logger, rds *otelredis.OtelRedis, streams config.StreamConfig, pollers config.PollerConfig, otelConfigurator *telemetry.OtelConfigurator, psd string) *Trigger {
+func NewTrigger(channel chan string, logger *zerolog.Logger, rds *otelredis.OtelRedis, streams config.StreamConfig, pollers config.PollerConfig, otelConfigurator *telemetry.OtelConfigurator, psm string) *Trigger {
 
 	return &Trigger{
 		channel:          channel,
@@ -34,7 +34,7 @@ func NewTrigger(channel chan string, logger *zerolog.Logger, rds *otelredis.Otel
 		poller:           pollers,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
-		psd:              psd,
+		psm:              psm,
 	}
 }
 
@@ -96,7 +96,7 @@ func (p *Trigger) redisLoop(ctx context.Context, consumerId string) (bool, error
 			panic(deferErr)
 		}
 	}()
-	tracer := otel.Tracer(p.psd)
+	tracer := otel.Tracer(p.psm)
 
 	p.logger.Info().Ctx(ctx).Msg("Poller waiting for CDC messages...")
 	err = p.redis.StreamGroupRead(ctx, tracer, p.stream.Update, p.poller.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {

@@ -22,13 +22,13 @@ type CountSyncer struct {
 	redis            *otelredis.OtelRedis
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
-	psd              string
+	psm              string
 	streamConfig     config.StreamConfig
 	reserver         config.ReserverConfig
 }
 
 func NewCountSyncer(toDiffer, toReserver chan Count, rds *otelredis.OtelRedis,
-	otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger, psd string,
+	otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger, psm string,
 	streamConfig config.StreamConfig, reserver config.ReserverConfig) CountSyncer {
 	return CountSyncer{
 		toDiffer:         toDiffer,
@@ -36,7 +36,7 @@ func NewCountSyncer(toDiffer, toReserver chan Count, rds *otelredis.OtelRedis,
 		redis:            rds,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
-		psd:              psd,
+		psm:              psm,
 		streamConfig:     streamConfig,
 		reserver:         reserver,
 	}
@@ -83,7 +83,7 @@ func (s *CountSyncer) createGroup(ctx context.Context) {
 
 func (s *CountSyncer) update(ctx context.Context) error {
 
-	key := fmt.Sprintf("%s:%s", s.psd, "count")
+	key := fmt.Sprintf("%s:%s", s.psm, "count")
 
 	s.logger.Info().Ctx(ctx).Msgf("Checking if key '%s' exists", key)
 	exists, err := s.redis.Exists(ctx, key).Result()
@@ -137,7 +137,7 @@ func (s *CountSyncer) loop(ctx context.Context, consumerId string) (bool, error)
 
 	s.logger.Info().Ctx(ctx).Msg("Reserver waiting for CDC signal...")
 
-	tracer := otel.Tracer(s.psd)
+	tracer := otel.Tracer(s.psm)
 	err = s.redis.StreamGroupRead(ctx, tracer, s.streamConfig.Update, s.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
 		s.logger.Info().Ctx(ctx).Msg("Reserver received CDC emitted signal")
 		return s.update(ctx)

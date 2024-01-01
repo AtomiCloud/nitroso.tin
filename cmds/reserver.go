@@ -41,13 +41,13 @@ func (state *State) Reserver(c *cli.Context) error {
 	retriever := reserver.NewRetriever(&mainRedis, encr, state.Logger, state.Config.Enricher)
 
 	differ := reserver.NewDiffer(countToDiff, diffToReserve, &liveRedis, state.Logger)
-	countSyncer := reserver.NewCountSyncer(countToDiff, countToReserve, &mainRedis, state.OtelConfigurator, state.Logger, state.Psd,
+	countSyncer := reserver.NewCountSyncer(countToDiff, countToReserve, &mainRedis, state.OtelConfigurator, state.Logger, state.Psm,
 		state.Config.Stream, state.Config.Reserver)
 	loginSyncer := reserver.NewLoginSyncer(loginToReserve, &mainRedis, retriever, state.OtelConfigurator,
-		state.Logger, state.Psd, state.Config.Stream, state.Config.Reserver)
+		state.Logger, state.Psm, state.Ps, state.Config.Stream, state.Config.Reserver)
 
 	client := reserver.New(k, state.Logger, &mainRedis, rEncr, state.Config.Reserver, state.Config.Stream, appInfo,
-		state.OtelConfigurator, state.Psd, loc, loginToReserve, countToReserve, diffToReserve)
+		state.OtelConfigurator, state.Psm, loc, loginToReserve, countToReserve, diffToReserve)
 
 	go func() {
 		err := loginSyncer.Start(ctx, loginConsumerId)

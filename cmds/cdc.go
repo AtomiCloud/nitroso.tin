@@ -12,7 +12,7 @@ func (state *State) Cdc(c *cli.Context) error {
 
 	rds := otelredis.New(state.Config.Cache["main"])
 
-	cdc := cdc.NewCdc(&rds, state.Config.Cdc, state.Config.Stream, state.Logger, state.OtelConfigurator, state.Psd, state.Credential)
+	cdc := cdc.NewCdc(&rds, state.Config.Cdc, state.Config.Stream, state.Logger, state.OtelConfigurator, state.Psm, state.Ps, state.Credential)
 	uniqueID := xid.New().String()
 
 	err := cdc.Start(c.Context, uniqueID)

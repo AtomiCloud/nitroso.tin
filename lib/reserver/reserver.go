@@ -26,7 +26,7 @@ type Client struct {
 	redis            *otelredis.OtelRedis
 	encr             encryptor.Encryptor[ReserveDto]
 	otelConfigurator *telemetry.OtelConfigurator
-	psd              string
+	psm              string
 	loc              *time.Location
 }
 
@@ -54,7 +54,7 @@ type ReserveDto struct {
 
 func New(k ktmb.Ktmb, logger *zerolog.Logger, rds *otelredis.OtelRedis, encr encryptor.Encryptor[ReserveDto],
 	reserver config.ReserverConfig, stream config.StreamConfig, appInfo string, otelConfigurator *telemetry.OtelConfigurator,
-	psd string, loc *time.Location,
+	psm string, loc *time.Location,
 	fromLogin chan LoginStore, fromCount chan Count, fromDiff chan Diff) *Client {
 	return &Client{
 		ktmb:             k,
@@ -68,7 +68,7 @@ func New(k ktmb.Ktmb, logger *zerolog.Logger, rds *otelredis.OtelRedis, encr enc
 		fromDiff:         fromDiff,
 		otelConfigurator: otelConfigurator,
 		encr:             encr,
-		psd:              psd,
+		psm:              psm,
 		loc:              loc,
 	}
 }
@@ -293,7 +293,7 @@ func (c *Client) reserve(ctx context.Context, direction, date, t, userData, sear
 		}
 	}()
 
-	tracer := otel.Tracer(c.psd)
+	tracer := otel.Tracer(c.psm)
 	ctx, span := tracer.Start(ctx, "Reserve notify buyer start")
 	defer span.End()
 

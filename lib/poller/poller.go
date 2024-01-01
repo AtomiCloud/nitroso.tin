@@ -14,17 +14,19 @@ type Poller struct {
 	trigger *Trigger
 	logger  *zerolog.Logger
 	redis   *otelredis.OtelRedis
-	psd     string
+	psm     string
+	ps      string
 }
 
-func NewPoller(channel chan string, rds *otelredis.OtelRedis, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psd string) *Poller {
+func NewPoller(channel chan string, rds *otelredis.OtelRedis, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psm, ps string) *Poller {
 	return &Poller{
 		channel: channel,
 		trigger: trigger,
 		logger:  logger,
 		job:     job,
 		redis:   rds,
-		psd:     psd,
+		psm:     psm,
+		ps:      ps,
 	}
 }
 
@@ -58,7 +60,7 @@ func (p *Poller) Start(ctx context.Context, uniqueId string) error {
 
 func (p *Poller) createPoller(ctx context.Context) error {
 
-	key := fmt.Sprintf("%s:%s", p.psd, "count")
+	key := fmt.Sprintf("%s:%s", p.ps, "count")
 
 	exists, err := p.redis.Exists(ctx, key).Result()
 	if err != nil {

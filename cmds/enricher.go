@@ -1,6 +1,7 @@
 package cmds
 
 import (
+	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/enricher"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
@@ -22,14 +23,17 @@ func (state *State) Enricher(c *cli.Context) error {
 	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 
 	client := enricher.New(k, state.Logger)
-	trigger := enricher.NewTrigger(ch, state.Logger, &rds, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psd)
+	trigger := enricher.NewTrigger(ch, state.Logger, &rds, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psm)
+	counterReader := count.New(&rds, state.Logger, state.Psm)
+
 	en := enricher.NewEnricher(&client, trigger, state.Logger, encr, &rds,
-		state.Config.Enricher, state.Config.Stream, state.Psd, ch, state.OtelConfigurator)
+		state.Config.Enricher, state.Config.Stream, state.Psm, ch, state.OtelConfigurator, counterReader)
 
 	err := en.Start(ctx, uniqueID)
 	if err != nil {
 		state.Logger.Error().Err(err).Msg("Enricher failed")
 		return err
 	}
+
 	return nil
 }

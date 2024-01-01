@@ -56,7 +56,8 @@ func main() {
 		panic(authErr)
 	}
 
-	psd := fmt.Sprintf("%s.%s.%s", cfgApp.Platform, cfgApp.Service, cfgApp.Module)
+	psm := fmt.Sprintf("%s.%s.%s", cfgApp.Platform, cfgApp.Service, cfgApp.Module)
+	ps := fmt.Sprintf("%s.%s", cfgApp.Platform, cfgApp.Service)
 
 	state := cmds.State{
 		Landscape:        landscape,
@@ -64,7 +65,8 @@ func main() {
 		OtelConfigurator: &otelConfigurator,
 		Logger:           &logger,
 		Credential:       cred,
-		Psd:              psd,
+		Psm:              psm,
+		Ps:               ps,
 	}
 
 	logger.Debug().Any("cfg", cfg).Msg("Loaded config")

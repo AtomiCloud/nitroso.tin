@@ -29,9 +29,9 @@ func (state *State) Poller(c *cli.Context) error {
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 
 	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger)
-	trigger := poller.NewTrigger(channel, state.Logger, &mainRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psd)
+	trigger := poller.NewTrigger(channel, state.Logger, &mainRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psm)
 
-	p := poller.NewPoller(channel, &mainRedis, job, trigger, state.Logger, state.Psd)
+	p := poller.NewPoller(channel, &mainRedis, job, trigger, state.Logger, state.Psm, state.Ps)
 
 	err = p.Start(ctx, uniqueID)
 

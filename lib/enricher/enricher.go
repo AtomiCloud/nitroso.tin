@@ -2,9 +2,9 @@ package enricher
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib"
+	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
@@ -12,18 +12,20 @@ import (
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"time"
 )
 
 type Enricher struct {
 	channel          chan string
 	client           *Client
 	redis            *otelredis.OtelRedis
+	countReader      *count.Client
 	logger           *zerolog.Logger
 	stream           config.StreamConfig
 	enricher         config.EnricherConfig
 	encryptor        encryptor.Encryptor[FindStore]
 	trigger          *Trigger
-	psd              string
+	psm              string
 	otelConfigurator *telemetry.OtelConfigurator
 }
 
@@ -37,8 +39,8 @@ type Find struct {
 type FindStore = map[string]map[string]map[string]FindRes
 
 func NewEnricher(client *Client, trigger *Trigger, logger *zerolog.Logger, e encryptor.Encryptor[FindStore],
-	rds *otelredis.OtelRedis, enricher config.EnricherConfig, streams config.StreamConfig, psd string,
-	channel chan string, otelConfigurator *telemetry.OtelConfigurator) *Enricher {
+	rds *otelredis.OtelRedis, enricher config.EnricherConfig, streams config.StreamConfig, psm string,
+	channel chan string, otelConfigurator *telemetry.OtelConfigurator, countReader *count.Client) *Enricher {
 	return &Enricher{
 		client:           client,
 		logger:           logger,
@@ -47,9 +49,10 @@ func NewEnricher(client *Client, trigger *Trigger, logger *zerolog.Logger, e enc
 		enricher:         enricher,
 		encryptor:        e,
 		trigger:          trigger,
-		psd:              psd,
+		psm:              psm,
 		channel:          channel,
 		otelConfigurator: otelConfigurator,
+		countReader:      countReader,
 	}
 }
 
@@ -89,7 +92,7 @@ func (p *Enricher) loop(ctx context.Context) error {
 			panic(deferErr)
 		}
 	}()
-	tracer := otel.Tracer(p.psd)
+	tracer := otel.Tracer(p.psm)
 
 	ctx, span := tracer.Start(ctx, "Enricher notify reserver start")
 	defer span.End()
@@ -105,29 +108,15 @@ func (p *Enricher) loop(ctx context.Context) error {
 func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 	p.logger.Info().Msg("Enriching...")
 
-	key := fmt.Sprintf("%s:%s", p.psd, "count")
-
-	exists, err := p.redis.Exists(ctx, key).Result()
+	exist, counts, err := p.countReader.GetCount(ctx, time.Now())
 	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if key exists")
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Enricher failed to get count")
 		return err
 	}
-	if exists == 0 {
-		p.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", key)
+
+	if !exist {
+		p.logger.Info().Ctx(ctx).Msgf("Key does not exist")
 		return nil
-	}
-
-	p.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
-	countsJson, err := p.redis.Get(ctx, key).Result()
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to get counts")
-		return err
-	}
-	var counts map[string]map[string]map[string]int
-	err = json.Unmarshal([]byte(countsJson), &counts)
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to unmarshal counts")
-		return err
 	}
 
 	login, err := p.client.ktmb.Login(p.enricher.Email, p.enricher.Password)

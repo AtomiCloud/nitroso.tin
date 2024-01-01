@@ -28,11 +28,12 @@ type Cdc struct {
 	cdcConfig        config.CdcConfig
 	logger           *zerolog.Logger
 	otelConfigurator *telemetry.OtelConfigurator
-	psd              string
+	psm              string
+	ps               string
 	cred             auth.CredentialsProvider
 }
 
-func NewCdc(rds *otelredis.OtelRedis, ccs config.CdcConfig, streams config.StreamConfig, logger *zerolog.Logger, otelConfigurator *telemetry.OtelConfigurator, psd string, cred auth.CredentialsProvider) *Cdc {
+func NewCdc(rds *otelredis.OtelRedis, ccs config.CdcConfig, streams config.StreamConfig, logger *zerolog.Logger, otelConfigurator *telemetry.OtelConfigurator, psm, ps string, cred auth.CredentialsProvider) *Cdc {
 
 	return &Cdc{
 		redis:            rds,
@@ -40,7 +41,8 @@ func NewCdc(rds *otelredis.OtelRedis, ccs config.CdcConfig, streams config.Strea
 		cdcConfig:        ccs,
 		logger:           logger,
 		otelConfigurator: otelConfigurator,
-		psd:              psd,
+		psm:              psm,
+		ps:               ps,
 		cred:             cred,
 	}
 }
@@ -91,9 +93,9 @@ func (c *Cdc) loop(ctx context.Context, consumerId string) (bool, error) {
 			panic(deferErr)
 		}
 	}()
-	tracer := otel.Tracer(c.psd)
+	tracer := otel.Tracer(c.psm)
 
-	c.logger.Info().Ctx(ctx).Msg("CDC waiting for message from Zinc...")
+	c.logger.Info().Ctx(ctx).Str("consumerId", consumerId).Msg("CDC waiting for message from Zinc...")
 	err = c.redis.StreamGroupRead(ctx, tracer, c.streamConfig.Cdc, c.cdcConfig.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
 		c.logger.Info().Ctx(ctx).Msg("CDC received signal")
 		return c.sync(ctx, tracer)
@@ -163,10 +165,9 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 			counts[dir][date] = make(map[string]int)
 		}
 		counts[dir][date][t] = count
-
 	}
 
-	key := fmt.Sprintf("%s:%s", c.psd, "count")
+	key := fmt.Sprintf("%s:%s", c.ps, "count")
 
 	out, er := json.Marshal(counts)
 	if er != nil {

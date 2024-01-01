@@ -13,5 +13,6 @@ type State struct {
 	OtelConfigurator *telemetry.OtelConfigurator
 	Logger           *zerolog.Logger
 	Credential       auth.CredentialsProvider
-	Psd              string
+	Psm              string
+	Ps               string
 }

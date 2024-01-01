@@ -27,7 +27,7 @@ type Client struct {
 	logger           *zerolog.Logger
 	streamsCfg       config.StreamConfig
 	buyerCfg         config.BuyerConfig
-	psd              string
+	psm              string
 	zinc             *zinc.Client
 	encr             encryptor.Encryptor[reserver.ReserveDto]
 }
@@ -53,7 +53,7 @@ func createForm(values map[string]io.Reader) (s string, reader io.Reader, err er
 }
 
 func New(buyer *Buyer, redis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger,
-	streamsCfg config.StreamConfig, buyerCfg config.BuyerConfig, psd string, zinc *zinc.Client, enrc encryptor.Encryptor[reserver.ReserveDto]) *Client {
+	streamsCfg config.StreamConfig, buyerCfg config.BuyerConfig, psm string, zinc *zinc.Client, enrc encryptor.Encryptor[reserver.ReserveDto]) *Client {
 	return &Client{
 		buyer:            buyer,
 		redis:            redis,
@@ -61,7 +61,7 @@ func New(buyer *Buyer, redis *otelredis.OtelRedis, otelConfigurator *telemetry.O
 		logger:           logger,
 		streamsCfg:       streamsCfg,
 		buyerCfg:         buyerCfg,
-		psd:              psd,
+		psm:              psm,
 		zinc:             zinc,
 		encr:             enrc,
 	}
@@ -113,7 +113,7 @@ func (c *Client) loop(ctx context.Context, consumerId string) (bool, error) {
 		}
 	}()
 
-	tracer := otel.Tracer(c.psd)
+	tracer := otel.Tracer(c.psm)
 
 	c.logger.Info().Ctx(ctx).Msg("Buyer waiting for reserver message...")
 	err = c.redis.StreamGroupRead(ctx, tracer, c.streamsCfg.Reserver, c.buyerCfg.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {

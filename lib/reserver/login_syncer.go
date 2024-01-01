@@ -19,13 +19,14 @@ type LoginSyncer struct {
 	retriever        *Retriever
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
-	psd              string
+	psm              string
+	ps               string
 	streamConfig     config.StreamConfig
 	reserver         config.ReserverConfig
 }
 
 func NewLoginSyncer(toReserver chan LoginStore, rds *otelredis.OtelRedis, retriever *Retriever,
-	otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger, psd string,
+	otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger, psm, ps string,
 	streamConfig config.StreamConfig, reserver config.ReserverConfig) LoginSyncer {
 	return LoginSyncer{
 		toReserver:       toReserver,
@@ -33,7 +34,8 @@ func NewLoginSyncer(toReserver chan LoginStore, rds *otelredis.OtelRedis, retrie
 		retriever:        retriever,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
-		psd:              psd,
+		psm:              psm,
+		ps:               ps,
 		streamConfig:     streamConfig,
 		reserver:         reserver,
 	}
@@ -78,7 +80,7 @@ func (l *LoginSyncer) createGroup(ctx context.Context) {
 }
 
 func (l *LoginSyncer) update(ctx context.Context) error {
-	key := fmt.Sprintf("%s:%s", l.psd, "count")
+	key := fmt.Sprintf("%s:%s", l.ps, "count")
 	l.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
 
 	data, err := l.retriever.GetLoginData(ctx)
@@ -109,7 +111,7 @@ func (l *LoginSyncer) loop(ctx context.Context, consumerId string) (bool, error)
 			panic(deferErr)
 		}
 	}()
-	tracer := otel.Tracer(l.psd)
+	tracer := otel.Tracer(l.psm)
 
 	l.logger.Info().Ctx(ctx).Msg("Reserver 'login syncer', waiting for enricher ping...")
 
