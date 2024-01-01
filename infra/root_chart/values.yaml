@@ -44,7 +44,8 @@ cdc:
   replicaCount: 1
 
   appSettings:
-    module: cdc
+    app:
+      module: cdc
 
   configMountPath: /app/config
 
@@ -97,7 +98,8 @@ poller:
   replicaCount: 1
 
   appSettings:
-    module: poller
+    app:
+      module: poller
 
   configMountPath: /app/config
 
@@ -150,7 +152,8 @@ enricher:
   replicaCount: 1
 
   appSettings:
-    module: enricher
+    app:
+      module: enricher
 
   configMountPath: /app/config
 
@@ -201,7 +204,8 @@ reserver:
   replicaCount: 1
 
   appSettings:
-    module: reserver
+    app:
+      module: reserver
 
   configMountPath: /app/config
 
@@ -252,7 +256,8 @@ buyer:
   replicaCount: 1
 
   appSettings:
-    module: buyer
+    app:
+      module: buyer
 
   configMountPath: /app/config
 

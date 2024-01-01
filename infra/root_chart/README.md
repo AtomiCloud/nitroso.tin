@@ -30,7 +30,7 @@ Root Chart to a single Service
 | bromine.target | string | `"nitroso-tin"` |  |
 | buyer.affinity | object | `{}` |  |
 | buyer.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| buyer.appSettings.module | string | `"buyer"` |  |
+| buyer.appSettings.app.module | string | `"buyer"` |  |
 | buyer.autoscaling | object | `{}` |  |
 | buyer.configMountPath | string | `"/app/config"` |  |
 | buyer.envFromSecret | string | `"nitroso-tin"` |  |
@@ -56,7 +56,7 @@ Root Chart to a single Service
 | buyer.topologySpreadConstraints | object | `{}` |  |
 | cdc.affinity | object | `{}` |  |
 | cdc.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| cdc.appSettings.module | string | `"cdc"` |  |
+| cdc.appSettings.app.module | string | `"cdc"` |  |
 | cdc.autoscaling | object | `{}` |  |
 | cdc.configMountPath | string | `"/app/config"` |  |
 | cdc.envFromSecret | string | `"nitroso-tin"` |  |
@@ -82,7 +82,7 @@ Root Chart to a single Service
 | cdc.topologySpreadConstraints | object | `{}` |  |
 | enricher.affinity | object | `{}` |  |
 | enricher.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| enricher.appSettings.module | string | `"enricher"` |  |
+| enricher.appSettings.app.module | string | `"enricher"` |  |
 | enricher.autoscaling | object | `{}` |  |
 | enricher.configMountPath | string | `"/app/config"` |  |
 | enricher.envFromSecret | string | `"nitroso-tin"` |  |
@@ -138,7 +138,7 @@ Root Chart to a single Service
 | livecache.resources.requests.memory | string | `"256Mi"` |  |
 | poller.affinity | object | `{}` |  |
 | poller.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| poller.appSettings.module | string | `"poller"` |  |
+| poller.appSettings.app.module | string | `"poller"` |  |
 | poller.autoscaling | object | `{}` |  |
 | poller.configMountPath | string | `"/app/config"` |  |
 | poller.envFromSecret | string | `"nitroso-tin"` |  |
@@ -166,7 +166,7 @@ Root Chart to a single Service
 | poller.topologySpreadConstraints | object | `{}` |  |
 | reserver.affinity | object | `{}` |  |
 | reserver.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
-| reserver.appSettings.module | string | `"reserver"` |  |
+| reserver.appSettings.app.module | string | `"reserver"` |  |
 | reserver.autoscaling | object | `{}` |  |
 | reserver.configMountPath | string | `"/app/config"` |  |
 | reserver.envFromSecret | string | `"nitroso-tin"` |  |
