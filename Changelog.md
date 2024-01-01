@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.3...v1.4.4) (2024-01-01)
+
+
+### 🐛 Bug Fixes 🐛
+
+* psm and ps configuration problems ([4819e22](https://github.com/AtomiCloud/nitroso.tin/commit/4819e22ba8435ff997e9902608c8e895a6892b1f))
+
 ## [1.4.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.2...v1.4.3) (2024-01-01)
 
 
