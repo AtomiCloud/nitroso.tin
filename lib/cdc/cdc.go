@@ -65,7 +65,7 @@ func (c *Cdc) Start(ctx context.Context, consumerId string) error {
 				return err
 			}
 			secRetry := math.Pow(2, float64(errorCounter))
-			c.logger.Info().Msgf("Retrying operation in %f seconds\n", secRetry)
+			c.logger.Info().Msgf("Retrying operation in %f seconds", secRetry)
 			delay := time.Duration(secRetry) * baseDelay
 			time.Sleep(delay)
 			errorCounter++
@@ -180,14 +180,14 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 		c.logger.Error().Err(er).
 			Str("redisKey", key).
 			Str("redisCmd", result).
-			Msgf("Failed to set key: %s. Result: %s\n", key, result)
+			Msgf("Failed to set key: %s. Result: %s", key, result)
 		return er
 	}
 
 	// notify the stream
 	cmdErr, redErr := c.redis.StreamAdd(ctx, tracer, c.streamConfig.Update, "ping")
 	if redErr != nil {
-		c.logger.Error().Err(redErr).Msgf("Failed to notify enricher and pollers: %s\n", cmdErr)
+		c.logger.Error().Err(redErr).Msgf("Failed to notify enricher and pollers: %s", cmdErr)
 		return redErr
 	}
 	return nil

@@ -25,8 +25,8 @@ func New(ktmb ktmb.Ktmb, logger *zerolog.Logger) Client {
 
 func (c *Client) Find(userData, dir string, date string, time string) (FindRes, error) {
 	c.logger.Info().Msg("Initializing enricher")
-	c.logger.Info().Msgf("Date: %s\n", date)
-	c.logger.Info().Msgf("Dir: %s\n", dir)
+	c.logger.Info().Msgf("Date: %s", date)
+	c.logger.Info().Msgf("Dir: %s", dir)
 
 	d := fmt.Sprintf("%sT00:00:00", date)
 	dt := fmt.Sprintf("%sT%s", date, time)

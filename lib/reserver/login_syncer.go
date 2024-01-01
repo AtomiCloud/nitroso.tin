@@ -58,7 +58,7 @@ func (l *LoginSyncer) Start(ctx context.Context, consumerId string) error {
 				return err
 			}
 			secRetry := math.Pow(2, float64(errorCounter))
-			l.logger.Info().Msgf("Retrying operation in %f seconds\n", secRetry)
+			l.logger.Info().Msgf("Retrying operation in %f seconds", secRetry)
 			delay := time.Duration(secRetry) * baseDelay
 			time.Sleep(delay)
 			errorCounter++
@@ -79,7 +79,7 @@ func (l *LoginSyncer) createGroup(ctx context.Context) {
 
 func (l *LoginSyncer) update(ctx context.Context) error {
 	key := fmt.Sprintf("%s:%s", l.psd, "count")
-	l.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'\n", key)
+	l.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
 
 	data, err := l.retriever.GetLoginData(ctx)
 	if err != nil {

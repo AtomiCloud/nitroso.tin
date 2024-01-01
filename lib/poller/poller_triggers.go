@@ -65,7 +65,7 @@ func (p *Trigger) RedisStream(ctx context.Context, consumerId string) error {
 					return err
 				}
 				secRetry := math.Pow(2, float64(errorCounter))
-				p.logger.Info().Msgf("Retrying operation in %f seconds\n", secRetry)
+				p.logger.Info().Msgf("Retrying operation in %f seconds", secRetry)
 				delay := time.Duration(secRetry) * baseDelay
 				time.Sleep(delay)
 				errorCounter++

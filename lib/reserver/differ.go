@@ -99,7 +99,7 @@ func (d *Differ) sub(ctx context.Context, prev, relevant Count, t, done chan boo
 	listens := d.getChannels(relevant)
 	cs := d.toString(listens)
 
-	d.logger.Info().Ctx(ctx).Any("channels", cs).Msgf("Subscribing to channels: %+v\n", cs)
+	d.logger.Info().Ctx(ctx).Any("channels", cs).Msgf("Subscribing to channels: %+v", cs)
 
 	subscriber := d.rds.Subscribe(ctx, cs...)
 	defer func(subscriber *redis.PubSub) {

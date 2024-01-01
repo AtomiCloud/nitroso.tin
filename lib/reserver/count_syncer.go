@@ -62,7 +62,7 @@ func (s *CountSyncer) Start(ctx context.Context, consumerId string) error {
 				return err
 			}
 			secRetry := math.Pow(2, float64(errorCounter))
-			s.logger.Info().Msgf("Retrying operation in %f seconds\n", secRetry)
+			s.logger.Info().Msgf("Retrying operation in %f seconds", secRetry)
 			delay := time.Duration(secRetry) * baseDelay
 			time.Sleep(delay)
 			errorCounter++
@@ -85,18 +85,18 @@ func (s *CountSyncer) update(ctx context.Context) error {
 
 	key := fmt.Sprintf("%s:%s", s.psd, "count")
 
-	s.logger.Info().Ctx(ctx).Msgf("Checking if key '%s' exists\n", key)
+	s.logger.Info().Ctx(ctx).Msgf("Checking if key '%s' exists", key)
 	exists, err := s.redis.Exists(ctx, key).Result()
 	if err != nil {
 		s.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if userdata key exists")
 		return err
 	}
 	if exists == 0 {
-		s.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist\n", key)
+		s.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", key)
 		return nil
 	}
 
-	s.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'\n", key)
+	s.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
 	countsJson, rErr := s.redis.Get(ctx, key).Result()
 	if rErr != nil {
 		s.logger.Error().Ctx(ctx).Err(rErr).Msg("Failed to get counts from redis")

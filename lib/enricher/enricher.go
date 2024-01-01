@@ -67,7 +67,7 @@ func (p *Enricher) Start(ctx context.Context, uniqueId string) error {
 
 	for {
 		t := <-p.channel
-		p.logger.Info().Ctx(ctx).Msgf("Triggered: %s\n", t)
+		p.logger.Info().Ctx(ctx).Msgf("Triggered: %s", t)
 		err := p.loop(ctx)
 		if err != nil {
 			p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to enrich")
@@ -111,11 +111,11 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		return err
 	}
 	if exists == 0 {
-		p.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist\n", key)
+		p.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", key)
 		return nil
 	}
 
-	p.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'\n", key)
+	p.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
 	countsJson, err := p.redis.Get(ctx, key).Result()
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to get counts")
@@ -214,14 +214,14 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", udr).Msg("Failed to set userData")
 		return err
 	}
-	p.logger.Info().Ctx(ctx).Msgf("Set userData: %s\n", udr)
+	p.logger.Info().Ctx(ctx).Msgf("Set userData: %s", udr)
 
 	sr, err := p.redis.Set(ctx, p.enricher.StoreKey, storeEn, 0).Result()
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", sr).Msg("Failed to set store")
 		return err
 	}
-	p.logger.Info().Ctx(ctx).Msgf("Set store: %s\n", sr)
+	p.logger.Info().Ctx(ctx).Msgf("Set store: %s", sr)
 
 	// we should emit for reserver to sync up
 	p.logger.Info().Ctx(ctx).Msg("Emitting for reserver to sync up")

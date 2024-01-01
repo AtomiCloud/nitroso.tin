@@ -86,7 +86,7 @@ func (c *Client) Start(ctx context.Context, consumerId string) error {
 				return err
 			}
 			secRetry := math.Pow(2, float64(errorCounter))
-			c.logger.Info().Msgf("Retrying operation in %f seconds\n", secRetry)
+			c.logger.Info().Msgf("Retrying operation in %f seconds", secRetry)
 			delay := time.Duration(secRetry) * baseDelay
 			time.Sleep(delay)
 			errorCounter++

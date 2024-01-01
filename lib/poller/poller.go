@@ -45,7 +45,7 @@ func (p *Poller) Start(ctx context.Context, uniqueId string) error {
 	for {
 		t := <-p.channel
 
-		p.logger.Info().Ctx(ctx).Msgf("Triggered: %s\n", t)
+		p.logger.Info().Ctx(ctx).Msgf("Triggered: %s", t)
 
 		err := p.createPoller(ctx)
 		if err != nil {
@@ -67,12 +67,12 @@ func (p *Poller) createPoller(ctx context.Context) error {
 	}
 
 	if exists == 0 {
-		p.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist\n", key)
+		p.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", key)
 		return nil
 	}
 
 	// getting count from Redis
-	p.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'\n", key)
+	p.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
 	countsJson, err := p.redis.Get(ctx, key).Result()
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to get counts")
@@ -89,7 +89,7 @@ func (p *Poller) createPoller(ctx context.Context) error {
 	for dir, dirCount := range counts {
 
 		for date := range dirCount {
-			p.logger.Info().Ctx(ctx).Msgf("dir: %s, date: %s\n", dir, date)
+			p.logger.Info().Ctx(ctx).Msgf("dir: %s, date: %s", dir, date)
 			er := p.job.CreateJob(ctx, date, dir)
 			if er != nil {
 				p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create job")

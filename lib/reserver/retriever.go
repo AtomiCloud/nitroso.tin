@@ -27,7 +27,7 @@ func NewRetriever(rds *otelredis.OtelRedis, e encryptor.Encryptor[enricher.FindS
 
 func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 
-	r.logger.Info().Msgf("Getting Login Data: %s\n", r.enricher.UserDataKey)
+	r.logger.Info().Msgf("Getting Login Data: %s", r.enricher.UserDataKey)
 	exists, err := r.redis.Exists(ctx, r.enricher.UserDataKey).Result()
 	if err != nil {
 		r.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if userdata key exists")
@@ -35,7 +35,7 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 	}
 
 	if exists == 0 {
-		r.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist\n", r.enricher.UserDataKey)
+		r.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", r.enricher.UserDataKey)
 		return nil, nil
 	}
 
@@ -46,7 +46,7 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 	}
 
 	if exists == 0 {
-		r.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist\n", r.enricher.StoreKey)
+		r.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", r.enricher.StoreKey)
 		return nil, nil
 	}
 

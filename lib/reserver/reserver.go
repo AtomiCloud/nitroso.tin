@@ -151,7 +151,7 @@ func (c *Client) Start(ctx context.Context) error {
 			if diff.Delta.Delta < needed {
 				buy = diff.Delta.Delta
 			}
-			c.logger.Info().Msgf("Need to reserve %d tickets and there are %d tickets available. We will attempt to buy %d tickets.\n", needed, diff.Delta.Delta, buy)
+			c.logger.Info().Msgf("Need to reserve %d tickets and there are %d tickets available. We will attempt to buy %d tickets.", needed, diff.Delta.Delta, buy)
 
 			// foreach, we buy
 			for i := 0; i < buy; i++ {
