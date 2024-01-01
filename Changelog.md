@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.0...v1.4.1) (2024-01-01)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect OTLP module ([46007da](https://github.com/AtomiCloud/nitroso.tin/commit/46007da98134a3a4db0043766a684ca703e397df))
+
 ## [1.4.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.3.4...v1.4.0) (2023-12-27)
 
 
