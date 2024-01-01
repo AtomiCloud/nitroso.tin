@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.2...v1.4.3) (2024-01-01)
+
+
+### 🐛 Bug Fixes 🐛
+
+* app module in values ([7d8fed3](https://github.com/AtomiCloud/nitroso.tin/commit/7d8fed316d89b89aebaf7a915006ec844ddaa15b))
+
 ## [1.4.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.1...v1.4.2) (2024-01-01)
 
 
