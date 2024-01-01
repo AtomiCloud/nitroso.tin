@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.1...v1.4.2) (2024-01-01)
+
+
+### 🐛 Bug Fixes 🐛
+
+* tracer behaviour ([f5a9709](https://github.com/AtomiCloud/nitroso.tin/commit/f5a970990f777ad6e75c8d2104cebd997a0287b0))
+
 ## [1.4.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.0...v1.4.1) (2024-01-01)
 
 
