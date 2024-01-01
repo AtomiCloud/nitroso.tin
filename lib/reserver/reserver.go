@@ -294,7 +294,7 @@ func (c *Client) reserve(ctx context.Context, direction, date, t, userData, sear
 	}()
 
 	tracer := otel.Tracer(c.psd)
-	ctx, span := tracer.Start(ctx, "Enricher notify start")
+	ctx, span := tracer.Start(ctx, "Reserve notify buyer start")
 	defer span.End()
 
 	add, err := c.redis.StreamAdd(ctx, tracer, c.stream.Reserver, encrypted)

@@ -110,12 +110,11 @@ func (l *LoginSyncer) loop(ctx context.Context, consumerId string) (bool, error)
 		}
 	}()
 	tracer := otel.Tracer(l.psd)
-	ctx, span := tracer.Start(ctx, "Reserver listen to enrich stream")
-	defer span.End()
 
-	l.logger.Info().Ctx(ctx).Msg("Waiting for enricher ping...")
+	l.logger.Info().Ctx(ctx).Msg("Reserver 'login syncer', waiting for enricher ping...")
+
 	err = l.redis.StreamGroupRead(ctx, tracer, l.streamConfig.Enrich, l.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
-		l.logger.Info().Ctx(ctx).Msg("Received enricher emitted signal")
+		l.logger.Info().Ctx(ctx).Msg("Reserver 'login syncer', received enricher emitted signal")
 		return l.update(ctx)
 	})
 	if err != nil {

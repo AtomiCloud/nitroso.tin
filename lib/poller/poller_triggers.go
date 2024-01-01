@@ -97,11 +97,10 @@ func (p *Trigger) redisLoop(ctx context.Context, consumerId string) (bool, error
 		}
 	}()
 	tracer := otel.Tracer(p.psd)
-	ctx, span := tracer.Start(ctx, "CDC Poller")
-	defer span.End()
-	p.logger.Info().Ctx(ctx).Msg("Waiting for CDC messages...")
+
+	p.logger.Info().Ctx(ctx).Msg("Poller waiting for CDC messages...")
 	err = p.redis.StreamGroupRead(ctx, tracer, p.stream.Update, p.poller.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {
-		p.logger.Info().Ctx(ctx).Msg("Received CDC signal")
+		p.logger.Info().Ctx(ctx).Msg("Poller received CDC signal")
 		p.channel <- "redis-stream"
 		return nil
 	})

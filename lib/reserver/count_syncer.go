@@ -115,7 +115,9 @@ func (s *CountSyncer) update(ctx context.Context) error {
 	maps.Copy(dCount, counts)
 	maps.Copy(rCount, counts)
 
+	s.logger.Info().Ctx(ctx).Msgf("Sending counts to reserver differ")
 	s.toDiffer <- dCount
+	s.logger.Info().Ctx(ctx).Msgf("Sending counts to reserver reserver")
 	s.toReserver <- rCount
 	return nil
 }
@@ -132,13 +134,12 @@ func (s *CountSyncer) loop(ctx context.Context, consumerId string) (bool, error)
 			panic(deferErr)
 		}
 	}()
-	tracer := otel.Tracer(s.psd)
-	ctx, span := tracer.Start(ctx, "Reserver watcher")
-	defer span.End()
 
-	s.logger.Info().Ctx(ctx).Msg("Waiting for message...")
+	s.logger.Info().Ctx(ctx).Msg("Reserver waiting for CDC signal...")
+
+	tracer := otel.Tracer(s.psd)
 	err = s.redis.StreamGroupRead(ctx, tracer, s.streamConfig.Update, s.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
-		s.logger.Info().Ctx(ctx).Msg("Received CDC emitted signal")
+		s.logger.Info().Ctx(ctx).Msg("Reserver received CDC emitted signal")
 		return s.update(ctx)
 	})
 	if err != nil {

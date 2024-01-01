@@ -67,7 +67,7 @@ func (p *Enricher) Start(ctx context.Context, uniqueId string) error {
 
 	for {
 		t := <-p.channel
-		p.logger.Info().Ctx(ctx).Msgf("Triggered: %s", t)
+		p.logger.Info().Ctx(ctx).Msgf("Enricher triggered: %s", t)
 		err := p.loop(ctx)
 		if err != nil {
 			p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to enrich")
@@ -90,8 +90,10 @@ func (p *Enricher) loop(ctx context.Context) error {
 		}
 	}()
 	tracer := otel.Tracer(p.psd)
-	ctx, span := tracer.Start(ctx, "Enricher notify start")
+
+	ctx, span := tracer.Start(ctx, "Enricher notify reserver start")
 	defer span.End()
+
 	err = p.enrich(ctx, tracer)
 	if err != nil {
 		p.logger.Error().Err(err).Msg("Failed to read")

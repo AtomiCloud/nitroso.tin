@@ -112,13 +112,12 @@ func (c *Client) loop(ctx context.Context, consumerId string) (bool, error) {
 			panic(deferErr)
 		}
 	}()
-	tracer := otel.Tracer(c.psd)
-	ctx, span := tracer.Start(ctx, "Buyer")
-	defer span.End()
 
-	c.logger.Info().Ctx(ctx).Msg("Waiting for reserver message...")
+	tracer := otel.Tracer(c.psd)
+
+	c.logger.Info().Ctx(ctx).Msg("Buyer waiting for reserver message...")
 	err = c.redis.StreamGroupRead(ctx, tracer, c.streamsCfg.Reserver, c.buyerCfg.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
-		c.logger.Info().Ctx(ctx).Msg("Received reserver emitted signal")
+		c.logger.Info().Ctx(ctx).Msg("Buyer received reserver emitted signal")
 		var output string
 		e := json.Unmarshal(message, &output)
 		if e != nil {

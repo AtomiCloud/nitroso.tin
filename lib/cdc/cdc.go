@@ -92,12 +92,10 @@ func (c *Cdc) loop(ctx context.Context, consumerId string) (bool, error) {
 		}
 	}()
 	tracer := otel.Tracer(c.psd)
-	ctx, span := tracer.Start(ctx, "CDC subscriber")
-	defer span.End()
 
-	c.logger.Info().Ctx(ctx).Msg("Waiting for message...")
+	c.logger.Info().Ctx(ctx).Msg("CDC waiting for message from Zinc...")
 	err = c.redis.StreamGroupRead(ctx, tracer, c.streamConfig.Cdc, c.cdcConfig.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
-		c.logger.Info().Ctx(ctx).Msg("Received CDC signal")
+		c.logger.Info().Ctx(ctx).Msg("CDC received signal")
 		return c.sync(ctx, tracer)
 	})
 	if err != nil {
@@ -110,6 +108,8 @@ func (c *Cdc) loop(ctx context.Context, consumerId string) (bool, error) {
 func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 	c.logger.Info().Ctx(ctx).Msg("Starting CDC process")
 
+	// Get booking count from API
+	c.logger.Info().Ctx(ctx).Msg("Getting Zinc current booking count from API")
 	endpoint := fmt.Sprintf("%s://%s:%s", c.cdcConfig.Scheme, c.cdcConfig.Host, c.cdcConfig.Port)
 
 	client, er := zinc.NewClient(endpoint,
@@ -174,6 +174,8 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 			Msg("Failed to marshal counts")
 		return er
 	}
+
+	// Update Redis with the counts
 	c.logger.Info().Ctx(ctx).Msg("Booking Counts: " + string(out))
 	result, er := c.redis.Set(ctx, key, string(out), 0).Result()
 	if er != nil {
@@ -185,6 +187,7 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 	}
 
 	// notify the stream
+	c.logger.Info().Ctx(ctx).Msg("CDC notifying enricher, poller and reserver")
 	cmdErr, redErr := c.redis.StreamAdd(ctx, tracer, c.streamConfig.Update, "ping")
 	if redErr != nil {
 		c.logger.Error().Err(redErr).Msgf("Failed to notify enricher and pollers: %s", cmdErr)
