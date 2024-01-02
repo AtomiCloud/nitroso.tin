@@ -53,9 +53,60 @@ func (p *Client) GetCount(ctx context.Context, now time.Time) (bool, Count, erro
 	}
 
 	// filter by now
-	//var filtered map[string]map[string]map[string]int
-	//
-	//for
+	filtered, err := p.filter(counts, now)
+	if err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to filter counts")
+		return false, nil, err
+	}
 
-	return true, counts, nil
+	return true, filtered, nil
+}
+
+func (p *Client) filter(counts Count, now time.Time) (Count, error) {
+
+	var r Count
+
+	for dir, dirCount := range counts {
+		for date, dateCount := range dirCount {
+			for time, c := range dateCount {
+				within, err := p.isWithinRange(now, date, time)
+				if err != nil {
+					p.logger.Error().Err(err).Str("date", date).Str("time", time).Msg("Failed to check if within range")
+					return nil, err
+				}
+				if within {
+					if r[dir] == nil {
+						r[dir] = make(map[string]map[string]int)
+					}
+					if r[dir][date] == nil {
+						r[dir][date] = make(map[string]int)
+					}
+					r[dir][date][time] = c
+				}
+			}
+		}
+	}
+	return r, nil
+}
+
+func (p *Client) parseDateTime(dateStr, timeStr string) (time.Time, error) {
+	layout := "02-01-2006 15:04:05"
+	return time.Parse(layout, dateStr+" "+timeStr)
+}
+
+func (p *Client) lastMomentOfDay(t time.Time) time.Time {
+	return t.AddDate(0, 0, 1).Truncate(24 * time.Hour).Add(-time.Second)
+}
+
+func (p *Client) isWithinRange(now time.Time, dateStr, timeStr string) (bool, error) {
+	givenTime, err := p.parseDateTime(dateStr, timeStr)
+	if err != nil {
+		p.logger.Error().Err(err).Str("date", dateStr).Str("time", timeStr).Msg("Failed to parse date time")
+		return false, err
+	}
+	plus30m := givenTime.Add(30 * time.Minute)
+	sixMonthsLater := givenTime.AddDate(0, 6, 0)
+	endOfSixMonths := p.lastMomentOfDay(sixMonthsLater)
+
+	return now.After(plus30m) && now.Before(endOfSixMonths), nil
 }

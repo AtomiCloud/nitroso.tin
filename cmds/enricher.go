@@ -17,7 +17,7 @@ func (state *State) Enricher(c *cli.Context) error {
 	ktmbConfig := state.Config.Ktmb
 	ctx := c.Context
 
-	ch := make(chan string)
+	ch := make(chan enricher.TriggerMessage)
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
 	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger)

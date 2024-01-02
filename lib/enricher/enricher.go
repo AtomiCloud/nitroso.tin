@@ -16,7 +16,7 @@ import (
 )
 
 type Enricher struct {
-	channel          chan string
+	channel          chan TriggerMessage
 	client           *Client
 	mainRedis        *otelredis.OtelRedis
 	streamRedis      *otelredis.OtelRedis
@@ -41,7 +41,7 @@ type FindStore = map[string]map[string]map[string]FindRes
 
 func NewEnricher(client *Client, trigger *Trigger, logger *zerolog.Logger, e encryptor.Encryptor[FindStore],
 	mainRedis, streamRedis *otelredis.OtelRedis, enricher config.EnricherConfig, streams config.StreamConfig, psm string,
-	channel chan string, otelConfigurator *telemetry.OtelConfigurator, countReader *count.Client) *Enricher {
+	channel chan TriggerMessage, otelConfigurator *telemetry.OtelConfigurator, countReader *count.Client) *Enricher {
 	return &Enricher{
 		client:           client,
 		logger:           logger,
@@ -72,7 +72,11 @@ func (p *Enricher) Start(ctx context.Context, uniqueId string) error {
 
 	for {
 		t := <-p.channel
-		p.logger.Info().Ctx(ctx).Msgf("Enricher triggered: %s", t)
+		p.logger.Info().Ctx(ctx).Msgf("Enricher triggered: %s", t.Type)
+		if t.Mc == nil {
+			propagator := otel.GetTextMapPropagator()
+			ctx = propagator.Extract(ctx, t.Mc)
+		}
 		err := p.loop(ctx)
 		if err != nil {
 			p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to enrich")
@@ -115,12 +119,12 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Enricher failed to get count")
 		return err
 	}
-
 	if !exist {
 		p.logger.Info().Ctx(ctx).Msgf("Key does not exist")
 		return nil
 	}
 
+	p.logger.Info().Ctx(ctx).Any("counts", counts).Msgf("Obtain counts")
 	login, err := p.client.ktmb.Login(p.enricher.Email, p.enricher.Password)
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to login")

@@ -8,6 +8,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"math"
 	"math/rand"
 	"time"
@@ -15,8 +16,13 @@ import (
 
 var baseDelay = 1 * time.Second
 
+type TriggerMessage struct {
+	Type string
+	Mc   propagation.MapCarrier
+}
+
 type Trigger struct {
-	channel          chan string
+	channel          chan TriggerMessage
 	streamRedis      *otelredis.OtelRedis
 	stream           config.StreamConfig
 	enricher         config.EnricherConfig
@@ -25,7 +31,7 @@ type Trigger struct {
 	psm              string
 }
 
-func NewTrigger(channel chan string, logger *zerolog.Logger, streamRedis *otelredis.OtelRedis,
+func NewTrigger(channel chan TriggerMessage, logger *zerolog.Logger, streamRedis *otelredis.OtelRedis,
 	streams config.StreamConfig, enricher config.EnricherConfig, otelConfigurator *telemetry.OtelConfigurator,
 	psm string) *Trigger {
 
@@ -45,7 +51,10 @@ func (p *Trigger) RandomTrigger(ctx context.Context) {
 	random := rand.New(source)
 
 	for {
-		p.channel <- "random"
+		p.channel <- TriggerMessage{
+			Type: "random",
+			Mc:   nil,
+		}
 		randomInt := random.Intn(7200) + 7200
 		duration := time.Duration(randomInt) * time.Second
 		time.Sleep(duration)
@@ -105,7 +114,14 @@ func (p *Trigger) redisLoop(ctx context.Context, consumerId string) (bool, error
 	p.logger.Info().Ctx(ctx).Msg("Enricher waiting for CDC messages...")
 	err = p.streamRedis.StreamGroupRead(ctx, tracer, p.stream.Update, p.enricher.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {
 		p.logger.Info().Ctx(ctx).Msg("Enricher received CDC signal")
-		p.channel <- "redis-stream"
+
+		mc := propagation.MapCarrier{}
+		otel.GetTextMapPropagator().Inject(ctx, mc)
+
+		p.channel <- TriggerMessage{
+			Type: "redis-stream",
+			Mc:   mc,
+		}
 		return nil
 	})
 	if err != nil {
