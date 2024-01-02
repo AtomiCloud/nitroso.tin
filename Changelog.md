@@ -1,3 +1,10 @@
+## [1.4.9](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.8...v1.4.9) (2024-01-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* check where did count go wrong ([11c1007](https://github.com/AtomiCloud/nitroso.tin/commit/11c1007bb8289a29e290b637ceb6eb515e5deb78))
+
 ## [1.4.8](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.7...v1.4.8) (2024-01-02)
 
 
