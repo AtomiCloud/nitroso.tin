@@ -1,3 +1,10 @@
+## [1.4.7](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.6...v1.4.7) (2024-01-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* remove debug statement at start ([66f2f20](https://github.com/AtomiCloud/nitroso.tin/commit/66f2f20f22b5733bb50e510816f463b4871a7b08))
+
 ## [1.4.6](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.5...v1.4.6) (2024-01-02)
 
 
