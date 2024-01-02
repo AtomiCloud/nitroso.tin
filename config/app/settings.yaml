@@ -3,7 +3,7 @@ cache:
     password: ""
     ssl: false
     endpoints:
-      0: "nitroso-zinc-main-cache:6379"
+      0: "zinc-maincache:6379"
   LIVE:
     password: ""
     ssl: false

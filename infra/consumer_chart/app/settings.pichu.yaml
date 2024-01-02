@@ -3,6 +3,8 @@ cache:
     ssl: true
   LIVE:
     password: ""
+  STREAM:
+    password: ""
 app:
   landscape: pichu
 

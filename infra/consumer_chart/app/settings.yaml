@@ -3,19 +3,23 @@ cache:
     password: ""
     ssl: false
     endpoints:
-      0: "nitroso-zinc-main-cache:6379"
+      0: "zinc-maincache:6379"
   LIVE:
     password: ""
     ssl: false
     endpoints:
       0: "tin-livecache-master:6379"
+  STREAM:
+    password: ""
+    ssl: false
+    endpoints:
+      0: "zinc-streamcache-master:6379"
 ktmb:
   apiUrl: https://online-api.ktmb.com.my
   appUrl: https://shuttleonline-api.ktmb.com.my
   requestSignature: ""
 
 buyer:
-  group: buyer
   backoffLimit: 3
   contactNumber: "+6581272251"
   scheme: http

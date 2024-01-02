@@ -106,6 +106,9 @@ zinc:
       limits:
         memory: "512Mi"
         cpu: "250m"
+  streamcache:
+    enable: true
+    fullnameOverride: "zinc-streamcache"
   maindb:
     enable: true
     fullnameOverride: "zinc-maindb"
