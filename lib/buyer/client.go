@@ -109,7 +109,7 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 
 	tracer := otel.Tracer(c.psm)
 
-	c.logger.Info().Ctx(ctx).Msg("Buyer waiting for reserver message...")
+	c.logger.Info().Ctx(ctx).Str("qeueue", c.streamsCfg.Reserver).Msg("Buyer waiting for reserver message...")
 	err = c.mainRedis.QueuePop(ctx, tracer, c.streamsCfg.Reserver, func(ctx context.Context, message json.RawMessage) error {
 		c.logger.Info().Ctx(ctx).Msg("Buyer received reserver emitted signal")
 		var output string
@@ -132,7 +132,7 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 		return nil
 	})
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to read from redis stream in buyer (from reserver)")
+		c.logger.Error().Err(err).Msg("Failed to read from redis list in buyer (from reserver)")
 		return false, err
 	}
 	return false, nil

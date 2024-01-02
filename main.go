@@ -28,6 +28,7 @@ func main() {
 		Landscape:  landscape,
 		BaseConfig: baseConfig,
 	}
+
 	cfg, cfgErr := loader.Load()
 	if cfgErr != nil {
 		panic(cfgErr)
@@ -68,8 +69,6 @@ func main() {
 		Psm:              psm,
 		Ps:               ps,
 	}
-
-	logger.Debug().Any("cfg", cfg).Msg("Loaded config")
 
 	app := &cli.App{
 		Name: "nitroso-tin",
