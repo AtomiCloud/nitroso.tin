@@ -15,7 +15,7 @@ import (
 
 type LoginSyncer struct {
 	toReserver       chan LoginStore
-	redis            *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
 	retriever        *Retriever
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
@@ -25,12 +25,12 @@ type LoginSyncer struct {
 	reserver         config.ReserverConfig
 }
 
-func NewLoginSyncer(toReserver chan LoginStore, rds *otelredis.OtelRedis, retriever *Retriever,
+func NewLoginSyncer(toReserver chan LoginStore, streamRedis *otelredis.OtelRedis, retriever *Retriever,
 	otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger, psm, ps string,
 	streamConfig config.StreamConfig, reserver config.ReserverConfig) LoginSyncer {
 	return LoginSyncer{
 		toReserver:       toReserver,
-		redis:            rds,
+		streamRedis:      streamRedis,
 		retriever:        retriever,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
@@ -75,13 +75,13 @@ func (l *LoginSyncer) Start(ctx context.Context, consumerId string) error {
 }
 
 func (l *LoginSyncer) createGroup(ctx context.Context) {
-	status := l.redis.XGroupCreateMkStream(ctx, l.streamConfig.Enrich, l.reserver.Group, "0")
+	status := l.streamRedis.XGroupCreateMkStream(ctx, l.streamConfig.Enrich, l.reserver.Group, "0")
 	l.logger.Info().Msg("Group Create Status: " + status.String())
 }
 
 func (l *LoginSyncer) update(ctx context.Context) error {
 	key := fmt.Sprintf("%s:%s", l.ps, "count")
-	l.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
+	l.logger.Info().Ctx(ctx).Msgf("Getting login data from redis '%s'", key)
 
 	data, err := l.retriever.GetLoginData(ctx)
 	if err != nil {
@@ -115,7 +115,7 @@ func (l *LoginSyncer) loop(ctx context.Context, consumerId string) (bool, error)
 
 	l.logger.Info().Ctx(ctx).Msg("Reserver 'login syncer', waiting for enricher ping...")
 
-	err = l.redis.StreamGroupRead(ctx, tracer, l.streamConfig.Enrich, l.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
+	err = l.streamRedis.StreamGroupRead(ctx, tracer, l.streamConfig.Enrich, l.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
 		l.logger.Info().Ctx(ctx).Msg("Reserver 'login syncer', received enricher emitted signal")
 		return l.update(ctx)
 	})

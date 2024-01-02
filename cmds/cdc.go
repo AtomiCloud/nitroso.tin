@@ -10,9 +10,11 @@ import (
 func (state *State) Cdc(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Count Syncer")
 
-	rds := otelredis.New(state.Config.Cache["main"])
+	mainRedis := otelredis.New(state.Config.Cache["main"])
+	streamRedis := otelredis.New(state.Config.Cache["stream"])
 
-	cdc := cdc.NewCdc(&rds, state.Config.Cdc, state.Config.Stream, state.Logger, state.OtelConfigurator, state.Psm, state.Ps, state.Credential)
+	cdc := cdc.NewCdc(&mainRedis, &streamRedis, state.Config.Cdc, state.Config.Stream, state.Logger, state.OtelConfigurator, state.Psm, state.Ps, state.Credential)
+
 	uniqueID := xid.New().String()
 
 	err := cdc.Start(c.Context, uniqueID)

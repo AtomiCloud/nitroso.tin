@@ -8,7 +8,6 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/lib/reserver"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
-	"github.com/rs/xid"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -16,7 +15,6 @@ import (
 func (state *State) Buyer(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Buyer")
 
-	consumerId := xid.New().String()
 	ktmbConfig := state.Config.Ktmb
 	buyerCfg := state.Config.Buyer
 	ctx := c.Context
@@ -38,7 +36,7 @@ func (state *State) Buyer(c *cli.Context) error {
 	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber)
 	client := buyer.New(&b, &mainRedis, state.OtelConfigurator, state.Logger, state.Config.Stream, state.Config.Buyer, state.Psm, zClient, encr)
 
-	err := client.Start(ctx, consumerId)
+	err := client.Start(ctx)
 	if err != nil {
 		state.Logger.Error().Err(err).Msg("Buyer failed")
 		return err

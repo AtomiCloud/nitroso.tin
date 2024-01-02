@@ -23,7 +23,8 @@ var baseDelay = 1 * time.Second
 // What your application needs
 
 type Cdc struct {
-	redis            *otelredis.OtelRedis
+	mainRedis        *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
 	streamConfig     config.StreamConfig
 	cdcConfig        config.CdcConfig
 	logger           *zerolog.Logger
@@ -33,10 +34,11 @@ type Cdc struct {
 	cred             auth.CredentialsProvider
 }
 
-func NewCdc(rds *otelredis.OtelRedis, ccs config.CdcConfig, streams config.StreamConfig, logger *zerolog.Logger, otelConfigurator *telemetry.OtelConfigurator, psm, ps string, cred auth.CredentialsProvider) *Cdc {
+func NewCdc(mainRedis, streamRedis *otelredis.OtelRedis, ccs config.CdcConfig, streams config.StreamConfig, logger *zerolog.Logger, otelConfigurator *telemetry.OtelConfigurator, psm, ps string, cred auth.CredentialsProvider) *Cdc {
 
 	return &Cdc{
-		redis:            rds,
+		mainRedis:        mainRedis,
+		streamRedis:      streamRedis,
 		streamConfig:     streams,
 		cdcConfig:        ccs,
 		logger:           logger,
@@ -48,7 +50,7 @@ func NewCdc(rds *otelredis.OtelRedis, ccs config.CdcConfig, streams config.Strea
 }
 
 func (c *Cdc) createGroup(ctx context.Context) {
-	status := c.redis.XGroupCreateMkStream(ctx, c.streamConfig.Cdc, c.cdcConfig.Group, "0")
+	status := c.streamRedis.XGroupCreateMkStream(ctx, c.streamConfig.Cdc, c.cdcConfig.Group, "0")
 	c.logger.Info().Msg("Group Create Status: " + status.String())
 }
 
@@ -96,7 +98,7 @@ func (c *Cdc) loop(ctx context.Context, consumerId string) (bool, error) {
 	tracer := otel.Tracer(c.psm)
 
 	c.logger.Info().Ctx(ctx).Str("consumerId", consumerId).Msg("CDC waiting for message from Zinc...")
-	err = c.redis.StreamGroupRead(ctx, tracer, c.streamConfig.Cdc, c.cdcConfig.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
+	err = c.streamRedis.StreamGroupRead(ctx, tracer, c.streamConfig.Cdc, c.cdcConfig.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
 		c.logger.Info().Ctx(ctx).Msg("CDC received signal")
 		return c.sync(ctx, tracer)
 	})
@@ -178,7 +180,7 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 
 	// Update Redis with the counts
 	c.logger.Info().Ctx(ctx).Msg("Booking Counts: " + string(out))
-	result, er := c.redis.Set(ctx, key, string(out), 0).Result()
+	result, er := c.mainRedis.Set(ctx, key, string(out), 0).Result()
 	if er != nil {
 		c.logger.Error().Err(er).
 			Str("redisKey", key).
@@ -189,7 +191,7 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 
 	// notify the stream
 	c.logger.Info().Ctx(ctx).Msg("CDC notifying enricher, poller and reserver")
-	cmdErr, redErr := c.redis.StreamAdd(ctx, tracer, c.streamConfig.Update, "ping")
+	cmdErr, redErr := c.streamRedis.StreamAdd(ctx, tracer, c.streamConfig.Update, "ping")
 	if redErr != nil {
 		c.logger.Error().Err(redErr).Msgf("Failed to notify enricher and pollers: %s", cmdErr)
 		return redErr

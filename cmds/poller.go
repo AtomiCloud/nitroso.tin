@@ -1,6 +1,7 @@
 package cmds
 
 import (
+	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/lib/poller"
 	"github.com/rs/xid"
@@ -27,11 +28,14 @@ func (state *State) Poller(c *cli.Context) error {
 	uniqueID := xid.New().String()
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
+	streamRedis := otelredis.New(state.Config.Cache["stream"])
+
+	countReader := count.New(&mainRedis, state.Logger, state.Ps)
 
 	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger)
-	trigger := poller.NewTrigger(channel, state.Logger, &mainRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psm)
+	trigger := poller.NewTrigger(channel, state.Logger, &streamRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psm)
 
-	p := poller.NewPoller(channel, &mainRedis, job, trigger, state.Logger, state.Psm, state.Ps)
+	p := poller.NewPoller(channel, job, trigger, state.Logger, state.Psm, state.Ps, countReader)
 
 	err = p.Start(ctx, uniqueID)
 

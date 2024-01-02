@@ -18,7 +18,8 @@ import (
 type Enricher struct {
 	channel          chan string
 	client           *Client
-	redis            *otelredis.OtelRedis
+	mainRedis        *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
 	countReader      *count.Client
 	logger           *zerolog.Logger
 	stream           config.StreamConfig
@@ -39,12 +40,13 @@ type Find struct {
 type FindStore = map[string]map[string]map[string]FindRes
 
 func NewEnricher(client *Client, trigger *Trigger, logger *zerolog.Logger, e encryptor.Encryptor[FindStore],
-	rds *otelredis.OtelRedis, enricher config.EnricherConfig, streams config.StreamConfig, psm string,
+	mainRedis, streamRedis *otelredis.OtelRedis, enricher config.EnricherConfig, streams config.StreamConfig, psm string,
 	channel chan string, otelConfigurator *telemetry.OtelConfigurator, countReader *count.Client) *Enricher {
 	return &Enricher{
 		client:           client,
 		logger:           logger,
-		redis:            rds,
+		mainRedis:        mainRedis,
+		streamRedis:      streamRedis,
 		stream:           streams,
 		enricher:         enricher,
 		encryptor:        e,
@@ -200,14 +202,14 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		return err
 	}
 
-	udr, err := p.redis.Set(ctx, p.enricher.UserDataKey, ud, 0).Result()
+	udr, err := p.mainRedis.Set(ctx, p.enricher.UserDataKey, ud, 0).Result()
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", udr).Msg("Failed to set userData")
 		return err
 	}
 	p.logger.Info().Ctx(ctx).Msgf("Set userData: %s", udr)
 
-	sr, err := p.redis.Set(ctx, p.enricher.StoreKey, storeEn, 0).Result()
+	sr, err := p.mainRedis.Set(ctx, p.enricher.StoreKey, storeEn, 0).Result()
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", sr).Msg("Failed to set store")
 		return err
@@ -217,7 +219,7 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 	// we should emit for reserver to sync up
 	p.logger.Info().Ctx(ctx).Msg("Emitting for reserver to sync up")
 
-	add, err := p.redis.StreamAdd(ctx, tracer, p.stream.Enrich, "ping")
+	add, err := p.streamRedis.StreamAdd(ctx, tracer, p.stream.Enrich, "ping")
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", add.String()).Msg("Failed to add to stream")
 		return err

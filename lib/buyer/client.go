@@ -22,7 +22,7 @@ import (
 
 type Client struct {
 	buyer            *Buyer
-	redis            *otelredis.OtelRedis
+	mainRedis        *otelredis.OtelRedis
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
 	streamsCfg       config.StreamConfig
@@ -52,11 +52,11 @@ func createForm(values map[string]io.Reader) (s string, reader io.Reader, err er
 	return w.FormDataContentType(), &b, nil
 }
 
-func New(buyer *Buyer, redis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger,
+func New(buyer *Buyer, mainRedis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger,
 	streamsCfg config.StreamConfig, buyerCfg config.BuyerConfig, psm string, zinc *zinc.Client, enrc encryptor.Encryptor[reserver.ReserveDto]) *Client {
 	return &Client{
 		buyer:            buyer,
-		redis:            redis,
+		mainRedis:        mainRedis,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
 		streamsCfg:       streamsCfg,
@@ -67,19 +67,13 @@ func New(buyer *Buyer, redis *otelredis.OtelRedis, otelConfigurator *telemetry.O
 	}
 }
 
-func (c *Client) createGroup(ctx context.Context) {
-	status := c.redis.XGroupCreateMkStream(ctx, c.streamsCfg.Reserver, c.buyerCfg.Group, "0")
-	c.logger.Info().Msg("Group Create Status: " + status.String())
-}
-
-func (c *Client) Start(ctx context.Context, consumerId string) error {
+func (c *Client) Start(ctx context.Context) error {
 	maxCounter := c.buyerCfg.BackoffLimit
 
 	errorCounter := 0
 
-	c.createGroup(ctx)
 	for {
-		shouldExit, err := c.loop(ctx, consumerId)
+		shouldExit, err := c.loop(ctx)
 		if err != nil {
 			if errorCounter >= maxCounter {
 				c.logger.Error().Err(err).Msg("Failed all backoff attempts, exiting...")
@@ -100,7 +94,7 @@ func (c *Client) Start(ctx context.Context, consumerId string) error {
 	return nil
 }
 
-func (c *Client) loop(ctx context.Context, consumerId string) (bool, error) {
+func (c *Client) loop(ctx context.Context) (bool, error) {
 	shutdown, err := c.otelConfigurator.Configure(ctx)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to configure telemetry")
@@ -116,7 +110,7 @@ func (c *Client) loop(ctx context.Context, consumerId string) (bool, error) {
 	tracer := otel.Tracer(c.psm)
 
 	c.logger.Info().Ctx(ctx).Msg("Buyer waiting for reserver message...")
-	err = c.redis.StreamGroupRead(ctx, tracer, c.streamsCfg.Reserver, c.buyerCfg.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
+	err = c.mainRedis.QueuePop(ctx, tracer, c.streamsCfg.Reserver, func(ctx context.Context, message json.RawMessage) error {
 		c.logger.Info().Ctx(ctx).Msg("Buyer received reserver emitted signal")
 		var output string
 		e := json.Unmarshal(message, &output)

@@ -3,7 +3,7 @@ package reserver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
@@ -19,7 +19,8 @@ var baseDelay = 1 * time.Second
 type CountSyncer struct {
 	toDiffer         chan Count
 	toReserver       chan Count
-	redis            *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
+	countReader      *count.Client
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
 	psm              string
@@ -27,13 +28,14 @@ type CountSyncer struct {
 	reserver         config.ReserverConfig
 }
 
-func NewCountSyncer(toDiffer, toReserver chan Count, rds *otelredis.OtelRedis,
+func NewCountSyncer(toDiffer, toReserver chan Count, streamRedis *otelredis.OtelRedis,
 	otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger, psm string,
-	streamConfig config.StreamConfig, reserver config.ReserverConfig) CountSyncer {
+	streamConfig config.StreamConfig, reserver config.ReserverConfig, countReader *count.Client) CountSyncer {
 	return CountSyncer{
 		toDiffer:         toDiffer,
 		toReserver:       toReserver,
-		redis:            rds,
+		streamRedis:      streamRedis,
+		countReader:      countReader,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
 		psm:              psm,
@@ -77,37 +79,20 @@ func (s *CountSyncer) Start(ctx context.Context, consumerId string) error {
 }
 
 func (s *CountSyncer) createGroup(ctx context.Context) {
-	status := s.redis.XGroupCreateMkStream(ctx, s.streamConfig.Update, s.reserver.Group, "0")
+	status := s.streamRedis.XGroupCreateMkStream(ctx, s.streamConfig.Update, s.reserver.Group, "0")
 	s.logger.Info().Msg("Group Create Status: " + status.String())
 }
 
 func (s *CountSyncer) update(ctx context.Context) error {
 
-	key := fmt.Sprintf("%s:%s", s.psm, "count")
-
-	s.logger.Info().Ctx(ctx).Msgf("Checking if key '%s' exists", key)
-	exists, err := s.redis.Exists(ctx, key).Result()
-	if err != nil {
-		s.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if userdata key exists")
-		return err
-	}
-	if exists == 0 {
-		s.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", key)
+	exists, counts, err := s.countReader.GetCount(ctx, time.Now())
+	if !exists {
+		s.logger.Info().Ctx(ctx).Msg("Key does not exist")
 		return nil
 	}
-
-	s.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
-	countsJson, rErr := s.redis.Get(ctx, key).Result()
-	if rErr != nil {
-		s.logger.Error().Ctx(ctx).Err(rErr).Msg("Failed to get counts from redis")
-		return rErr
-	}
-
-	var counts map[string]map[string]map[string]int
-	rErr = json.Unmarshal([]byte(countsJson), &counts)
-	if rErr != nil {
-		s.logger.Error().Ctx(ctx).Err(rErr).Msg("Failed to unmarshal counts")
-		return rErr
+	if err != nil {
+		s.logger.Error().Ctx(ctx).Err(err).Msg("Failed to get counts from redis")
+		return err
 	}
 
 	dCount := make(Count)
@@ -138,7 +123,7 @@ func (s *CountSyncer) loop(ctx context.Context, consumerId string) (bool, error)
 	s.logger.Info().Ctx(ctx).Msg("Reserver waiting for CDC signal...")
 
 	tracer := otel.Tracer(s.psm)
-	err = s.redis.StreamGroupRead(ctx, tracer, s.streamConfig.Update, s.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
+	err = s.streamRedis.StreamGroupRead(ctx, tracer, s.streamConfig.Update, s.reserver.Group, consumerId, func(ctx context.Context, message json.RawMessage) error {
 		s.logger.Info().Ctx(ctx).Msg("Reserver received CDC emitted signal")
 		return s.update(ctx)
 	})

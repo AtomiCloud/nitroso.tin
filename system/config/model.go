@@ -17,7 +17,6 @@ type RootConfig struct {
 
 // Buyer Config
 type BuyerConfig struct {
-	Group         string
 	BackoffLimit  int
 	ContactNumber string
 

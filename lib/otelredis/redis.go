@@ -41,6 +41,66 @@ func New(cfg config.CacheConfig) OtelRedis {
 	return OtelRedis{rdb}
 }
 
+func (r OtelRedis) QueuePush(ctx context.Context, tracer trace.Tracer, queue string, any interface{}) (*redis.IntCmd, error) {
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(trace.SpanKindProducer),
+		trace.WithAttributes(semconv.MessagingSystemKey.String("queue")),
+	}
+
+	ctx, childSpan := tracer.Start(ctx, "redis queue add to "+queue, opts...)
+	defer childSpan.End()
+
+	mc := propagation.MapCarrier{}
+	otel.GetTextMapPropagator().Inject(ctx, mc)
+
+	message := OtelRedisMessage{
+		Message: any,
+		Context: mc,
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+
+	childSpan.SetAttributes(attribute.String("message", string(messageJson)))
+
+	return r.LPush(ctx, queue, string(messageJson)), nil
+}
+
+func (r OtelRedis) QueuePop(ctx context.Context, tracer trace.Tracer, queue string, handler func(ctx context.Context, message json.RawMessage) error) error {
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(semconv.MessagingSystemKey.String("queue")),
+	}
+
+	propagator := otel.GetTextMapPropagator()
+
+	result := r.BRPop(ctx, 0, queue)
+
+	popped, err := result.Result()
+	if err != nil {
+		return err
+	}
+
+	val := popped[1]
+
+	var msg OtelRedisMessage
+	err = json.Unmarshal([]byte(val), &msg)
+	if err != nil {
+		return err
+	}
+
+	ctx = propagator.Extract(ctx, msg.Context)
+	marshal, err := json.Marshal(msg.Message)
+	if err != nil {
+		return err
+	}
+	ctx, childSpan := tracer.Start(ctx, "redis read from queue: "+queue, opts...)
+	defer childSpan.End()
+	return handler(ctx, marshal)
+}
+
 func (r OtelRedis) StreamAdd(ctx context.Context, tracer trace.Tracer, stream string, any interface{}) (*redis.StringCmd, error) {
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindProducer),
@@ -67,6 +127,7 @@ func (r OtelRedis) StreamAdd(ctx context.Context, tracer trace.Tracer, stream st
 
 	return r.XAdd(ctx, &redis.XAddArgs{
 		Stream: stream,
+
 		MaxLen: 50,
 		Values: map[string]interface{}{
 			"message": messageJson,
@@ -209,8 +270,13 @@ func (ps OtelPubSub) Recv(ctx context.Context, tracer trace.Tracer, handler func
 		return err
 	}
 	ctx = propagator.Extract(ctx, msg.Context)
+
+	marshal, err := json.Marshal(msg.Message)
+	if err != nil {
+		return err
+	}
+
 	ctx, childSpan := tracer.Start(ctx, "redis receiving message from "+ps.Channel, opts...)
 	defer childSpan.End()
-	marshal, err := json.Marshal(msg.Message)
 	return handler(ctx, marshal)
 }

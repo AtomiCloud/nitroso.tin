@@ -18,15 +18,18 @@ func (state *State) Enricher(c *cli.Context) error {
 	ctx := c.Context
 
 	ch := make(chan string)
-	rds := otelredis.New(state.Config.Cache["main"])
+	mainRedis := otelredis.New(state.Config.Cache["main"])
+	streamRedis := otelredis.New(state.Config.Cache["stream"])
 	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger)
 	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 
 	client := enricher.New(k, state.Logger)
-	trigger := enricher.NewTrigger(ch, state.Logger, &rds, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psm)
-	counterReader := count.New(&rds, state.Logger, state.Psm)
 
-	en := enricher.NewEnricher(&client, trigger, state.Logger, encr, &rds,
+	trigger := enricher.NewTrigger(ch, state.Logger, &streamRedis, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psm)
+
+	counterReader := count.New(&mainRedis, state.Logger, state.Ps)
+
+	en := enricher.NewEnricher(&client, trigger, state.Logger, encr, &mainRedis, &streamRedis,
 		state.Config.Enricher, state.Config.Stream, state.Psm, ch, state.OtelConfigurator, counterReader)
 
 	err := en.Start(ctx, uniqueID)

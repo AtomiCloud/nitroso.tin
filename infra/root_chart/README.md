@@ -14,7 +14,7 @@ Root Chart to a single Service
 | file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
 | file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
 | oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.4.3 |
-| oci://ghcr.io/atomicloud/nitroso.zinc | zinc(root-chart) | 1.8.0 |
+| oci://ghcr.io/atomicloud/nitroso.zinc | zinc(root-chart) | 1.8.8 |
 | oci://ghcr.io/atomicloud/sulfoxide.bromine | bromine(sulfoxide-bromine) | 1.3.0 |
 | oci://registry-1.docker.io/bitnamicharts | livecache(redis) | 18.6.1 |
 

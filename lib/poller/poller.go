@@ -2,31 +2,31 @@ package poller
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
+	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type Poller struct {
-	channel chan string
-	job     *HeliumJobCreator
-	trigger *Trigger
-	logger  *zerolog.Logger
-	redis   *otelredis.OtelRedis
-	psm     string
-	ps      string
+	channel     chan string
+	job         *HeliumJobCreator
+	trigger     *Trigger
+	logger      *zerolog.Logger
+	psm         string
+	ps          string
+	countReader *count.Client
 }
 
-func NewPoller(channel chan string, rds *otelredis.OtelRedis, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psm, ps string) *Poller {
+func NewPoller(channel chan string, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psm, ps string,
+	countReader *count.Client) *Poller {
 	return &Poller{
-		channel: channel,
-		trigger: trigger,
-		logger:  logger,
-		job:     job,
-		redis:   rds,
-		psm:     psm,
-		ps:      ps,
+		channel:     channel,
+		trigger:     trigger,
+		logger:      logger,
+		job:         job,
+		countReader: countReader,
+		psm:         psm,
+		ps:          ps,
 	}
 }
 
@@ -60,31 +60,15 @@ func (p *Poller) Start(ctx context.Context, uniqueId string) error {
 
 func (p *Poller) createPoller(ctx context.Context) error {
 
-	key := fmt.Sprintf("%s:%s", p.ps, "count")
+	exists, counts, err := p.countReader.GetCount(ctx, time.Now())
 
-	exists, err := p.redis.Exists(ctx, key).Result()
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if key exists")
-		return err
-	}
-
-	if exists == 0 {
-		p.logger.Info().Ctx(ctx).Msgf("Key '%s' does not exist", key)
+	if !exists {
+		p.logger.Info().Ctx(ctx).Msg("Key does not exist")
 		return nil
 	}
 
-	// getting count from Redis
-	p.logger.Info().Ctx(ctx).Msgf("Getting counts from redis '%s'", key)
-	countsJson, err := p.redis.Get(ctx, key).Result()
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to get counts")
-		return err
-	}
-
-	var counts map[string]map[string]map[string]int
-	err = json.Unmarshal([]byte(countsJson), &counts)
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to unmarshal counts")
 		return err
 	}
 

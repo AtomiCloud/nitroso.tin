@@ -23,7 +23,7 @@ type Client struct {
 	fromLogin        chan LoginStore
 	fromCount        chan Count
 	fromDiff         chan Diff
-	redis            *otelredis.OtelRedis
+	mainRedis        *otelredis.OtelRedis
 	encr             encryptor.Encryptor[ReserveDto]
 	otelConfigurator *telemetry.OtelConfigurator
 	psm              string
@@ -52,14 +52,14 @@ type ReserveDto struct {
 	Time          string `json:"time"`
 }
 
-func New(k ktmb.Ktmb, logger *zerolog.Logger, rds *otelredis.OtelRedis, encr encryptor.Encryptor[ReserveDto],
+func New(k ktmb.Ktmb, logger *zerolog.Logger, mainRedis *otelredis.OtelRedis, encr encryptor.Encryptor[ReserveDto],
 	reserver config.ReserverConfig, stream config.StreamConfig, appInfo string, otelConfigurator *telemetry.OtelConfigurator,
 	psm string, loc *time.Location,
 	fromLogin chan LoginStore, fromCount chan Count, fromDiff chan Diff) *Client {
 	return &Client{
 		ktmb:             k,
 		stream:           stream,
-		redis:            rds,
+		mainRedis:        mainRedis,
 		logger:           logger,
 		reserver:         reserver,
 		appInfo:          appInfo,
@@ -294,14 +294,14 @@ func (c *Client) reserve(ctx context.Context, direction, date, t, userData, sear
 	}()
 
 	tracer := otel.Tracer(c.psm)
-	ctx, span := tracer.Start(ctx, "Reserve notify buyer start")
+	ctx, span := tracer.Start(ctx, "Reserver notify buyer start")
 	defer span.End()
 
-	add, err := c.redis.StreamAdd(ctx, tracer, c.stream.Reserver, encrypted)
+	add, err := c.mainRedis.QueuePush(ctx, tracer, c.stream.Reserver, encrypted)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to add to stream")
+		c.logger.Error().Err(err).Msg("Failed to add to queue")
 		return err
 	}
-	c.logger.Info().Str("rediscmd", add.String()).Msgf("added to stream")
+	c.logger.Info().Str("rediscmd", add.String()).Msg("added to queue")
 	return nil
 }

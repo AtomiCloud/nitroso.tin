@@ -17,7 +17,7 @@ var baseDelay = 1 * time.Second
 
 type Trigger struct {
 	channel          chan string
-	redis            *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
 	stream           config.StreamConfig
 	enricher         config.EnricherConfig
 	otelConfigurator *telemetry.OtelConfigurator
@@ -25,13 +25,13 @@ type Trigger struct {
 	psm              string
 }
 
-func NewTrigger(channel chan string, logger *zerolog.Logger, rds *otelredis.OtelRedis,
+func NewTrigger(channel chan string, logger *zerolog.Logger, streamRedis *otelredis.OtelRedis,
 	streams config.StreamConfig, enricher config.EnricherConfig, otelConfigurator *telemetry.OtelConfigurator,
 	psm string) *Trigger {
 
 	return &Trigger{
 		channel:          channel,
-		redis:            rds,
+		streamRedis:      streamRedis,
 		stream:           streams,
 		enricher:         enricher,
 		otelConfigurator: otelConfigurator,
@@ -84,7 +84,7 @@ func (p *Trigger) RedisStream(ctx context.Context, consumerId string) error {
 }
 
 func (p *Trigger) createGroup(ctx context.Context) {
-	status := p.redis.XGroupCreateMkStream(ctx, p.stream.Update, p.enricher.Group, "0")
+	status := p.streamRedis.XGroupCreateMkStream(ctx, p.stream.Update, p.enricher.Group, "0")
 	p.logger.Info().Msg("Group Create Status: " + status.String())
 }
 
@@ -103,7 +103,7 @@ func (p *Trigger) redisLoop(ctx context.Context, consumerId string) (bool, error
 	tracer := otel.Tracer(p.psm)
 
 	p.logger.Info().Ctx(ctx).Msg("Enricher waiting for CDC messages...")
-	err = p.redis.StreamGroupRead(ctx, tracer, p.stream.Update, p.enricher.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {
+	err = p.streamRedis.StreamGroupRead(ctx, tracer, p.stream.Update, p.enricher.Group, consumerId, func(ctx context.Context, _ json.RawMessage) error {
 		p.logger.Info().Ctx(ctx).Msg("Enricher received CDC signal")
 		p.channel <- "redis-stream"
 		return nil

@@ -10,25 +10,25 @@ import (
 )
 
 type Retriever struct {
-	redis    *otelredis.OtelRedis
-	encr     encryptor.Encryptor[enricher.FindStore]
-	logger   *zerolog.Logger
-	enricher config.EnricherConfig
+	mainRedis *otelredis.OtelRedis
+	encr      encryptor.Encryptor[enricher.FindStore]
+	logger    *zerolog.Logger
+	enricher  config.EnricherConfig
 }
 
-func NewRetriever(rds *otelredis.OtelRedis, e encryptor.Encryptor[enricher.FindStore], logger *zerolog.Logger, enricher config.EnricherConfig) *Retriever {
+func NewRetriever(mainRedis *otelredis.OtelRedis, e encryptor.Encryptor[enricher.FindStore], logger *zerolog.Logger, enricher config.EnricherConfig) *Retriever {
 	return &Retriever{
-		redis:    rds,
-		encr:     e,
-		logger:   logger,
-		enricher: enricher,
+		mainRedis: mainRedis,
+		encr:      e,
+		logger:    logger,
+		enricher:  enricher,
 	}
 }
 
 func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 
 	r.logger.Info().Msgf("Getting Login Data: %s", r.enricher.UserDataKey)
-	exists, err := r.redis.Exists(ctx, r.enricher.UserDataKey).Result()
+	exists, err := r.mainRedis.Exists(ctx, r.enricher.UserDataKey).Result()
 	if err != nil {
 		r.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if userdata key exists")
 		return nil, err
@@ -39,7 +39,7 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 		return nil, nil
 	}
 
-	exists, err = r.redis.Exists(ctx, r.enricher.StoreKey).Result()
+	exists, err = r.mainRedis.Exists(ctx, r.enricher.StoreKey).Result()
 	if err != nil {
 		r.logger.Error().Ctx(ctx).Err(err).Msg("Failed to check if store key exists")
 		return nil, err
@@ -50,13 +50,13 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 		return nil, nil
 	}
 
-	userDataEnc, err := r.redis.Get(ctx, r.enricher.UserDataKey).Result()
+	userDataEnc, err := r.mainRedis.Get(ctx, r.enricher.UserDataKey).Result()
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to get user data")
 		return nil, err
 	}
 
-	storeEnc, err := r.redis.Get(ctx, r.enricher.StoreKey).Result()
+	storeEnc, err := r.mainRedis.Get(ctx, r.enricher.StoreKey).Result()
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to get store")
 		return nil, err
