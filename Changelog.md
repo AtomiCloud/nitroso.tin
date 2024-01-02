@@ -1,3 +1,10 @@
+## [1.4.5](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.4...v1.4.5) (2024-01-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* migrating away from upstash for streams ([fa47369](https://github.com/AtomiCloud/nitroso.tin/commit/fa47369136a38410b60f05a41249d522eea8dafc))
+
 ## [1.4.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.3...v1.4.4) (2024-01-01)
 
 
