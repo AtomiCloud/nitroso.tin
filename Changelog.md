@@ -1,3 +1,11 @@
+## [1.4.8](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.7...v1.4.8) (2024-01-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* connect tin-enricher re-propogation ([8a1b94a](https://github.com/AtomiCloud/nitroso.tin/commit/8a1b94a2398a104aa18cc43233d01f93bc48d3c8))
+* update pichu to use luna account ([e402d22](https://github.com/AtomiCloud/nitroso.tin/commit/e402d22a616e46c3f6c9a5db6c3be5af719e18b2))
+
 ## [1.4.7](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.6...v1.4.7) (2024-01-02)
 
 
