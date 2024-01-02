@@ -1,3 +1,11 @@
+## [1.4.6](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.5...v1.4.6) (2024-01-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing configuration sync ([5b0fa76](https://github.com/AtomiCloud/nitroso.tin/commit/5b0fa766b53a5e90666f18e2f439ecc6241c2fde))
+* run config sync before pushing ([ed8d4ae](https://github.com/AtomiCloud/nitroso.tin/commit/ed8d4aec3fea5caa0910e2bab05fe81a44d8970d))
+
 ## [1.4.5](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.4...v1.4.5) (2024-01-02)
 
 
