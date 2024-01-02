@@ -23,7 +23,7 @@ pre-commit-lib.run {
       enable = true;
       name = "Sync configurations to helm charts";
       entry = "${packages.bash}/bin/bash scripts/local/config-sync.sh";
-      files = "App/Config/.*\\.yaml";
+      files = "config/app/.*\\.yaml";
       language = "system";
       pass_filenames = false;
     };
