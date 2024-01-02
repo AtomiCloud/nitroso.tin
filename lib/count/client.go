@@ -52,13 +52,14 @@ func (p *Client) GetCount(ctx context.Context, now time.Time) (bool, Count, erro
 		return false, nil, err
 	}
 
+	p.logger.Info().Ctx(ctx).Any("counts", counts).Msg("Count Read obtain counts")
 	// filter by now
 	filtered, err := p.filter(counts, now)
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to filter counts")
 		return false, nil, err
 	}
-
+	p.logger.Info().Ctx(ctx).Any("filtered", counts).Msg("Filtered counts")
 	return true, filtered, nil
 }
 
@@ -68,10 +69,11 @@ func (p *Client) filter(counts Count, now time.Time) (Count, error) {
 
 	for dir, dirCount := range counts {
 		for date, dateCount := range dirCount {
-			for time, c := range dateCount {
-				within, err := p.isWithinRange(now, date, time)
+			for t, c := range dateCount {
+
+				within, err := p.isWithinRange(now, date, t)
 				if err != nil {
-					p.logger.Error().Err(err).Str("date", date).Str("time", time).Msg("Failed to check if within range")
+					p.logger.Error().Err(err).Str("date", date).Str("time", t).Msg("Failed to check if within range")
 					return nil, err
 				}
 				if within {
@@ -81,7 +83,9 @@ func (p *Client) filter(counts Count, now time.Time) (Count, error) {
 					if r[dir][date] == nil {
 						r[dir][date] = make(map[string]int)
 					}
-					r[dir][date][time] = c
+					r[dir][date][t] = c
+				} else {
+					p.logger.Info().Msgf("Not within range: %s %s %s", dir, date, t)
 				}
 			}
 		}
