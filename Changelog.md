@@ -1,3 +1,10 @@
+## [1.4.10](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.9...v1.4.10) (2024-01-03)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect timing range check ([1a1fbc8](https://github.com/AtomiCloud/nitroso.tin/commit/1a1fbc835e022ee83d565469605cf13246b2d81d))
+
 ## [1.4.9](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.8...v1.4.9) (2024-01-02)
 
 
