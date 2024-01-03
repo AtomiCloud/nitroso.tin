@@ -61,13 +61,13 @@ func (p *Client) GetCount(ctx context.Context, now time.Time) (bool, Count, erro
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to filter counts")
 		return false, nil, err
 	}
-	p.logger.Info().Ctx(ctx).Any("filtered", counts).Msg("Filtered counts")
+	p.logger.Info().Ctx(ctx).Any("filtered", filtered).Msg("Filtered counts")
 	return true, filtered, nil
 }
 
 func (p *Client) filter(counts Count, now time.Time) (Count, error) {
 
-	var r Count
+	r := make(Count)
 
 	for dir, dirCount := range counts {
 		for date, dateCount := range dirCount {
@@ -86,8 +86,6 @@ func (p *Client) filter(counts Count, now time.Time) (Count, error) {
 						r[dir][date] = make(map[string]int)
 					}
 					r[dir][date][t] = c
-				} else {
-					p.logger.Info().Msgf("Not within range: %s %s %s", dir, date, t)
 				}
 			}
 		}
@@ -100,23 +98,21 @@ func (p *Client) parseDateTime(dateStr, timeStr string) (time.Time, error) {
 	return time.ParseInLocation(layout, dateStr+" "+timeStr, p.loc)
 }
 
-func (p *Client) lastMomentOfDay(t time.Time) time.Time {
-	return t.AddDate(0, 0, 1).Truncate(24 * time.Hour).Add(-time.Second)
-}
-
 func (p *Client) isWithinRange(n time.Time, dateStr, timeStr string) (bool, error) {
 	givenTime, err := p.parseDateTime(dateStr, timeStr)
-
-	now := n.In(p.loc)
 
 	if err != nil {
 		p.logger.Error().Err(err).Str("date", dateStr).Str("time", timeStr).Msg("Failed to parse date time")
 		return false, err
 	}
 
-	plus30m := now.Add(30 * time.Minute)
-	sixMonthsLater := givenTime.AddDate(0, 6, 0)
-	endOfSixMonths := p.lastMomentOfDay(sixMonthsLater)
+	now := n.In(p.loc)
 
-	return now.After(plus30m) && now.Before(endOfSixMonths), nil
+	plus30m := now.Add(30 * time.Minute)
+	sixMonthsLater := now.AddDate(0, 6, 0)
+	lastDay := time.Date(sixMonthsLater.Year(), sixMonthsLater.Month()+1, 0, 0, 0, 0, 0, p.loc)
+	lastMinute := time.Date(lastDay.Year(), lastDay.Month(), lastDay.Day(), 23, 59, 59, 0, p.loc)
+	within := givenTime.After(plus30m) && givenTime.Before(lastMinute)
+
+	return within, nil
 }
