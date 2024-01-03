@@ -1,3 +1,10 @@
+## [1.4.11](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.10...v1.4.11) (2024-01-03)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect within range check ([fe508d6](https://github.com/AtomiCloud/nitroso.tin/commit/fe508d604606797134a517ee0bfbe9bf25f18496))
+
 ## [1.4.10](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.9...v1.4.10) (2024-01-03)
 
 
