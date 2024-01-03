@@ -15,13 +15,15 @@ type Client struct {
 	redis  *otelredis.OtelRedis
 	logger *zerolog.Logger
 	ps     string
+	loc    *time.Location
 }
 
-func New(rds *otelredis.OtelRedis, logger *zerolog.Logger, ps string) *Client {
+func New(rds *otelredis.OtelRedis, logger *zerolog.Logger, ps string, loc *time.Location) *Client {
 	return &Client{
 		redis:  rds,
 		logger: logger,
 		ps:     ps,
+		loc:    loc,
 	}
 }
 
@@ -95,20 +97,24 @@ func (p *Client) filter(counts Count, now time.Time) (Count, error) {
 
 func (p *Client) parseDateTime(dateStr, timeStr string) (time.Time, error) {
 	layout := "02-01-2006 15:04:05"
-	return time.Parse(layout, dateStr+" "+timeStr)
+	return time.ParseInLocation(layout, dateStr+" "+timeStr, p.loc)
 }
 
 func (p *Client) lastMomentOfDay(t time.Time) time.Time {
 	return t.AddDate(0, 0, 1).Truncate(24 * time.Hour).Add(-time.Second)
 }
 
-func (p *Client) isWithinRange(now time.Time, dateStr, timeStr string) (bool, error) {
+func (p *Client) isWithinRange(n time.Time, dateStr, timeStr string) (bool, error) {
 	givenTime, err := p.parseDateTime(dateStr, timeStr)
+
+	now := n.In(p.loc)
+
 	if err != nil {
 		p.logger.Error().Err(err).Str("date", dateStr).Str("time", timeStr).Msg("Failed to parse date time")
 		return false, err
 	}
-	plus30m := givenTime.Add(30 * time.Minute)
+
+	plus30m := now.Add(30 * time.Minute)
 	sixMonthsLater := givenTime.AddDate(0, 6, 0)
 	endOfSixMonths := p.lastMomentOfDay(sixMonthsLater)
 

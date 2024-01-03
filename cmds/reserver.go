@@ -9,17 +9,10 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/reserver"
 	"github.com/rs/xid"
 	"github.com/urfave/cli/v2"
-	"time"
 )
 
 func (state *State) Reserver(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Reserver")
-
-	loc, err := time.LoadLocation("Asia/Singapore")
-	if err != nil {
-		state.Logger.Error().Err(err).Msg("Failed to load location")
-		return err
-	}
 
 	countConsumerId := xid.New().String()
 	loginConsumerId := xid.New().String()
@@ -35,7 +28,7 @@ func (state *State) Reserver(c *cli.Context) error {
 	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 	rEncr := encryptor.NewSymEncryptor[reserver.ReserveDto](state.Config.Encryptor.Key, state.Logger)
 
-	countReader := count.New(&mainRedis, state.Logger, state.Ps)
+	countReader := count.New(&mainRedis, state.Logger, state.Ps, state.Location)
 	countToDiff := make(chan reserver.Count)
 	diffToReserve := make(chan reserver.Diff)
 	countToReserve := make(chan reserver.Count)
@@ -50,7 +43,7 @@ func (state *State) Reserver(c *cli.Context) error {
 		state.Logger, state.Psm, state.Ps, state.Config.Stream, state.Config.Reserver)
 
 	client := reserver.New(k, state.Logger, &mainRedis, rEncr, state.Config.Reserver, state.Config.Stream, appInfo,
-		state.OtelConfigurator, state.Psm, loc, loginToReserve, countToReserve, diffToReserve)
+		state.OtelConfigurator, state.Psm, state.Location, loginToReserve, countToReserve, diffToReserve)
 
 	go func() {
 		e := loginSyncer.Start(ctx, loginConsumerId)
@@ -70,7 +63,7 @@ func (state *State) Reserver(c *cli.Context) error {
 
 	go differ.Start(ctx)
 
-	err = client.Start(ctx)
+	err := client.Start(ctx)
 	if err != nil {
 		state.Logger.Error().Err(err).Msg("Reserver failed")
 		return err

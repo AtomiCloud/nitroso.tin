@@ -9,6 +9,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -60,6 +61,12 @@ func main() {
 	psm := fmt.Sprintf("%s.%s.%s", cfgApp.Platform, cfgApp.Service, cfgApp.Module)
 	ps := fmt.Sprintf("%s.%s", cfgApp.Platform, cfgApp.Service)
 
+	loc, err := time.LoadLocation("Asia/Singapore")
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to load location")
+		panic(err)
+	}
+
 	state := cmds.State{
 		Landscape:        landscape,
 		Config:           cfg,
@@ -68,6 +75,7 @@ func main() {
 		Credential:       cred,
 		Psm:              psm,
 		Ps:               ps,
+		Location:         loc,
 	}
 
 	app := &cli.App{
