@@ -25,7 +25,7 @@ func (state *State) Enricher(c *cli.Context) error {
 
 	client := enricher.New(k, state.Logger)
 
-	trigger := enricher.NewTrigger(ch, state.Logger, &streamRedis, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psm)
+	trigger := enricher.NewTrigger(ch, state.Logger, &streamRedis, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psm, state.Location)
 
 	counterReader := count.New(&mainRedis, state.Logger, state.Ps, state.Location)
 

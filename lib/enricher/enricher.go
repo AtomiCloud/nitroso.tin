@@ -61,6 +61,10 @@ func NewEnricher(client *Client, trigger *Trigger, logger *zerolog.Logger, e enc
 func (p *Enricher) Start(ctx context.Context, uniqueId string) error {
 	p.logger.Info().Ctx(ctx).Msg("Starting Random Trigger")
 	go p.trigger.RandomTrigger(ctx)
+
+	p.logger.Info().Ctx(ctx).Msg("Starting Cron Trigger")
+	p.trigger.Cron(ctx)
+
 	p.logger.Info().Ctx(ctx).Msg("Starting RedisStream Poller Trigger")
 	go func() {
 		err := p.trigger.RedisStream(ctx, uniqueId)
@@ -114,7 +118,7 @@ func (p *Enricher) loop(ctx context.Context) error {
 func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 	p.logger.Info().Msg("Enriching...")
 
-	exist, counts, err := p.countReader.GetCount(ctx, time.Now())
+	exist, counts, err := p.countReader.GetPollerCount(ctx, time.Now())
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Enricher failed to get count")
 		return err

@@ -60,7 +60,7 @@ func (p *Poller) Start(ctx context.Context, uniqueId string) error {
 
 func (p *Poller) createPoller(ctx context.Context) error {
 
-	exists, counts, err := p.countReader.GetCount(ctx, time.Now())
+	exists, counts, err := p.countReader.GetPollerCount(ctx, time.Now())
 
 	if !exists {
 		p.logger.Info().Ctx(ctx).Msg("Key does not exist")

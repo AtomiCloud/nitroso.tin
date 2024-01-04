@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/cmds"
 	"github.com/AtomiCloud/nitroso-tin/lib/auth"
-	"github.com/AtomiCloud/nitroso-tin/lib/count"
-	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
 	"github.com/urfave/cli/v2"
@@ -102,23 +100,6 @@ func main() {
 			{
 				Name:   "buyer",
 				Action: state.Buyer,
-			},
-			{
-				Name: "count",
-				Action: func(c *cli.Context) error {
-					state.Logger.Info().Msg("Starting Count")
-
-					rds := otelredis.New(state.Config.Cache["main"])
-					cr := count.New(&rds, state.Logger, state.Ps, state.Location)
-
-					exist, count, e := cr.GetCount(c.Context, time.Now())
-					if e != nil {
-						state.Logger.Error().Err(e).Msg("Failed to get count")
-						return e
-					}
-					state.Logger.Info().Bool("exist", exist).Any("count", count).Msg("Count")
-					return nil
-				},
 			},
 		},
 	}

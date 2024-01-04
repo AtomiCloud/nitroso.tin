@@ -85,7 +85,7 @@ func (s *CountSyncer) createGroup(ctx context.Context) {
 
 func (s *CountSyncer) update(ctx context.Context) error {
 
-	exists, counts, err := s.countReader.GetCount(ctx, time.Now())
+	exists, counts, err := s.countReader.GetReserverCount(ctx, time.Now())
 	if !exists {
 		s.logger.Info().Ctx(ctx).Msg("Key does not exist")
 		return nil

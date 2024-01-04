@@ -27,7 +27,25 @@ func New(rds *otelredis.OtelRedis, logger *zerolog.Logger, ps string, loc *time.
 	}
 }
 
-func (p *Client) GetCount(ctx context.Context, now time.Time) (bool, Count, error) {
+func (p *Client) GetPollerCount(ctx context.Context, now time.Time) (bool, Count, error) {
+	exist, counts, err := p.getCount(ctx, now)
+	if counts != nil {
+
+		counts, err = p.filterPoller(counts, now)
+	}
+	return exist, counts, err
+}
+
+func (p *Client) GetReserverCount(ctx context.Context, now time.Time) (bool, Count, error) {
+	exist, counts, err := p.getCount(ctx, now)
+	if counts != nil {
+
+		counts, err = p.filterReserve(counts, now)
+	}
+	return exist, counts, err
+}
+
+func (p *Client) getCount(ctx context.Context, now time.Time) (bool, Count, error) {
 
 	key := fmt.Sprintf("%s:%s", p.ps, "count")
 
@@ -53,19 +71,10 @@ func (p *Client) GetCount(ctx context.Context, now time.Time) (bool, Count, erro
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to unmarshal counts")
 		return false, nil, err
 	}
-
-	p.logger.Info().Ctx(ctx).Any("counts", counts).Msg("Count Read obtain counts")
-	// filter by now
-	filtered, err := p.filter(counts, now)
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to filter counts")
-		return false, nil, err
-	}
-	p.logger.Info().Ctx(ctx).Any("filtered", filtered).Msg("Filtered counts")
-	return true, filtered, nil
+	return true, counts, nil
 }
 
-func (p *Client) filter(counts Count, now time.Time) (Count, error) {
+func (p *Client) filterReserve(counts Count, now time.Time) (Count, error) {
 
 	r := make(Count)
 
@@ -73,7 +82,35 @@ func (p *Client) filter(counts Count, now time.Time) (Count, error) {
 		for date, dateCount := range dirCount {
 			for t, c := range dateCount {
 
-				within, err := p.isWithinRange(now, date, t)
+				within, err := p.isReservable(now, date, t)
+				if err != nil {
+					p.logger.Error().Err(err).Str("date", date).Str("time", t).Msg("Failed to check if within range")
+					return nil, err
+				}
+				if within {
+					if r[dir] == nil {
+						r[dir] = make(map[string]map[string]int)
+					}
+					if r[dir][date] == nil {
+						r[dir][date] = make(map[string]int)
+					}
+					r[dir][date][t] = c
+				}
+			}
+		}
+	}
+	return r, nil
+}
+
+func (p *Client) filterPoller(counts Count, now time.Time) (Count, error) {
+
+	r := make(Count)
+
+	for dir, dirCount := range counts {
+		for date, dateCount := range dirCount {
+			for t, c := range dateCount {
+
+				within, err := p.isPollable(now, date, t)
 				if err != nil {
 					p.logger.Error().Err(err).Str("date", date).Str("time", t).Msg("Failed to check if within range")
 					return nil, err
@@ -98,21 +135,33 @@ func (p *Client) parseDateTime(dateStr, timeStr string) (time.Time, error) {
 	return time.ParseInLocation(layout, dateStr+" "+timeStr, p.loc)
 }
 
-func (p *Client) isWithinRange(n time.Time, dateStr, timeStr string) (bool, error) {
-	givenTime, err := p.parseDateTime(dateStr, timeStr)
-
-	if err != nil {
-		p.logger.Error().Err(err).Str("date", dateStr).Str("time", timeStr).Msg("Failed to parse date time")
-		return false, err
-	}
+func (p *Client) genRange(n time.Time) (time.Time, time.Time) {
 
 	now := n.In(p.loc)
-
 	plus30m := now.Add(30 * time.Minute)
 	sixMonthsLater := now.AddDate(0, 6, 0)
 	lastDay := time.Date(sixMonthsLater.Year(), sixMonthsLater.Month()+1, 0, 0, 0, 0, 0, p.loc)
 	lastMinute := time.Date(lastDay.Year(), lastDay.Month(), lastDay.Day(), 23, 59, 59, 0, p.loc)
-	within := givenTime.After(plus30m) && givenTime.Before(lastMinute)
 
-	return within, nil
+	return plus30m, lastMinute
+}
+
+func (p *Client) isPollable(n time.Time, dateStr, timeStr string) (bool, error) {
+	givenTime, err := p.parseDateTime(dateStr, timeStr)
+	if err != nil {
+		p.logger.Error().Err(err).Msg("Failed to parse date time")
+		return false, err
+	}
+	start, end := p.genRange(n)
+	return givenTime.After(start) && givenTime.Before(end), err
+}
+
+func (p *Client) isReservable(n time.Time, dateStr, timeStr string) (bool, error) {
+	givenTime, err := p.parseDateTime(dateStr, timeStr)
+	if err != nil {
+		p.logger.Error().Err(err).Msg("Failed to parse date time")
+		return false, err
+	}
+	start, _ := p.genRange(n)
+	return givenTime.After(start), err
 }

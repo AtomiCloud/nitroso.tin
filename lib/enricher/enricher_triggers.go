@@ -6,6 +6,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
+	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -29,11 +30,12 @@ type Trigger struct {
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
 	psm              string
+	timezone         *time.Location
 }
 
 func NewTrigger(channel chan TriggerMessage, logger *zerolog.Logger, streamRedis *otelredis.OtelRedis,
 	streams config.StreamConfig, enricher config.EnricherConfig, otelConfigurator *telemetry.OtelConfigurator,
-	psm string) *Trigger {
+	psm string, timezone *time.Location) *Trigger {
 
 	return &Trigger{
 		channel:          channel,
@@ -43,7 +45,19 @@ func NewTrigger(channel chan TriggerMessage, logger *zerolog.Logger, streamRedis
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
 		psm:              psm,
+		timezone:         timezone,
 	}
+}
+
+func (p *Trigger) Cron(ctx context.Context) {
+
+	c := cron.NewWithLocation(p.timezone)
+	c.AddFunc("@midnight", func() {
+		p.channel <- TriggerMessage{
+			Type: "cron",
+			Mc:   nil,
+		}
+	})
 }
 
 func (p *Trigger) RandomTrigger(ctx context.Context) {
