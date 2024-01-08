@@ -7,7 +7,7 @@ require (
 	github.com/descope/go-sdk v1.5.7
 	github.com/getkin/kin-openapi v0.122.0
 	github.com/labstack/echo/v4 v4.11.3
-	github.com/redis/go-redis/v9 v9.3.1
+	github.com/redis/go-redis/v9 v9.4.0
 	github.com/robfig/cron v1.2.0
 	github.com/rs/xid v1.5.0
 	github.com/rs/zerolog v1.31.0
