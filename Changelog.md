@@ -1,3 +1,10 @@
+## [1.4.13](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.12...v1.4.13) (2024-01-30)
+
+
+### 🐛 Bug Fixes 🐛
+
+* attempt to have test ([954a65f](https://github.com/AtomiCloud/nitroso.tin/commit/954a65fefd9a988d229b6268db2a63026fde430b))
+
 ## [1.4.12](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.11...v1.4.12) (2024-01-04)
 
 
