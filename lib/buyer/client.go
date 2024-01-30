@@ -132,7 +132,9 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 		return nil
 	})
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to read from redis list in buyer (from reserver)")
+		c.logger.Error().
+			Err(err).
+			Msg("Failed to read from redis list in buyer (from reserver)")
 		return false, err
 	}
 	return false, nil

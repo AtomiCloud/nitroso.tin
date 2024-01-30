@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/cmds"
 	"github.com/AtomiCloud/nitroso-tin/lib/auth"
+	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
 	"github.com/urfave/cli/v2"
@@ -100,6 +101,28 @@ func main() {
 			{
 				Name:   "buyer",
 				Action: state.Buyer,
+			},
+			{
+				Name: "test",
+				Action: func(context *cli.Context) error {
+					ktmbConfig := state.Config.Ktmb
+					state.Logger.Info().Str("request", ktmbConfig.RequestSignature).Msg("Starting Test")
+					state.Logger.Info().Any("ktmbConfig", ktmbConfig).Msg("Configurations")
+					k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger)
+					login, e := k.Login("xxluna001@gmail.com", "Pokemon1288!")
+					if e != nil {
+						state.Logger.Error().Err(e).Msg("Failed to login")
+						return e
+					}
+					state.Logger.Info().Any("login", login).Msg("Login success")
+					sd, e := k.StationsAll(login.Data.UserData)
+					if e != nil {
+						state.Logger.Error().Err(e).Msg("Failed to login")
+						return e
+					}
+					state.Logger.Info().Any("sd", sd).Msg("StationsAll success")
+					return nil
+				},
 			},
 		},
 	}

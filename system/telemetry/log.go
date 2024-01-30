@@ -114,7 +114,6 @@ func (l LoggerFactory) Get() (zerolog.Logger, error) {
 
 		zerolog.DurationFieldInteger = zl.DurationFieldInteger
 		if zl.Stacktrace {
-
 			loggerContext = loggerContext.Stack()
 			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		}

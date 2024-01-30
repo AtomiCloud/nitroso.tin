@@ -112,7 +112,6 @@ reserver:
   podSecurityContext: *podSecurityContext
   replicaCount: 1
   configMountPath: /app/config
-
   resources:
     requests:
       memory: "128Mi"
