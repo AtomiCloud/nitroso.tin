@@ -1,3 +1,10 @@
+## [1.4.12](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.11...v1.4.12) (2024-01-04)
+
+
+### 🐛 Bug Fixes 🐛
+
+* get count does not account for changing time ([18c402b](https://github.com/AtomiCloud/nitroso.tin/commit/18c402b7a1fcedfcc459ecc1f3585d09f68ac158))
+
 ## [1.4.11](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.10...v1.4.11) (2024-01-03)
 
 
