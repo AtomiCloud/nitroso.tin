@@ -48,6 +48,7 @@ func (k *Ktmb) NewApp() HttpConfig {
 			"requestSignature": k.Signature,
 		},
 		logger: k.logger,
+		proxy:  k.proxy,
 	}
 }
 
