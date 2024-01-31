@@ -1,3 +1,10 @@
+## [1.5.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.13...v1.5.0) (2024-01-31)
+
+
+### ✨ Features ✨
+
+* allow for proxy ([fa03c6e](https://github.com/AtomiCloud/nitroso.tin/commit/fa03c6ebe10e22b048238ceb9943b22a16504428))
+
 ## [1.4.13](https://github.com/AtomiCloud/nitroso.tin/compare/v1.4.12...v1.4.13) (2024-01-30)
 
 
