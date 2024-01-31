@@ -20,7 +20,7 @@ func (state *State) Enricher(c *cli.Context) error {
 	ch := make(chan enricher.TriggerMessage)
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
 	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 
 	client := enricher.New(k, state.Logger)

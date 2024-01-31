@@ -24,7 +24,7 @@ func (state *State) Reserver(c *cli.Context) error {
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
 	liveRedis := otelredis.New(state.Config.Cache["live"])
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
 	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 	rEncr := encryptor.NewSymEncryptor[reserver.ReserveDto](state.Config.Encryptor.Key, state.Logger)
 

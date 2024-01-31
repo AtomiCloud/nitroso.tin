@@ -7,14 +7,16 @@ type Ktmb struct {
 	AppUrl    string
 	Signature string
 	logger    *zerolog.Logger
+	proxy     *string
 }
 
-func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger) Ktmb {
+func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, proxy *string) Ktmb {
 	return Ktmb{
 		ApiUrl:    apiUrl,
 		AppUrl:    appUrl,
 		Signature: ktmbSignature,
 		logger:    logger,
+		proxy:     proxy,
 	}
 }
 
@@ -34,6 +36,7 @@ func (k *Ktmb) NewApi() HttpConfig {
 			"requestSignature": k.Signature,
 		},
 		logger: k.logger,
+		proxy:  k.proxy,
 	}
 }
 

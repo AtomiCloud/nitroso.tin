@@ -108,7 +108,7 @@ func main() {
 					ktmbConfig := state.Config.Ktmb
 					state.Logger.Info().Str("request", ktmbConfig.RequestSignature).Msg("Starting Test")
 					state.Logger.Info().Any("ktmbConfig", ktmbConfig).Msg("Configurations")
-					k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger)
+					k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
 					login, e := k.Login("xxluna001@gmail.com", "Pokemon1288!")
 					if e != nil {
 						state.Logger.Error().Err(e).Msg("Failed to login")

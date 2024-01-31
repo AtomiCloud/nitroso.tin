@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"io"
 	"net/http"
+	u "net/url"
 	"strings"
 )
 
@@ -14,12 +15,14 @@ type HttpConfig struct {
 	Url    string
 	Header map[string]string
 	logger *zerolog.Logger
+	proxy  *string
 }
 
 type HttpClient[T any, Y any] struct {
 	Url    string
 	Header map[string]string
 	logger *zerolog.Logger
+	proxy  *string
 }
 
 func NewHttp[T any, Y any](c HttpConfig) HttpClient[T, Y] {
@@ -27,8 +30,26 @@ func NewHttp[T any, Y any](c HttpConfig) HttpClient[T, Y] {
 		Url:    c.Url,
 		Header: c.Header,
 		logger: c.logger,
+		proxy:  c.proxy,
 	}
 	return k
+}
+
+func (k HttpClient[T, Y]) client() (*http.Client, error) {
+	if k.proxy == nil {
+		return &http.Client{}, nil
+	}
+	pUrl, err := u.Parse(*k.proxy)
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to parse URL")
+		return nil, err
+	}
+	proxy := http.ProxyURL(pUrl)
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy: proxy,
+		},
+	}, nil
 }
 
 func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string]string) (Y, error) {
@@ -54,7 +75,13 @@ func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string
 		req.Header.Add(hk, hv)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	client, err := k.client()
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to create client")
+		return y, err
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to send request")
 		return y, err
@@ -115,7 +142,13 @@ func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, header
 		req.Header.Add(hk, hv)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	client, err := k.client()
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to create client")
+		return y, err
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to send request")
 		return y, err
@@ -155,7 +188,13 @@ func (k HttpClient[T, Y]) BinarySendWith(method string, path string, payload T, 
 		req.Header.Add(hk, hv)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	client, err := k.client()
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to create client")
+		return nil, err
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to send request")
 		return nil, err
