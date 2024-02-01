@@ -11,12 +11,23 @@ type Ktmb struct {
 }
 
 func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, proxy *string) Ktmb {
+
+	var p *string
+	if proxy != nil {
+		p = proxy
+		if *p == "" {
+			p = nil
+		}
+	} else {
+		p = nil
+	}
+
 	return Ktmb{
 		ApiUrl:    apiUrl,
 		AppUrl:    appUrl,
 		Signature: ktmbSignature,
 		logger:    logger,
-		proxy:     proxy,
+		proxy:     p,
 	}
 }
 
