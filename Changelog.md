@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.1...v1.5.2) (2024-02-01)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing proxy ([d693d89](https://github.com/AtomiCloud/nitroso.tin/commit/d693d896d6f89543f4156656bfc1ea70b201db3d))
+
 ## [1.5.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.0...v1.5.1) (2024-01-31)
 
 
