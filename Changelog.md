@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.2...v1.5.3) (2024-02-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* missing settings for nitroso ([37a423a](https://github.com/AtomiCloud/nitroso.tin/commit/37a423a1134aabfa8c5486511093ba4706db03c9))
+
 ## [1.5.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.1...v1.5.2) (2024-02-01)
 
 
