@@ -37,8 +37,8 @@ func NewDescopeM2MCredentialProvider(cfg config.DescopeConfig) (CredentialsProvi
 	return &cred, nil
 }
 
-func (d *DescopeM2MCredentialProvider) getTokenRaw() (string, int64, error) {
-	authenticated, token, err := d.client.Auth.ExchangeAccessKey(d.accessKey)
+func (d *DescopeM2MCredentialProvider) getTokenRaw(c context.Context) (string, int64, error) {
+	authenticated, token, err := d.client.Auth.ExchangeAccessKey(c, d.accessKey)
 
 	if err != nil {
 		return "", 0, err
@@ -51,7 +51,7 @@ func (d *DescopeM2MCredentialProvider) getTokenRaw() (string, int64, error) {
 	return "", 0, errors.New("failed to authenticate")
 }
 
-func (d *DescopeM2MCredentialProvider) getToken() (string, error) {
+func (d *DescopeM2MCredentialProvider) getToken(c context.Context) (string, error) {
 
 	if d.expiration != nil {
 
@@ -65,7 +65,7 @@ func (d *DescopeM2MCredentialProvider) getToken() (string, error) {
 
 	}
 
-	token, expiration, err := d.getTokenRaw()
+	token, expiration, err := d.getTokenRaw(c)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +76,7 @@ func (d *DescopeM2MCredentialProvider) getToken() (string, error) {
 
 func (d *DescopeM2MCredentialProvider) RequestEditor() func(ctx context.Context, req *http.Request) error {
 	return func(ctx context.Context, req *http.Request) error {
-		token, err := d.getToken()
+		token, err := d.getToken(ctx)
 		if err != nil {
 			return err
 		}

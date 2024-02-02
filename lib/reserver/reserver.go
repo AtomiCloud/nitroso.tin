@@ -157,7 +157,7 @@ func (c *Client) Start(ctx context.Context) error {
 			for i := 0; i < buy; i++ {
 				c.logger.Info().Any("deferred", deferred).Msg("before reserve process")
 				deferred = c.reserveProcess(ctx, loginCache, now, diff.Direction, diff.Date, diffTime, deferred)
-				c.logger.Info().Any("deferred", deferred).Msg("fater reserve process")
+				c.logger.Info().Any("deferred", deferred).Msg("after reserve process")
 			}
 		}
 
