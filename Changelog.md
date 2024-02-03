@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.3...v1.5.4) (2024-02-03)
+
+
+### 🐛 Bug Fixes 🐛
+
+* OTEL non compatible schema ([3b0d981](https://github.com/AtomiCloud/nitroso.tin/commit/3b0d9811d9543b4eeb32ce6db1ccd64e338bfdbe))
+
 ## [1.5.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.2...v1.5.3) (2024-02-02)
 
 
