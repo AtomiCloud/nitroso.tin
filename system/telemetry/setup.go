@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.22.0"
 )
 
 type OtelConfigurator struct {
@@ -81,11 +81,12 @@ func (o OtelConfigurator) newResource() (*resource.Resource, error) {
 		attribute.String("atomicloud.version", o.App.Version),
 	}...)
 
-	m, err := resource.Merge(resource.Default(),
-		resource.NewWithAttributes(semconv.SchemaURL,
-			semconv.ServiceName(o.App.Platform+"."+o.App.Service+"."+o.App.Module),
-			semconv.ServiceVersion(o.App.Version),
-		))
+	def := resource.Default()
+	n := resource.NewSchemaless(
+		semconv.ServiceName(o.App.Platform+"."+o.App.Service+"."+o.App.Module),
+		semconv.ServiceVersion(o.App.Version),
+	)
+	m, err := resource.Merge(def, n)
 	if err != nil {
 		return nil, err
 	}

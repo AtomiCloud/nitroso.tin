@@ -53,7 +53,7 @@ otel:
       pretty: true
       caller: true
   metric:
-    enable: false
+    enable: true
     reader: {}
     exporter:
       exporterType: console
@@ -61,7 +61,7 @@ otel:
         prettyPrint: true
         timestamp: true
   trace:
-    enable: false
+    enable: true
     processor:
       processorType: batch
       batchProcessorConfig: {}
