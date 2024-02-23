@@ -16,11 +16,6 @@ env:
   DOCKER_CACHE_BUCKET: "ci-cache"
   DOCKER_CACHE_REGION: "APAC"
 
-permissions:
-  contents: read
-  id-token: write
-  packages: write
-
 jobs:
   precommit:
     name: Pre-commit Check
@@ -42,7 +37,7 @@ jobs:
         with:
           path: |
             /nix
-            /go/pkg/mod
+            ~/go/pkg/mod
       - name: Install Nix
         uses: cachix/install-nix-action@v22
 
@@ -52,7 +47,10 @@ jobs:
 
   build:
     name: Build Docker
-
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     runs-on:
       - ubuntu-22.04
     strategy:
@@ -128,7 +126,7 @@ jobs:
         with:
           path: |
             /nix
-            /go/pkg/mod
+            ~/go/pkg/mod
       - name: Install Nix
         uses: cachix/install-nix-action@v22
 
@@ -144,7 +142,7 @@ jobs:
 
           DOMAIN: ${{ env.DOCKER_DOMAIN }}
 
-          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
+          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_USER: ${{ env.DOCKER_USER }}
 
         run: nix develop .#releaser -c scripts/ci/release.sh
