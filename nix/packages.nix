@@ -1,20 +1,14 @@
-{ pkgs, atomi, atomi_classic, pkgs-2305, pkgs-dec-06-23 }:
+{ pkgs, atomi, pkgs-2305, pkgs-feb-23-24 }:
 let
   all = {
-    atomipkgs_classic = (
-      with atomi_classic;
-      {
-        inherit
-          sg;
-      }
-    );
     atomipkgs = (
       with atomi;
       {
         inherit
           infisical
           mirrord
-          pls;
+          pls
+          sg;
       }
     );
     nix-2305 = (
@@ -24,8 +18,8 @@ let
           hadolint;
       }
     );
-    dec-06-23 = (
-      with pkgs-dec-06-23;
+    feb-23-24 = (
+      with pkgs-feb-23-24;
       {
         inherit
           tilt
@@ -57,14 +51,11 @@ let
           docker
           k3d;
         helm = kubernetes-helm;
-        npm = nodePackages.npm;
-        nodejs = nodejs_20;
       }
     );
   };
 in
 with all;
-atomipkgs //
-atomipkgs_classic //
 nix-2305 //
-dec-06-23
+feb-23-24 //
+atomipkgs

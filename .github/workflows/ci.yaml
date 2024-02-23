@@ -16,10 +16,6 @@ env:
   DOCKER_CACHE_BUCKET: "ci-cache"
   DOCKER_CACHE_REGION: "APAC"
 
-permissions:
-  id-token: write
-  packages: write
-
 jobs:
   precommit:
     name: Pre-commit Check
@@ -41,16 +37,21 @@ jobs:
         with:
           path: |
             /nix
-            ~/.pnpm-store
+            /go/pkg/mod
       - name: Install Nix
         uses: cachix/install-nix-action@v22
 
       # pre commit
       - name: Run pre-commit
+        run: nix develop .#ci -c 'echo $GOPATH'
+      - name: Run pre-commit
         run: nix develop .#ci -c ./scripts/ci/pre-commit.sh
 
   build:
     name: Build Docker
+    permissions:
+      contents: read
+      id-token: write
     runs-on:
       - ubuntu-22.04
     strategy:
@@ -126,7 +127,7 @@ jobs:
         with:
           path: |
             /nix
-            ~/.pnpm-store
+            /go/pkg/mod
       - name: Install Nix
         uses: cachix/install-nix-action@v22
 
@@ -137,7 +138,6 @@ jobs:
           GITHUB_REPO_REF: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_BRANCH: ${{ env.GITHUB_REF_SLUG_URL }}
-          CI_DOCKER_IMAGES: "nitroso-tin-amd,nitroso-tin-arm"
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
