@@ -51,6 +51,7 @@ with packages;
 
   releaser = [
     sg
+    helm
   ];
 
 }
