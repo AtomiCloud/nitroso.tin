@@ -33,7 +33,7 @@ cdc:
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
@@ -57,7 +57,7 @@ enricher:
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
@@ -81,7 +81,7 @@ poller:
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
@@ -106,7 +106,7 @@ reserver:
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
@@ -130,7 +130,7 @@ buyer:
   serviceTree:
     landscape: *landscape
   image:
-    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin-amd
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext

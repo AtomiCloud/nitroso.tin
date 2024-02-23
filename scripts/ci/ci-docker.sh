@@ -86,10 +86,11 @@ docker buildx build \
   -f "${CI_DOCKERFILE}" \
   --platform=${CI_DOCKER_PLATFORM} \
   --push \
-  --cache-from "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},name=${CACHE_COMMIT}" \
-  --cache-from "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},name=${CACHE_BRANCH}" \
-  --cache-from "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},name=${CACHE_LATEST}" \
-  --cache-to "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},ref=${CACHE_COMMIT};${CACHE_BRANCH};${CACHE_LATEST},mode=max" \
   -t "${COMMIT_IMAGE_REF}" $args \
   -t "${BRANCH_IMAGE_REF}"
 echo "✅ Pushed branch image!"
+
+#  --cache-from "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},name=${CACHE_COMMIT}" \
+#  --cache-from "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},name=${CACHE_BRANCH}" \
+#  --cache-from "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},name=${CACHE_LATEST}" \
+#  --cache-to "type=s3,endpoint_url=${S3_URL},region=${S3_REGION},bucket=${S3_BUCKET},ref=${CACHE_COMMIT};${CACHE_BRANCH};${CACHE_LATEST},mode=max" \

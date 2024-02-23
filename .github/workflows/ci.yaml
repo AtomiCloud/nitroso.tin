@@ -16,42 +16,67 @@ env:
   DOCKER_CACHE_BUCKET: "ci-cache"
   DOCKER_CACHE_REGION: "APAC"
 
-  # Helm
+permissions:
+  id-token: write
+  packages: write
 
 jobs:
   precommit:
     name: Pre-commit Check
-    runs-on: ubuntu-22.04
+    runs-on:
+      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-nitroso-tin-nix-store-cache
+      - nscloud-git-mirror-1gb
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      # Setup
+      - name: Checkout Code
+        uses: namespacelabs/nscloud-checkout-action@v2
+      - name: Setup Nix Folder
+        run: |
+          sudo mkdir /nix
+          sudo chown $USER /nix
+      - name: Cache Nix
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: |
+            /nix
+            ~/.pnpm-store
+      - name: Install Nix
+        uses: cachix/install-nix-action@v22
+
+      # pre commit
       - name: Run pre-commit
         run: nix develop .#ci -c ./scripts/ci/pre-commit.sh
+
   build:
     name: Build Docker
-    runs-on: ubuntu-22.04
+    runs-on:
+      - ubuntu-22.04
     strategy:
       matrix:
         configs:
-          - image-name: nitroso-tin-arm
+          - image-name: nitroso-tin
             dockerfile: infra/Dockerfile
             context: .
-            platform: linux/arm64
-          - image-name: nitroso-tin-amd
-            dockerfile: infra/Dockerfile
-            context: .
-            platform: linux/amd64
+            platform: linux/arm64,linux/amd64
     env:
       STRAT_DOCKER_IMAGE: ${{ matrix.configs.image-name }}
       STRAT_DOCKERFILE: ${{ matrix.configs.dockerfile }}
       STRAT_DOCKER_CONTEXT: ${{ matrix.configs.context }}
       STRAT_DOCKER_PLATFORM: ${{ matrix.configs.platform }}
     steps:
+      # Setup
       - uses: actions/checkout@v4
+      #      - uses: docker/setup-buildx-action@v3
+      #      - uses: docker/setup-qemu-action@v3
+      - name: Install and configure Namespace CLI
+        uses: namespacelabs/nscloud-setup@v0
+      - name: Configure Namespace powered Buildx
+        uses: namespacelabs/nscloud-setup-buildx-action@v0
+
+      # action
       - uses: rlespinasse/github-slug-action@v3.x
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/setup-qemu-action@v3
       - name: Build and Push Docker
         run: ./scripts/ci/ci-docker.sh
         env:
@@ -83,13 +108,30 @@ jobs:
       - precommit
       - build
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on:
+      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-nitroso-tin-nix-store-cache
+      - nscloud-git-mirror-1gb
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-      - uses: rlespinasse/github-slug-action@v3.x
+      # Setup
+      - name: Checkout Code
+        uses: namespacelabs/nscloud-checkout-action@v2
+      - name: Setup Nix Folder
+        run: |
+          sudo mkdir /nix
+          sudo chown $USER /nix
+      - name: Cache Nix
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: |
+            /nix
+            ~/.pnpm-store
+      - name: Install Nix
+        uses: cachix/install-nix-action@v22
 
+      # action
+      - uses: rlespinasse/github-slug-action@v3.x
       - name: Release
         env:
           GITHUB_REPO_REF: ${{ github.repository }}
