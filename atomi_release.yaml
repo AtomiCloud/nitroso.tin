@@ -133,6 +133,12 @@ types:
       default:
         desc: amendments
         release: false
+  - type: chore
+    desc: Chores like test, attempts, typos, etc
+    scopes:
+      default:
+        desc: Chores
+        release: false
   - type: dep
     desc: Dependency updates from upstream
     section: 🔼 Dependency Upstreams 🔼

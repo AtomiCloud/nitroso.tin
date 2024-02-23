@@ -16,6 +16,11 @@ env:
   DOCKER_CACHE_BUCKET: "ci-cache"
   DOCKER_CACHE_REGION: "APAC"
 
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
 jobs:
   precommit:
     name: Pre-commit Check
@@ -47,10 +52,7 @@ jobs:
 
   build:
     name: Build Docker
-    permissions:
-      contents: read
-      id-token: write
-      packages: write
+
     runs-on:
       - ubuntu-22.04
     strategy:
