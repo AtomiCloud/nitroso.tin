@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.7.0...v1.7.1) (2024-02-24)
+
+
+### 🐛 Bug Fixes 🐛
+
+* test empty message ([a7a8714](https://github.com/AtomiCloud/nitroso.tin/commit/a7a87140a61e980f3d350e0d8783168c3ad93e10))
+
 ## [1.7.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.6.0...v1.7.0) (2024-02-24)
 
 
