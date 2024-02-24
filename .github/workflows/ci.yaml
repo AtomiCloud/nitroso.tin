@@ -26,22 +26,9 @@ jobs:
       - nscloud-git-mirror-1gb
     steps:
       # Setup
-      - name: Checkout Code
-        uses: namespacelabs/nscloud-checkout-action@v2
-      - name: Setup Nix Folder
-        run: |
-          sudo mkdir /nix
-          sudo chown $USER /nix
-      - name: Cache Nix
-        uses: namespacelabs/nscloud-cache-action@v1
-        with:
-          path: /nix
-      - name: Install Nix
-        uses: cachix/install-nix-action@v22
-      - name: Cache Go
-        uses: namespacelabs/nscloud-cache-action@v1
-        with:
-          path: ~/go/pkg/mod
+      - uses: AtomiCloud/actions.setup-nix@v1.1.0
+      - uses: AtomiCloud/actions.cache-go@v1.0.1
+
       # pre commit
       - name: Run pre-commit
         run: nix develop .#ci -c ./scripts/ci/pre-commit.sh
@@ -68,13 +55,7 @@ jobs:
       STRAT_DOCKER_PLATFORM: ${{ matrix.configs.platform }}
     steps:
       # Setup
-      - uses: actions/checkout@v4
-      #      - uses: docker/setup-buildx-action@v3
-      #      - uses: docker/setup-qemu-action@v3
-      - name: Install and configure Namespace CLI
-        uses: namespacelabs/nscloud-setup@v0
-      - name: Configure Namespace powered Buildx
-        uses: namespacelabs/nscloud-setup-buildx-action@v0
+      - uses: AtomiCloud/actions.setup-docker@v1.0.1
 
       # action
       - uses: rlespinasse/github-slug-action@v3.x
@@ -112,25 +93,13 @@ jobs:
     runs-on:
       - nscloud-ubuntu-22.04-amd64-4x8-with-cache
       - nscloud-cache-size-50gb
-      - nscloud-cache-tag-nitroso-tin-nix-store-cache
+      - nscloud-cache-tag-nitroso-tin-releaser-nix-store-cache
       - nscloud-git-mirror-1gb
     steps:
       # Setup
-      - name: Checkout Code
-        uses: namespacelabs/nscloud-checkout-action@v2
-      - name: Setup Nix Folder
-        run: |
-          sudo mkdir /nix
-          sudo chown $USER /nix
-      - name: Cache Nix
-        uses: namespacelabs/nscloud-cache-action@v1
-        with:
-          path: |
-            /nix
-            ~/go/pkg/mod
-      - name: Install Nix
-        uses: cachix/install-nix-action@v22
-
+      - uses: AtomiCloud/actions.setup-nix@v1.1.0
+      - uses: AtomiCloud/actions.cache-npm@v1.0.1
+      - uses: AtomiCloud/actions.cache-go@v1.0.1
       # action
       - uses: rlespinasse/github-slug-action@v3.x
       - name: Release
