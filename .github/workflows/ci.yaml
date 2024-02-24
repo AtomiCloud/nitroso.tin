@@ -35,12 +35,13 @@ jobs:
       - name: Cache Nix
         uses: namespacelabs/nscloud-cache-action@v1
         with:
-          path: |
-            /nix
-            ~/go/pkg/mod
+          path: /nix
       - name: Install Nix
         uses: cachix/install-nix-action@v22
-
+      - name: Cache Go
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/go/pkg/mod
       # pre commit
       - name: Run pre-commit
         run: nix develop .#ci -c ./scripts/ci/pre-commit.sh
