@@ -1,3 +1,15 @@
+## [1.7.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.6.0...v1.7.0) (2024-02-24)
+
+
+### ✨ Features ✨
+
+* migrate to new actions ([a255102](https://github.com/AtomiCloud/nitroso.tin/commit/a255102262788277ed15e0a853cb6a2c154a1874))
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect docker setup action ([e17468d](https://github.com/AtomiCloud/nitroso.tin/commit/e17468dcadeb6131dcbfa0fe7c57d13c3a47d672))
+
 ## [1.6.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.4...v1.6.0) (2024-02-23)
 
 
