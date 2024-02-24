@@ -29,8 +29,8 @@ poller:
   backoffLimit: 3
   pollee:
     namespace: "nitroso"
-    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium-amd"
-    version: "1.4.5"
+    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium"
+    version: "1.6.0"
     secretRef: "nitroso-helium"
     configRef: "helium-pollee-config"
 
