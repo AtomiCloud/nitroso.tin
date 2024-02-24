@@ -1,3 +1,17 @@
+## [1.6.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.4...v1.6.0) (2024-02-23)
+
+
+### ✨ Features ✨
+
+* incorrect proxy setting ([599c0df](https://github.com/AtomiCloud/nitroso.tin/commit/599c0dfcc1229eed368ee6680f55dbee8f4ed0a1))
+* incorrect proxy setting ([ee2124d](https://github.com/AtomiCloud/nitroso.tin/commit/ee2124de2ea3414e2d2ff4ae19da4a717e8bddde))
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect token for CI ([7af26ea](https://github.com/AtomiCloud/nitroso.tin/commit/7af26ea5a9c240b8e812f9164162bb5f5cd3a6d7))
+* release with npm ([7b372a5](https://github.com/AtomiCloud/nitroso.tin/commit/7b372a5407ab71e3444f7f1d3b5867b716e52ed8))
+
 ## [1.5.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.5.3...v1.5.4) (2024-02-03)
 
 
