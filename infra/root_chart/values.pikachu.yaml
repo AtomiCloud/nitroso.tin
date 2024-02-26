@@ -41,8 +41,8 @@ cdc:
   configMountPath: /app/config
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "125m"
+      memory: "25Mi"
+      cpu: "25m"
     limits:
       memory: "256Mi"
       cpu: "250m"
@@ -65,8 +65,8 @@ enricher:
   configMountPath: /app/config
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "125m"
+      memory: "25Mi"
+      cpu: "25m"
     limits:
       memory: "256Mi"
       cpu: "250m"
@@ -85,13 +85,13 @@ poller:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  replicaCount: 1
+  replicaCount: 3
   configMountPath: /app/config
 
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "125m"
+      memory: "25Mi"
+      cpu: "25m"
     limits:
       memory: "256Mi"
       cpu: "250m"
