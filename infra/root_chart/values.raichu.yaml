@@ -110,7 +110,7 @@ reserver:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  replicaCount: 10
+  replicaCount: 3
   configMountPath: /app/config
 
   resources:
