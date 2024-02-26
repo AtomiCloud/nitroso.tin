@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.9.0...v1.9.1) (2024-02-26)
+
+
+### 🐛 Bug Fixes 🐛
+
+* reduce resource request ([cced82f](https://github.com/AtomiCloud/nitroso.tin/commit/cced82ffece893cc453acde90b4505874a98ad65))
+
 ## [1.9.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.8.0...v1.9.0) (2024-02-26)
 
 
