@@ -1,3 +1,10 @@
+## [1.8.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.7.1...v1.8.0) (2024-02-24)
+
+
+### ✨ Features ✨
+
+* update helium pointer ([3510ff3](https://github.com/AtomiCloud/nitroso.tin/commit/3510ff3ddce20f33a91c122d956f89354ff574c0))
+
 ## [1.7.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.7.0...v1.7.1) (2024-02-24)
 
 
