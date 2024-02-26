@@ -1,3 +1,10 @@
+## [1.9.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.8.0...v1.9.0) (2024-02-26)
+
+
+### ✨ Features ✨
+
+* upgrade pollee to 1.9.2 ([fa049d6](https://github.com/AtomiCloud/nitroso.tin/commit/fa049d6e842a310588922c4bcedce6a1eea58c87))
+
 ## [1.8.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.7.1...v1.8.0) (2024-02-24)
 
 
