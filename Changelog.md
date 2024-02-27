@@ -1,3 +1,10 @@
+## [1.10.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.9.2...v1.10.0) (2024-02-27)
+
+
+### ✨ Features ✨
+
+* convert reserver to StatefulSet with stream group name as pod name ([6bc7fbb](https://github.com/AtomiCloud/nitroso.tin/commit/6bc7fbb4fd05416166b468143df376e9b687a0f7))
+
 ## [1.9.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.9.1...v1.9.2) (2024-02-26)
 
 
