@@ -53,7 +53,10 @@ tasks:
         vars:
           NAME: zinc
           OCI: ghcr.io/atomicloud/nitroso.zinc/root-chart
-
+  process-proxy:
+    desc: Process proxy from webshare
+    cmds:
+      - ./scripts/local/process_proxy.sh {{.CLI_ARGS}}
   sdk:gen:
     desc: Generate the SDK
     cmds:
