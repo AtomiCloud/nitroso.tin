@@ -78,6 +78,7 @@ Root Chart to a single Service
 | cdc.serviceTree.<<.platform | string | `"nitroso"` |  |
 | cdc.serviceTree.<<.service | string | `"tin"` |  |
 | cdc.serviceTree.module | string | `"cdc"` |  |
+| cdc.stateful | bool | `false` |  |
 | cdc.tolerations | list | `[]` |  |
 | cdc.topologySpreadConstraints | object | `{}` |  |
 | enricher.affinity | object | `{}` |  |
@@ -104,6 +105,7 @@ Root Chart to a single Service
 | enricher.serviceTree.<<.platform | string | `"nitroso"` |  |
 | enricher.serviceTree.<<.service | string | `"tin"` |  |
 | enricher.serviceTree.module | string | `"enricher"` |  |
+| enricher.stateful | bool | `false` |  |
 | enricher.tolerations | list | `[]` |  |
 | enricher.topologySpreadConstraints | object | `{}` |  |
 | helium.bromine.enable | bool | `true` |  |
@@ -162,6 +164,7 @@ Root Chart to a single Service
 | poller.serviceTree.<<.platform | string | `"nitroso"` |  |
 | poller.serviceTree.<<.service | string | `"tin"` |  |
 | poller.serviceTree.module | string | `"poller"` |  |
+| poller.stateful | bool | `false` |  |
 | poller.tolerations | list | `[]` |  |
 | poller.topologySpreadConstraints | object | `{}` |  |
 | reserver.affinity | object | `{}` |  |
@@ -170,6 +173,8 @@ Root Chart to a single Service
 | reserver.autoscaling | object | `{}` |  |
 | reserver.configMountPath | string | `"/app/config"` |  |
 | reserver.envFromSecret | string | `"nitroso-tin"` |  |
+| reserver.env[0].name | string | `"ATOMI_RESERVER__GROUP"` |  |
+| reserver.env[0].valueFrom.fieldRef.fieldPath | string | `"metadata.name"` |  |
 | reserver.image.pullPolicy | string | `"IfNotPresent"` |  |
 | reserver.image.repository | string | `"nitroso-tin-reserver"` |  |
 | reserver.image.tag | string | `""` |  |
@@ -188,6 +193,7 @@ Root Chart to a single Service
 | reserver.serviceTree.<<.platform | string | `"nitroso"` |  |
 | reserver.serviceTree.<<.service | string | `"tin"` |  |
 | reserver.serviceTree.module | string | `"reserver"` |  |
+| reserver.stateful | bool | `true` |  |
 | reserver.tolerations | list | `[]` |  |
 | reserver.topologySpreadConstraints | object | `{}` |  |
 | serviceTree.landscape | string | `"lapras"` |  |

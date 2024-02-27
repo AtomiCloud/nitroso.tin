@@ -1,6 +1,6 @@
-{{- if not .Values.stateful }}
+{{- if .Values.stateful }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "golang-chart.fullname" . }}
   labels: {{- include "golang-chart.labels" . | nindent 4 }}
@@ -54,6 +54,9 @@ spec:
               value: {{ .Values.serviceTree.landscape }}
             - name: BASE_CONFIG
               value: "{{ .Values.configMountPath }}"
+          {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: "{{ .Values.configMountPath }}/settings.yaml"
               name: config-volume

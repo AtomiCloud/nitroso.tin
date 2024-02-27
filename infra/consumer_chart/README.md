@@ -12,6 +12,8 @@ A Chart to deploy Golang Microservice
 | appSettings | object | `{}` |  |
 | autoscaling | object | `{}` |  |
 | configMountPath | string | `"/app/config"` |  |
+| env[0].name | string | `"POD_NAME"` |  |
+| env[0].valueFrom.fieldRef.fieldPath | string | `"metadata.name"` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"golang-chart"` |  |
@@ -33,6 +35,7 @@ A Chart to deploy Golang Microservice
 | serviceTree.module | string | `"consumer"` |  |
 | serviceTree.platform | string | `"nitroso"` |  |
 | serviceTree.service | string | `"tin"` |  |
+| stateful | bool | `false` |  |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | object | `{}` |  |
 

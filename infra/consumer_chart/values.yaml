@@ -4,6 +4,8 @@ serviceTree:
   service: tin
   module: consumer
 
+stateful: false
+
 replicaCount: 1
 appSettings: {}
 
@@ -13,6 +15,12 @@ image:
   repository: golang-chart
   pullPolicy: IfNotPresent
   tag: ""
+
+env:
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
 
 imagePullSecrets: []
 nameOverride: ""

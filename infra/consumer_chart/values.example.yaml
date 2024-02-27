@@ -4,6 +4,8 @@ serviceTree:
   service: golang
   module: api
 
+stateful: false
+
 replicaCount: 1
 
 appSettings: {}
@@ -17,6 +19,12 @@ configMountPath: /app/config
 jobRbac:
   create: false
   annotations: {}
+
+env:
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
 
 command:
   - /bin/sh

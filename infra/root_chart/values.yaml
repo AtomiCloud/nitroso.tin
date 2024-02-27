@@ -25,6 +25,7 @@ bromine:
   target: &target "nitroso-tin"
 
 cdc:
+  stateful: false
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
@@ -77,6 +78,7 @@ cdc:
   topologySpreadConstraints: {}
 
 poller:
+  stateful: false
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
@@ -133,6 +135,7 @@ poller:
   topologySpreadConstraints: {}
 
 enricher:
+  stateful: false
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
@@ -185,6 +188,12 @@ enricher:
   topologySpreadConstraints: {}
 
 reserver:
+  stateful: true
+  env:
+    - name: ATOMI_RESERVER__GROUP
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 
