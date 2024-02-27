@@ -1,3 +1,10 @@
+## [1.12.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.11.0...v1.12.0) (2024-02-27)
+
+
+### ✨ Features ✨
+
+* emulate rotating proxies ([f468b5b](https://github.com/AtomiCloud/nitroso.tin/commit/f468b5b79c655d574f9a83e468af15e39a2eed95))
+
 ## [1.11.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.10.0...v1.11.0) (2024-02-27)
 
 
