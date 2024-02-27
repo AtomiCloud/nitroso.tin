@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.9.1...v1.9.2) (2024-02-26)
+
+
+### 🐛 Bug Fixes 🐛
+
+* reduce replicas to 3 ([a2fdf0f](https://github.com/AtomiCloud/nitroso.tin/commit/a2fdf0f54c588b7dd43492a6620d14a81f2c60b3))
+
 ## [1.9.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.9.0...v1.9.1) (2024-02-26)
 
 
