@@ -52,6 +52,8 @@ type EncryptorConfig struct {
 type ReserverConfig struct {
 	Group        string
 	BackoffLimit int
+	Concurrency  int
+	Attempts     int
 }
 
 // Enricher

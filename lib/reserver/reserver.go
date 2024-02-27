@@ -183,7 +183,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		})
 		return deferred
 	}
-	for replica := 0; replica < 100; replica++ {
+	for replica := 0; replica < c.reserver.Concurrency; replica++ {
 		go func(ct context.Context, replica int, userData, searchData, tripData string) {
 			err := c.blockIfMaintenance()
 			if err != nil {
@@ -191,7 +191,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 				return
 			}
 			c.logger.Info().Int("replica", replica).Msg("Starting reserve")
-			for i := 0; i < 100; i++ {
+			for i := 0; i < c.reserver.Attempts; i++ {
 				err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
 				if err != nil {
 					c.logger.Error().Err(err).Int("attempt", i).Msg("Failed to reserve")

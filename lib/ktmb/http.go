@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/rs/zerolog"
 	"io"
+	"math/rand"
 	"net/http"
 	u "net/url"
 	"strings"
@@ -39,7 +40,12 @@ func (k HttpClient[T, Y]) client() (*http.Client, error) {
 	if k.proxy == nil {
 		return &http.Client{}, nil
 	}
-	pUrl, err := u.Parse(*k.proxy)
+
+	proxies := strings.Split(*k.proxy, ";")
+	randomIndex := rand.Intn(len(proxies))
+	p := proxies[randomIndex]
+
+	pUrl, err := u.Parse(p)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to parse URL")
 		return nil, err

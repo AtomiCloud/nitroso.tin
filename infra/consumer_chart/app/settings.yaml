@@ -45,6 +45,8 @@ encryptor:
 reserver:
   group: reserver
   backoffLimit: 3
+  concurrency: 10
+  attempts: 100
 
 enricher:
   group: enricher
