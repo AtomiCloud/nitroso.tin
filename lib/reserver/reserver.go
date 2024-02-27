@@ -184,7 +184,9 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		return deferred
 	}
 	for replica := 0; replica < c.reserver.Concurrency; replica++ {
-		go func(ct context.Context, replica int, userData, searchData, tripData string) {
+		term := make(chan bool)
+
+		go func(term chan bool, ct context.Context, replica int, userData, searchData, tripData string) {
 			err := c.blockIfMaintenance()
 			if err != nil {
 				c.logger.Error().Err(err).Msg("Failed to block if maintenance")
@@ -192,15 +194,23 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 			}
 			c.logger.Info().Int("replica", replica).Msg("Starting reserve")
 			for i := 0; i < c.reserver.Attempts; i++ {
-				err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
-				if err != nil {
-					c.logger.Error().Err(err).Int("attempt", i).Msg("Failed to reserve")
-				} else {
-					c.logger.Info().Msg("Successfully booked")
+				select {
+				case <-term:
+					c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Received term signal from local replicas")
+					term <- true
 					return
+				default:
+					err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
+					if err != nil {
+						c.logger.Error().Err(err).Int("replica", replica).Int("attempt", i).Msg("Failed to reserve")
+					} else {
+						c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Successfully booked")
+						term <- true
+						return
+					}
 				}
 			}
-		}(ctx, replica, loginCache.UserData, find.SearchData, find.TripData)
+		}(term, ctx, replica, loginCache.UserData, find.SearchData, find.TripData)
 	}
 
 	return deferred
