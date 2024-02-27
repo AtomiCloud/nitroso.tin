@@ -1,3 +1,15 @@
+## [1.11.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.10.0...v1.11.0) (2024-02-27)
+
+
+### ✨ Features ✨
+
+* allow random proxy ([d51df27](https://github.com/AtomiCloud/nitroso.tin/commit/d51df2708452564e84ee66910d71174ce271deae))
+
+
+### 🐛 Bug Fixes 🐛
+
+* terminate other local replicas when successfully booked ([794a421](https://github.com/AtomiCloud/nitroso.tin/commit/794a421d05d3135e29476a572e8ed503b911cb5a))
+
 ## [1.10.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.9.2...v1.10.0) (2024-02-27)
 
 
