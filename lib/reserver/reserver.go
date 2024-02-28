@@ -139,7 +139,7 @@ func (c *Client) Start(ctx context.Context) error {
 			normalizer[diff.Direction][diff.Date][diffTime] = &newDiff
 
 			// only continue if the delta more than 0
-			if diff.Delta.Delta < 1 {
+			if diff.Delta.Count < 1 {
 				continue
 			}
 

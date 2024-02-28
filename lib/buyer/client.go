@@ -150,7 +150,12 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		c.logger.Info().Msg("No booking found, skipping...")
+		c.logger.Info().Msg("No booking found, releasing reservation...")
+		_, e := c.buyer.Release(userData, bookingData)
+		if e != nil {
+			c.logger.Error().Err(e).Msg("Failed to release")
+			return err
+		}
 		return nil
 	}
 

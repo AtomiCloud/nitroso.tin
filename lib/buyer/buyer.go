@@ -106,3 +106,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger) ([]byte, error) {
 	return ticket, nil
 
 }
+
+func (c *Buyer) Release(userData, bookingData string) (ktmb.GenericRes[*interface{}], error) {
+	return c.ktmb.Cancel(userData, bookingData)
+}

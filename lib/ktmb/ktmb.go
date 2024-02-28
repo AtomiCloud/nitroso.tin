@@ -241,3 +241,19 @@ func (k *Ktmb) PrintTicket(userData, bookingNo, ticketNo string) ([]byte, error)
 	}
 	return r, nil
 }
+
+func (k *Ktmb) Cancel(userData, bookingData string) (GenericRes[*interface{}], error) {
+	client := NewHttp[CancelReserveReq, GenericRes[*interface{}]](k.NewApp())
+
+	req := CancelReserveReq{
+		BookingData: bookingData,
+	}
+	r, err := client.SendWith("POST", "/v1/bookshuttle/Cancel", req, apiHost, map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to print ticket")
+		return GenericRes[*interface{}]{}, err
+	}
+	return r, nil
+}

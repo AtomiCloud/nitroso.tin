@@ -89,3 +89,8 @@ type PrintTicketReq struct {
 type PrintTicketTicketReq struct {
 	TicketNo string `json:"ticketNo"`
 }
+
+// CancelReserve
+type CancelReserveReq struct {
+	BookingData string `json:"bookingData"`
+}
