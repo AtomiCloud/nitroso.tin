@@ -2,7 +2,7 @@
 
 WORKDIR /app
 
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/cosmtrek/air@v1.49.0
 
 COPY go.mod go.sum ./
 

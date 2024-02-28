@@ -31,7 +31,7 @@ const (
 type BookingCountRes struct {
 	Date          *string `json:"date"`
 	Direction     *string `json:"direction"`
-	TicketsNeeded *int32  `json:"ticketsNeeded,omitempty"`
+	TicketsNeeded int32   `json:"ticketsNeeded"`
 	Time          *string `json:"time"`
 }
 
@@ -53,29 +53,54 @@ type BookingPassengerRes struct {
 
 // BookingPrincipalRes defines model for BookingPrincipalRes.
 type BookingPrincipalRes struct {
-	CompletedAt *time.Time           `json:"completedAt"`
-	CreatedAt   *time.Time           `json:"createdAt,omitempty"`
-	Date        *string              `json:"date"`
-	Direction   *string              `json:"direction"`
-	Id          *openapi_types.UUID  `json:"id,omitempty"`
-	Passenger   *BookingPassengerRes `json:"passenger,omitempty"`
-	Status      *string              `json:"status"`
-	TicketLink  *string              `json:"ticketLink"`
-	Time        *string              `json:"time"`
+	BookingNo   *string             `json:"bookingNo"`
+	CompletedAt *time.Time          `json:"completedAt"`
+	CreatedAt   time.Time           `json:"createdAt"`
+	Date        *string             `json:"date"`
+	Direction   *string             `json:"direction"`
+	Id          openapi_types.UUID  `json:"id"`
+	Passenger   BookingPassengerRes `json:"passenger"`
+	Status      *string             `json:"status"`
+	TicketLink  *string             `json:"ticketLink"`
+	TicketNo    *string             `json:"ticketNo"`
+	Time        *string             `json:"time"`
 }
 
 // BookingRes defines model for BookingRes.
 type BookingRes struct {
-	Principal *BookingPrincipalRes `json:"principal,omitempty"`
-	User      *UserPrincipalRes    `json:"user,omitempty"`
+	Principal BookingPrincipalRes `json:"principal"`
+	User      UserPrincipalRes    `json:"user"`
+}
+
+// CancelWithdrawalReq defines model for CancelWithdrawalReq.
+type CancelWithdrawalReq struct {
+	Note *string `json:"note"`
+}
+
+// CostPrincipalRes defines model for CostPrincipalRes.
+type CostPrincipalRes struct {
+	Cost      float64            `json:"cost"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
 }
 
 // CreateBookingReq defines model for CreateBookingReq.
 type CreateBookingReq struct {
-	Date      *string              `json:"date"`
-	Direction *string              `json:"direction"`
-	Passenger *BookingPassengerReq `json:"passenger,omitempty"`
-	Time      *string              `json:"time"`
+	Date      *string             `json:"date"`
+	Direction *string             `json:"direction"`
+	Passenger BookingPassengerReq `json:"passenger"`
+	Time      *string             `json:"time"`
+}
+
+// CreateCostReq defines model for CreateCostReq.
+type CreateCostReq struct {
+	Cost float64 `json:"cost"`
+}
+
+// CreateDiscountReq defines model for CreateDiscountReq.
+type CreateDiscountReq struct {
+	Record DiscountRecordReq `json:"record"`
+	Target DiscountTargetReq `json:"target"`
 }
 
 // CreatePassengerReq defines model for CreatePassengerReq.
@@ -91,6 +116,70 @@ type CreateUserReq struct {
 	Username *string `json:"username"`
 }
 
+// CreateWithdrawalReq defines model for CreateWithdrawalReq.
+type CreateWithdrawalReq struct {
+	Amount       float64 `json:"amount"`
+	PayNowNumber *string `json:"payNowNumber"`
+}
+
+// DiscountMatchReq defines model for DiscountMatchReq.
+type DiscountMatchReq struct {
+	MatchType *string `json:"matchType"`
+	Value     *string `json:"value"`
+}
+
+// DiscountMatchRes defines model for DiscountMatchRes.
+type DiscountMatchRes struct {
+	MatchType *string `json:"matchType"`
+	Value     *string `json:"value"`
+}
+
+// DiscountPrincipalRes defines model for DiscountPrincipalRes.
+type DiscountPrincipalRes struct {
+	Id     openapi_types.UUID `json:"id"`
+	Record DiscountRecordRes  `json:"record"`
+	Status DiscountStatusRes  `json:"status"`
+	Target DiscountTargetRes  `json:"target"`
+}
+
+// DiscountRecordReq defines model for DiscountRecordReq.
+type DiscountRecordReq struct {
+	Amount      float64 `json:"amount"`
+	Description *string `json:"description"`
+	Name        *string `json:"name"`
+	Type        *string `json:"type"`
+}
+
+// DiscountRecordRes defines model for DiscountRecordRes.
+type DiscountRecordRes struct {
+	Amount      float64 `json:"amount"`
+	Description *string `json:"description"`
+	Name        *string `json:"name"`
+	Type        *string `json:"type"`
+}
+
+// DiscountStatusReq defines model for DiscountStatusReq.
+type DiscountStatusReq struct {
+	Disabled bool `json:"disabled"`
+}
+
+// DiscountStatusRes defines model for DiscountStatusRes.
+type DiscountStatusRes struct {
+	Disabled bool `json:"disabled"`
+}
+
+// DiscountTargetReq defines model for DiscountTargetReq.
+type DiscountTargetReq struct {
+	MatchMode *string             `json:"matchMode"`
+	Matches   *[]DiscountMatchReq `json:"matches"`
+}
+
+// DiscountTargetRes defines model for DiscountTargetRes.
+type DiscountTargetRes struct {
+	MatchMode *string             `json:"matchMode"`
+	Matches   *[]DiscountMatchRes `json:"matches"`
+}
+
 // ErrorInfo defines model for ErrorInfo.
 type ErrorInfo struct {
 	Id      *string      `json:"id"`
@@ -104,19 +193,31 @@ type LatestScheduleRes struct {
 	Date *string `json:"date"`
 }
 
+// MaterializedCostRes defines model for MaterializedCostRes.
+type MaterializedCostRes struct {
+	Cost      float64              `json:"cost"`
+	Discounts *[]DiscountRecordRes `json:"discounts"`
+	Final     float64              `json:"final"`
+}
+
 // PassengerPrincipalRes defines model for PassengerPrincipalRes.
 type PassengerPrincipalRes struct {
-	FullName       *string             `json:"fullName"`
-	Gender         *string             `json:"gender"`
-	Id             *openapi_types.UUID `json:"id,omitempty"`
-	PassportExpiry *string             `json:"passportExpiry"`
-	PassportNumber *string             `json:"passportNumber"`
+	FullName       *string            `json:"fullName"`
+	Gender         *string            `json:"gender"`
+	Id             openapi_types.UUID `json:"id"`
+	PassportExpiry *string            `json:"passportExpiry"`
+	PassportNumber *string            `json:"passportNumber"`
 }
 
 // PassengerRes defines model for PassengerRes.
 type PassengerRes struct {
-	Principal *PassengerPrincipalRes `json:"principal,omitempty"`
-	User      *UserPrincipalRes      `json:"user,omitempty"`
+	Principal PassengerPrincipalRes `json:"principal"`
+	User      UserPrincipalRes      `json:"user"`
+}
+
+// RejectWithdrawalReq defines model for RejectWithdrawalReq.
+type RejectWithdrawalReq struct {
+	Note *string `json:"note"`
 }
 
 // ScheduleBulkUpdateReq defines model for ScheduleBulkUpdateReq.
@@ -126,13 +227,13 @@ type ScheduleBulkUpdateReq struct {
 
 // SchedulePrincipalReq defines model for SchedulePrincipalReq.
 type SchedulePrincipalReq struct {
-	Date   *string            `json:"date"`
-	Record *ScheduleRecordReq `json:"record,omitempty"`
+	Date   *string           `json:"date"`
+	Record ScheduleRecordReq `json:"record"`
 }
 
 // SchedulePrincipalRes defines model for SchedulePrincipalRes.
 type SchedulePrincipalRes struct {
-	Confirmed    *bool     `json:"confirmed,omitempty"`
+	Confirmed    bool      `json:"confirmed"`
 	Date         *string   `json:"date"`
 	JToWExcluded *[]string `json:"jToWExcluded"`
 	WToJExcluded *[]string `json:"wToJExcluded"`
@@ -140,7 +241,7 @@ type SchedulePrincipalRes struct {
 
 // ScheduleRecordReq defines model for ScheduleRecordReq.
 type ScheduleRecordReq struct {
-	Confirmed    *bool     `json:"confirmed,omitempty"`
+	Confirmed    bool      `json:"confirmed"`
 	JToWExcluded *[]string `json:"jToWExcluded"`
 	WToJExcluded *[]string `json:"wToJExcluded"`
 }
@@ -158,7 +259,38 @@ type TimingReq struct {
 
 // TimingRes defines model for TimingRes.
 type TimingRes struct {
-	Principal *TimingPrincipalRes `json:"principal,omitempty"`
+	Principal TimingPrincipalRes `json:"principal"`
+}
+
+// TransactionPrincipalRes defines model for TransactionPrincipalRes.
+type TransactionPrincipalRes struct {
+	Amount          float64            `json:"amount"`
+	CreatedAt       time.Time          `json:"createdAt"`
+	Description     *string            `json:"description"`
+	From            *string            `json:"from"`
+	Id              openapi_types.UUID `json:"id"`
+	Name            *string            `json:"name"`
+	To              *string            `json:"to"`
+	TransactionType *string            `json:"transactionType"`
+}
+
+// TransactionRes defines model for TransactionRes.
+type TransactionRes struct {
+	Principal TransactionPrincipalRes `json:"principal"`
+	Wallet    WalletPrincipalRes      `json:"wallet"`
+}
+
+// TransferReq defines model for TransferReq.
+type TransferReq struct {
+	Amount float64 `json:"amount"`
+	Desc   *string `json:"desc"`
+}
+
+// UpdateDiscountReq defines model for UpdateDiscountReq.
+type UpdateDiscountReq struct {
+	Record DiscountRecordReq `json:"record"`
+	Status DiscountStatusReq `json:"status"`
+	Target DiscountTargetReq `json:"target"`
 }
 
 // UpdatePassengerReq defines model for UpdatePassengerReq.
@@ -176,7 +308,7 @@ type UpdateUserReq struct {
 
 // UserExistRes defines model for UserExistRes.
 type UserExistRes struct {
-	Exists *bool `json:"exists,omitempty"`
+	Exists bool `json:"exists"`
 }
 
 // UserPrincipalRes defines model for UserPrincipalRes.
@@ -187,17 +319,74 @@ type UserPrincipalRes struct {
 
 // UserRes defines model for UserRes.
 type UserRes struct {
-	Principal *UserPrincipalRes `json:"principal,omitempty"`
+	Principal UserPrincipalRes   `json:"principal"`
+	Wallet    WalletPrincipalRes `json:"wallet"`
+}
+
+// WalletPrincipalRes defines model for WalletPrincipalRes.
+type WalletPrincipalRes struct {
+	BookingReserve  float64            `json:"bookingReserve"`
+	Id              openapi_types.UUID `json:"id"`
+	Usable          float64            `json:"usable"`
+	UserId          *string            `json:"userId"`
+	WithdrawReserve float64            `json:"withdrawReserve"`
+}
+
+// WalletRes defines model for WalletRes.
+type WalletRes struct {
+	Principal WalletPrincipalRes `json:"principal"`
+	User      UserPrincipalRes   `json:"user"`
+}
+
+// WithdrawalCompleteRes defines model for WithdrawalCompleteRes.
+type WithdrawalCompleteRes struct {
+	CompletedAt time.Time `json:"completedAt"`
+	Note        *string   `json:"note"`
+	Receipt     *string   `json:"receipt"`
+}
+
+// WithdrawalPrincipalRes defines model for WithdrawalPrincipalRes.
+type WithdrawalPrincipalRes struct {
+	Complete WithdrawalCompleteRes `json:"complete"`
+	CreateAt time.Time             `json:"createAt"`
+	Id       openapi_types.UUID    `json:"id"`
+	Record   WithdrawalRecordRes   `json:"record"`
+	Status   WithdrawalStatusRes   `json:"status"`
+}
+
+// WithdrawalRecordRes defines model for WithdrawalRecordRes.
+type WithdrawalRecordRes struct {
+	Amount       float64 `json:"amount"`
+	PayNowNumber *string `json:"payNowNumber"`
+}
+
+// WithdrawalRes defines model for WithdrawalRes.
+type WithdrawalRes struct {
+	Completer UserPrincipalRes       `json:"completer"`
+	Principal WithdrawalPrincipalRes `json:"principal"`
+	User      UserPrincipalRes       `json:"user"`
+	Wallet    WalletPrincipalRes     `json:"wallet"`
+}
+
+// WithdrawalStatusRes defines model for WithdrawalStatusRes.
+type WithdrawalStatusRes struct {
+	Status *string `json:"status"`
 }
 
 // GetApiVVersionBookingParams defines parameters for GetApiVVersionBooking.
 type GetApiVVersionBookingParams struct {
 	Date      *string `form:"Date,omitempty" json:"Date,omitempty"`
 	Direction *string `form:"Direction,omitempty" json:"Direction,omitempty"`
+	Status    *string `form:"Status,omitempty" json:"Status,omitempty"`
 	Time      *string `form:"Time,omitempty" json:"Time,omitempty"`
 	UserId    *string `form:"UserId,omitempty" json:"UserId,omitempty"`
 	Limit     *int32  `form:"Limit,omitempty" json:"Limit,omitempty"`
 	Skip      *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
+}
+
+// PostApiVVersionBookingCancelIdParams defines parameters for PostApiVVersionBookingCancelId.
+type PostApiVVersionBookingCancelIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
 }
 
 // PostApiVVersionBookingCompleteIdJSONBody defines parameters for PostApiVVersionBookingCompleteId.
@@ -210,12 +399,65 @@ type PostApiVVersionBookingCompleteIdMultipartBody struct {
 	File *openapi_types.File `json:"file,omitempty"`
 }
 
+// PostApiVVersionBookingCompleteIdParams defines parameters for PostApiVVersionBookingCompleteId.
+type PostApiVVersionBookingCompleteIdParams struct {
+	BookingNo *string `form:"bookingNo,omitempty" json:"bookingNo,omitempty"`
+	TicketNo  *string `form:"ticketNo,omitempty" json:"ticketNo,omitempty"`
+}
+
+// PostApiVVersionBookingTerminateIdParams defines parameters for PostApiVVersionBookingTerminateId.
+type PostApiVVersionBookingTerminateIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
+// GetApiVVersionBookingIdParams defines parameters for GetApiVVersionBookingId.
+type GetApiVVersionBookingIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
+// GetApiVVersionDiscountParams defines parameters for GetApiVVersionDiscount.
+type GetApiVVersionDiscountParams struct {
+	Search       *string   `form:"Search,omitempty" json:"Search,omitempty"`
+	DiscountType *string   `form:"DiscountType,omitempty" json:"DiscountType,omitempty"`
+	MatchMode    *string   `form:"MatchMode,omitempty" json:"MatchMode,omitempty"`
+	MatchTarget  *[]string `form:"MatchTarget,omitempty" json:"MatchTarget,omitempty"`
+	Disabled     *bool     `form:"Disabled,omitempty" json:"Disabled,omitempty"`
+}
+
 // GetApiVVersionPassengerParams defines parameters for GetApiVVersionPassenger.
 type GetApiVVersionPassengerParams struct {
 	UserId *string `form:"UserId,omitempty" json:"UserId,omitempty"`
 	Name   *string `form:"Name,omitempty" json:"Name,omitempty"`
 	Limit  *int32  `form:"Limit,omitempty" json:"Limit,omitempty"`
 	Skip   *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
+}
+
+// DeleteApiVVersionPassengerIdParams defines parameters for DeleteApiVVersionPassengerId.
+type DeleteApiVVersionPassengerIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
+// PutApiVVersionPassengerIdParams defines parameters for PutApiVVersionPassengerId.
+type PutApiVVersionPassengerIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
+// GetApiVVersionTransactionParams defines parameters for GetApiVVersionTransaction.
+type GetApiVVersionTransactionParams struct {
+	Search          *string             `form:"Search,omitempty" json:"Search,omitempty"`
+	TransactionType *string             `form:"TransactionType,omitempty" json:"TransactionType,omitempty"`
+	Id              *openapi_types.UUID `form:"Id,omitempty" json:"Id,omitempty"`
+	WalletId        *openapi_types.UUID `form:"WalletId,omitempty" json:"WalletId,omitempty"`
+	UserId          *string             `form:"userId,omitempty" json:"userId,omitempty"`
+	Before          *string             `form:"Before,omitempty" json:"Before,omitempty"`
+	After           *string             `form:"After,omitempty" json:"After,omitempty"`
+	Limit           *int32              `form:"Limit,omitempty" json:"Limit,omitempty"`
+	Skip            *int32              `form:"Skip,omitempty" json:"Skip,omitempty"`
+}
+
+// GetApiVVersionTransactionIdParams defines parameters for GetApiVVersionTransactionId.
+type GetApiVVersionTransactionIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
 }
 
 // GetApiVVersionUserParams defines parameters for GetApiVVersionUser.
@@ -226,8 +468,56 @@ type GetApiVVersionUserParams struct {
 	Skip     *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
 }
 
-// PostApiVVersionBookingBypassUserIdJSONRequestBody defines body for PostApiVVersionBookingBypassUserId for application/json ContentType.
-type PostApiVVersionBookingBypassUserIdJSONRequestBody = CreateBookingReq
+// GetApiVVersionWalletParams defines parameters for GetApiVVersionWallet.
+type GetApiVVersionWalletParams struct {
+	UserId *string             `form:"UserId,omitempty" json:"UserId,omitempty"`
+	Id     *openapi_types.UUID `form:"Id,omitempty" json:"Id,omitempty"`
+	Limit  *int32              `form:"Limit,omitempty" json:"Limit,omitempty"`
+	Skip   *int32              `form:"Skip,omitempty" json:"Skip,omitempty"`
+}
+
+// GetApiVVersionWalletIdParams defines parameters for GetApiVVersionWalletId.
+type GetApiVVersionWalletIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
+// GetApiVVersionWithdrawalParams defines parameters for GetApiVVersionWithdrawal.
+type GetApiVVersionWithdrawalParams struct {
+	Id          *openapi_types.UUID `form:"Id,omitempty" json:"Id,omitempty"`
+	UserId      *string             `form:"UserId,omitempty" json:"UserId,omitempty"`
+	CompleterId *string             `form:"CompleterId,omitempty" json:"CompleterId,omitempty"`
+	Min         *float64            `form:"Min,omitempty" json:"Min,omitempty"`
+	Max         *float64            `form:"Max,omitempty" json:"Max,omitempty"`
+	Status      *string             `form:"Status,omitempty" json:"Status,omitempty"`
+	Before      *string             `form:"Before,omitempty" json:"Before,omitempty"`
+	After       *string             `form:"After,omitempty" json:"After,omitempty"`
+	Limit       *int32              `form:"Limit,omitempty" json:"Limit,omitempty"`
+	Skip        *int32              `form:"Skip,omitempty" json:"Skip,omitempty"`
+}
+
+// GetApiVVersionWithdrawalIdParams defines parameters for GetApiVVersionWithdrawalId.
+type GetApiVVersionWithdrawalIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
+// PostApiVVersionWithdrawalIdCompleteJSONBody defines parameters for PostApiVVersionWithdrawalIdComplete.
+type PostApiVVersionWithdrawalIdCompleteJSONBody struct {
+	File *openapi_types.File `json:"file,omitempty"`
+}
+
+// PostApiVVersionWithdrawalIdCompleteMultipartBody defines parameters for PostApiVVersionWithdrawalIdComplete.
+type PostApiVVersionWithdrawalIdCompleteMultipartBody struct {
+	File *openapi_types.File `json:"file,omitempty"`
+}
+
+// PostApiVVersionAdminInflowUserIdJSONRequestBody defines body for PostApiVVersionAdminInflowUserId for application/json ContentType.
+type PostApiVVersionAdminInflowUserIdJSONRequestBody = TransferReq
+
+// PostApiVVersionAdminOutflowUserIdJSONRequestBody defines body for PostApiVVersionAdminOutflowUserId for application/json ContentType.
+type PostApiVVersionAdminOutflowUserIdJSONRequestBody = TransferReq
+
+// PostApiVVersionAdminPromoUserIdJSONRequestBody defines body for PostApiVVersionAdminPromoUserId for application/json ContentType.
+type PostApiVVersionAdminPromoUserIdJSONRequestBody = TransferReq
 
 // PostApiVVersionBookingCompleteIdJSONRequestBody defines body for PostApiVVersionBookingCompleteId for application/json ContentType.
 type PostApiVVersionBookingCompleteIdJSONRequestBody PostApiVVersionBookingCompleteIdJSONBody
@@ -235,11 +525,23 @@ type PostApiVVersionBookingCompleteIdJSONRequestBody PostApiVVersionBookingCompl
 // PostApiVVersionBookingCompleteIdMultipartRequestBody defines body for PostApiVVersionBookingCompleteId for multipart/form-data ContentType.
 type PostApiVVersionBookingCompleteIdMultipartRequestBody PostApiVVersionBookingCompleteIdMultipartBody
 
+// PostApiVVersionBookingUserIdPurchaseJSONRequestBody defines body for PostApiVVersionBookingUserIdPurchase for application/json ContentType.
+type PostApiVVersionBookingUserIdPurchaseJSONRequestBody = CreateBookingReq
+
+// PostApiVVersionCostJSONRequestBody defines body for PostApiVVersionCost for application/json ContentType.
+type PostApiVVersionCostJSONRequestBody = CreateCostReq
+
+// PostApiVVersionDiscountJSONRequestBody defines body for PostApiVVersionDiscount for application/json ContentType.
+type PostApiVVersionDiscountJSONRequestBody = CreateDiscountReq
+
+// PutApiVVersionDiscountIdJSONRequestBody defines body for PutApiVVersionDiscountId for application/json ContentType.
+type PutApiVVersionDiscountIdJSONRequestBody = UpdateDiscountReq
+
+// PutApiVVersionPassengerIdJSONRequestBody defines body for PutApiVVersionPassengerId for application/json ContentType.
+type PutApiVVersionPassengerIdJSONRequestBody = UpdatePassengerReq
+
 // PostApiVVersionPassengerUserIdJSONRequestBody defines body for PostApiVVersionPassengerUserId for application/json ContentType.
 type PostApiVVersionPassengerUserIdJSONRequestBody = CreatePassengerReq
-
-// PutApiVVersionPassengerUserIdIdJSONRequestBody defines body for PutApiVVersionPassengerUserIdId for application/json ContentType.
-type PutApiVVersionPassengerUserIdIdJSONRequestBody = UpdatePassengerReq
 
 // PutApiVVersionScheduleBulkJSONRequestBody defines body for PutApiVVersionScheduleBulk for application/json ContentType.
 type PutApiVVersionScheduleBulkJSONRequestBody = ScheduleBulkUpdateReq
@@ -255,6 +557,21 @@ type PostApiVVersionUserJSONRequestBody = CreateUserReq
 
 // PutApiVVersionUserIdJSONRequestBody defines body for PutApiVVersionUserId for application/json ContentType.
 type PutApiVVersionUserIdJSONRequestBody = UpdateUserReq
+
+// PostApiVVersionWithdrawalIdCompleteJSONRequestBody defines body for PostApiVVersionWithdrawalIdComplete for application/json ContentType.
+type PostApiVVersionWithdrawalIdCompleteJSONRequestBody PostApiVVersionWithdrawalIdCompleteJSONBody
+
+// PostApiVVersionWithdrawalIdCompleteMultipartRequestBody defines body for PostApiVVersionWithdrawalIdComplete for multipart/form-data ContentType.
+type PostApiVVersionWithdrawalIdCompleteMultipartRequestBody PostApiVVersionWithdrawalIdCompleteMultipartBody
+
+// PostApiVVersionWithdrawalIdRejectJSONRequestBody defines body for PostApiVVersionWithdrawalIdReject for application/json ContentType.
+type PostApiVVersionWithdrawalIdRejectJSONRequestBody = RejectWithdrawalReq
+
+// PostApiVVersionWithdrawalUserIdJSONRequestBody defines body for PostApiVVersionWithdrawalUserId for application/json ContentType.
+type PostApiVVersionWithdrawalUserIdJSONRequestBody = CreateWithdrawalReq
+
+// PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody defines body for PostApiVVersionWithdrawalUserIdIdCancel for application/json ContentType.
+type PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody = CancelWithdrawalReq
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -332,52 +649,109 @@ type ClientInterface interface {
 	// Get request
 	Get(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PostApiVVersionAdminInflowUserIdWithBody request with any body
+	PostApiVVersionAdminInflowUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionAdminInflowUserId(ctx context.Context, version string, userId string, body PostApiVVersionAdminInflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionAdminOutflowUserIdWithBody request with any body
+	PostApiVVersionAdminOutflowUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionAdminOutflowUserId(ctx context.Context, version string, userId string, body PostApiVVersionAdminOutflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionAdminPromoUserIdWithBody request with any body
+	PostApiVVersionAdminPromoUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionAdminPromoUserId(ctx context.Context, version string, userId string, body PostApiVVersionAdminPromoUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetApiVVersionBooking request
 	GetApiVVersionBooking(ctx context.Context, version string, params *GetApiVVersionBookingParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostApiVVersionBookingBuyingId request
 	PostApiVVersionBookingBuyingId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostApiVVersionBookingBypassUserIdWithBody request with any body
-	PostApiVVersionBookingBypassUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PostApiVVersionBookingBypassUserId(ctx context.Context, version string, userId string, body PostApiVVersionBookingBypassUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PostApiVVersionBookingCancelBypassId request
-	PostApiVVersionBookingCancelBypassId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostApiVVersionBookingCancelId request
+	PostApiVVersionBookingCancelId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostApiVVersionBookingCompleteIdWithBody request with any body
-	PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetApiVVersionBookingCounts request
 	GetApiVVersionBookingCounts(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetApiVVersionBookingCountsDirectionDate request
+	GetApiVVersionBookingCountsDirectionDate(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionBookingRefundId request
+	PostApiVVersionBookingRefundId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetApiVVersionBookingReserveDirectionDateTime request
 	GetApiVVersionBookingReserveDirectionDateTime(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetApiVVersionBookingUserIdId request
-	GetApiVVersionBookingUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostApiVVersionBookingTerminateId request
+	PostApiVVersionBookingTerminateId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingTerminateIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionBookingId request
+	GetApiVVersionBookingId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionBookingIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionBookingUserIdPurchaseWithBody request with any body
+	PostApiVVersionBookingUserIdPurchaseWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionBookingUserIdPurchase(ctx context.Context, version string, userId string, body PostApiVVersionBookingUserIdPurchaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionCost request
+	GetApiVVersionCost(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionCostWithBody request with any body
+	PostApiVVersionCostWithBody(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionCost(ctx context.Context, version string, body PostApiVVersionCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionCostCurrent request
+	GetApiVVersionCostCurrent(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionCostSelf request
+	GetApiVVersionCostSelf(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionDiscount request
+	GetApiVVersionDiscount(ctx context.Context, version string, params *GetApiVVersionDiscountParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionDiscountWithBody request with any body
+	PostApiVVersionDiscountWithBody(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionDiscount(ctx context.Context, version string, body PostApiVVersionDiscountJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApiVVersionDiscountId request
+	DeleteApiVVersionDiscountId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionDiscountId request
+	GetApiVVersionDiscountId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutApiVVersionDiscountIdWithBody request with any body
+	PutApiVVersionDiscountIdWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutApiVVersionDiscountId(ctx context.Context, version string, id openapi_types.UUID, body PutApiVVersionDiscountIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetApiVVersionPassenger request
 	GetApiVVersionPassenger(ctx context.Context, version string, params *GetApiVVersionPassengerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApiVVersionPassengerId request
+	DeleteApiVVersionPassengerId(ctx context.Context, version string, id openapi_types.UUID, params *DeleteApiVVersionPassengerIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutApiVVersionPassengerIdWithBody request with any body
+	PutApiVVersionPassengerIdWithBody(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutApiVVersionPassengerId(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, body PutApiVVersionPassengerIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostApiVVersionPassengerUserIdWithBody request with any body
 	PostApiVVersionPassengerUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PostApiVVersionPassengerUserId(ctx context.Context, version string, userId string, body PostApiVVersionPassengerUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteApiVVersionPassengerUserIdId request
-	DeleteApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetApiVVersionPassengerUserIdId request
 	GetApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PutApiVVersionPassengerUserIdIdWithBody request with any body
-	PutApiVVersionPassengerUserIdIdWithBody(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PutApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, body PutApiVVersionPassengerUserIdIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PutApiVVersionScheduleBulkWithBody request with any body
 	PutApiVVersionScheduleBulkWithBody(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -409,6 +783,15 @@ type ClientInterface interface {
 
 	PutApiVVersionTimingDirection(ctx context.Context, version string, direction string, body PutApiVVersionTimingDirectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetApiVVersionTransaction request
+	GetApiVVersionTransaction(ctx context.Context, version string, params *GetApiVVersionTransactionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApiVVersionTransactionId request
+	DeleteApiVVersionTransactionId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionTransactionId request
+	GetApiVVersionTransactionId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionTransactionIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetApiVVersionUser request
 	GetApiVVersionUser(ctx context.Context, version string, params *GetApiVVersionUserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -419,6 +802,9 @@ type ClientInterface interface {
 
 	// GetApiVVersionUserMe request
 	GetApiVVersionUserMe(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionUserMeAll request
+	GetApiVVersionUserMeAll(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetApiVVersionUserExistUsername request
 	GetApiVVersionUserExistUsername(ctx context.Context, version string, username string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -437,6 +823,44 @@ type ClientInterface interface {
 
 	PutApiVVersionUserId(ctx context.Context, version string, id string, body PutApiVVersionUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetApiVVersionWallet request
+	GetApiVVersionWallet(ctx context.Context, version string, params *GetApiVVersionWalletParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionWalletUserUserId request
+	GetApiVVersionWalletUserUserId(ctx context.Context, version string, userId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionWalletId request
+	GetApiVVersionWalletId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWalletIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionWithdrawal request
+	GetApiVVersionWithdrawal(ctx context.Context, version string, params *GetApiVVersionWithdrawalParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApiVVersionWithdrawalId request
+	DeleteApiVVersionWithdrawalId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionWithdrawalId request
+	GetApiVVersionWithdrawalId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWithdrawalIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionWithdrawalIdCompleteWithBody request with any body
+	PostApiVVersionWithdrawalIdCompleteWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionWithdrawalIdComplete(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionWithdrawalIdRejectWithBody request with any body
+	PostApiVVersionWithdrawalIdRejectWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionWithdrawalIdReject(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdRejectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionWithdrawalUserIdWithBody request with any body
+	PostApiVVersionWithdrawalUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionWithdrawalUserId(ctx context.Context, version string, userId string, body PostApiVVersionWithdrawalUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionWithdrawalUserIdIdCancelWithBody request with any body
+	PostApiVVersionWithdrawalUserIdIdCancelWithBody(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionWithdrawalUserIdIdCancel(ctx context.Context, version string, userId string, id openapi_types.UUID, body PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetApiVVersionErrorInfo request
 	GetApiVVersionErrorInfo(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -446,6 +870,78 @@ type ClientInterface interface {
 
 func (c *Client) Get(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionAdminInflowUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionAdminInflowUserIdRequestWithBody(c.Server, version, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionAdminInflowUserId(ctx context.Context, version string, userId string, body PostApiVVersionAdminInflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionAdminInflowUserIdRequest(c.Server, version, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionAdminOutflowUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionAdminOutflowUserIdRequestWithBody(c.Server, version, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionAdminOutflowUserId(ctx context.Context, version string, userId string, body PostApiVVersionAdminOutflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionAdminOutflowUserIdRequest(c.Server, version, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionAdminPromoUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionAdminPromoUserIdRequestWithBody(c.Server, version, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionAdminPromoUserId(ctx context.Context, version string, userId string, body PostApiVVersionAdminPromoUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionAdminPromoUserIdRequest(c.Server, version, userId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -480,8 +976,8 @@ func (c *Client) PostApiVVersionBookingBuyingId(ctx context.Context, version str
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostApiVVersionBookingBypassUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostApiVVersionBookingBypassUserIdRequestWithBody(c.Server, version, userId, contentType, body)
+func (c *Client) PostApiVVersionBookingCancelId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingCancelIdRequest(c.Server, version, id, params)
 	if err != nil {
 		return nil, err
 	}
@@ -492,8 +988,9 @@ func (c *Client) PostApiVVersionBookingBypassUserIdWithBody(ctx context.Context,
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostApiVVersionBookingBypassUserId(ctx context.Context, version string, userId string, body PostApiVVersionBookingBypassUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostApiVVersionBookingBypassUserIdRequest(c.Server, version, userId, body)
+func (c *Client) PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string,
+	id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingCompleteIdRequestWithBody(c.Server, version, id, params, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -504,32 +1001,8 @@ func (c *Client) PostApiVVersionBookingBypassUserId(ctx context.Context, version
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostApiVVersionBookingCancelBypassId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostApiVVersionBookingCancelBypassIdRequest(c.Server, version, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostApiVVersionBookingCompleteIdRequestWithBody(c.Server, version, id, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostApiVVersionBookingCompleteIdRequest(c.Server, version, id, body)
+func (c *Client) PostApiVVersionBookingCompleteId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingCompleteIdRequest(c.Server, version, id, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -552,6 +1025,30 @@ func (c *Client) GetApiVVersionBookingCounts(ctx context.Context, version string
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetApiVVersionBookingCountsDirectionDate(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionBookingCountsDirectionDateRequest(c.Server, version, direction, date)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingRefundId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingRefundIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetApiVVersionBookingReserveDirectionDateTime(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionBookingReserveDirectionDateTimeRequest(c.Server, version, direction, date, time)
 	if err != nil {
@@ -564,8 +1061,188 @@ func (c *Client) GetApiVVersionBookingReserveDirectionDateTime(ctx context.Conte
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetApiVVersionBookingUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetApiVVersionBookingUserIdIdRequest(c.Server, version, userId, id)
+func (c *Client) PostApiVVersionBookingTerminateId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingTerminateIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingTerminateIdRequest(c.Server, version, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionBookingId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionBookingIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionBookingIdRequest(c.Server, version, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingUserIdPurchaseWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingUserIdPurchaseRequestWithBody(c.Server, version, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingUserIdPurchase(ctx context.Context, version string, userId string, body PostApiVVersionBookingUserIdPurchaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingUserIdPurchaseRequest(c.Server, version, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionCost(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionCostRequest(c.Server, version)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionCostWithBody(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionCostRequestWithBody(c.Server, version, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionCost(ctx context.Context, version string, body PostApiVVersionCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionCostRequest(c.Server, version, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionCostCurrent(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionCostCurrentRequest(c.Server, version)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionCostSelf(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionCostSelfRequest(c.Server, version)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionDiscount(ctx context.Context, version string, params *GetApiVVersionDiscountParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionDiscountRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionDiscountWithBody(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionDiscountRequestWithBody(c.Server, version, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionDiscount(ctx context.Context, version string, body PostApiVVersionDiscountJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionDiscountRequest(c.Server, version, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApiVVersionDiscountId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteApiVVersionDiscountIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionDiscountId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionDiscountIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutApiVVersionDiscountIdWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutApiVVersionDiscountIdRequestWithBody(c.Server, version, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutApiVVersionDiscountId(ctx context.Context, version string, id openapi_types.UUID, body PutApiVVersionDiscountIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutApiVVersionDiscountIdRequest(c.Server, version, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -578,6 +1255,42 @@ func (c *Client) GetApiVVersionBookingUserIdId(ctx context.Context, version stri
 
 func (c *Client) GetApiVVersionPassenger(ctx context.Context, version string, params *GetApiVVersionPassengerParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionPassengerRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApiVVersionPassengerId(ctx context.Context, version string, id openapi_types.UUID, params *DeleteApiVVersionPassengerIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteApiVVersionPassengerIdRequest(c.Server, version, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutApiVVersionPassengerIdWithBody(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutApiVVersionPassengerIdRequestWithBody(c.Server, version, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutApiVVersionPassengerId(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, body PutApiVVersionPassengerIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutApiVVersionPassengerIdRequest(c.Server, version, id, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -612,44 +1325,8 @@ func (c *Client) PostApiVVersionPassengerUserId(ctx context.Context, version str
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteApiVVersionPassengerUserIdIdRequest(c.Server, version, userId, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) GetApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionPassengerUserIdIdRequest(c.Server, version, userId, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutApiVVersionPassengerUserIdIdWithBody(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutApiVVersionPassengerUserIdIdRequestWithBody(c.Server, version, userId, id, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, body PutApiVVersionPassengerUserIdIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutApiVVersionPassengerUserIdIdRequest(c.Server, version, userId, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -792,6 +1469,42 @@ func (c *Client) PutApiVVersionTimingDirection(ctx context.Context, version stri
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetApiVVersionTransaction(ctx context.Context, version string, params *GetApiVVersionTransactionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionTransactionRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApiVVersionTransactionId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteApiVVersionTransactionIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionTransactionId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionTransactionIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionTransactionIdRequest(c.Server, version, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetApiVVersionUser(ctx context.Context, version string, params *GetApiVVersionUserParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionUserRequest(c.Server, version, params)
 	if err != nil {
@@ -830,6 +1543,18 @@ func (c *Client) PostApiVVersionUser(ctx context.Context, version string, body P
 
 func (c *Client) GetApiVVersionUserMe(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionUserMeRequest(c.Server, version)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionUserMeAll(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionUserMeAllRequest(c.Server, version)
 	if err != nil {
 		return nil, err
 	}
@@ -912,6 +1637,174 @@ func (c *Client) PutApiVVersionUserId(ctx context.Context, version string, id st
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetApiVVersionWallet(ctx context.Context, version string, params *GetApiVVersionWalletParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionWalletRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionWalletUserUserId(ctx context.Context, version string, userId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionWalletUserUserIdRequest(c.Server, version, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionWalletId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWalletIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionWalletIdRequest(c.Server, version, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionWithdrawal(ctx context.Context, version string, params *GetApiVVersionWithdrawalParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionWithdrawalRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApiVVersionWithdrawalId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteApiVVersionWithdrawalIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionWithdrawalId(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWithdrawalIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionWithdrawalIdRequest(c.Server, version, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalIdCompleteWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalIdCompleteRequestWithBody(c.Server, version, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalIdComplete(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalIdCompleteRequest(c.Server, version, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalIdRejectWithBody(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalIdRejectRequestWithBody(c.Server, version, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalIdReject(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdRejectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalIdRejectRequest(c.Server, version, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalUserIdWithBody(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalUserIdRequestWithBody(c.Server, version, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalUserId(ctx context.Context, version string, userId string, body PostApiVVersionWithdrawalUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalUserIdRequest(c.Server, version, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalUserIdIdCancelWithBody(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalUserIdIdCancelRequestWithBody(c.Server, version, userId, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionWithdrawalUserIdIdCancel(ctx context.Context, version string, userId string, id openapi_types.UUID, body PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionWithdrawalUserIdIdCancelRequest(c.Server, version, userId, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetApiVVersionErrorInfo(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionErrorInfoRequest(c.Server, version)
 	if err != nil {
@@ -959,6 +1852,168 @@ func NewGetRequest(server string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionAdminInflowUserIdRequest calls the generic PostApiVVersionAdminInflowUserId builder with application/json body
+func NewPostApiVVersionAdminInflowUserIdRequest(server string, version string, userId string, body PostApiVVersionAdminInflowUserIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionAdminInflowUserIdRequestWithBody(server, version, userId, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionAdminInflowUserIdRequestWithBody generates requests for PostApiVVersionAdminInflowUserId with any type of body
+func NewPostApiVVersionAdminInflowUserIdRequestWithBody(server string, version string, userId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Admin/inflow/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostApiVVersionAdminOutflowUserIdRequest calls the generic PostApiVVersionAdminOutflowUserId builder with application/json body
+func NewPostApiVVersionAdminOutflowUserIdRequest(server string, version string, userId string, body PostApiVVersionAdminOutflowUserIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionAdminOutflowUserIdRequestWithBody(server, version, userId, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionAdminOutflowUserIdRequestWithBody generates requests for PostApiVVersionAdminOutflowUserId with any type of body
+func NewPostApiVVersionAdminOutflowUserIdRequestWithBody(server string, version string, userId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Admin/outflow/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostApiVVersionAdminPromoUserIdRequest calls the generic PostApiVVersionAdminPromoUserId builder with application/json body
+func NewPostApiVVersionAdminPromoUserIdRequest(server string, version string, userId string, body PostApiVVersionAdminPromoUserIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionAdminPromoUserIdRequestWithBody(server, version, userId, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionAdminPromoUserIdRequestWithBody generates requests for PostApiVVersionAdminPromoUserId with any type of body
+func NewPostApiVVersionAdminPromoUserIdRequestWithBody(server string, version string, userId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Admin/promo/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1011,6 +2066,22 @@ func NewGetApiVVersionBookingRequest(server string, version string, params *GetA
 		if params.Direction != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Direction", runtime.ParamLocationQuery, *params.Direction); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Status", runtime.ParamLocationQuery, *params.Status); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1140,62 +2211,8 @@ func NewPostApiVVersionBookingBuyingIdRequest(server string, version string, id 
 	return req, nil
 }
 
-// NewPostApiVVersionBookingBypassUserIdRequest calls the generic PostApiVVersionBookingBypassUserId builder with application/json body
-func NewPostApiVVersionBookingBypassUserIdRequest(server string, version string, userId string, body PostApiVVersionBookingBypassUserIdJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostApiVVersionBookingBypassUserIdRequestWithBody(server, version, userId, "application/json", bodyReader)
-}
-
-// NewPostApiVVersionBookingBypassUserIdRequestWithBody generates requests for PostApiVVersionBookingBypassUserId with any type of body
-func NewPostApiVVersionBookingBypassUserIdRequestWithBody(server string, version string, userId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v%s/Booking/bypass/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPostApiVVersionBookingCancelBypassIdRequest generates requests for PostApiVVersionBookingCancelBypassId
-func NewPostApiVVersionBookingCancelBypassIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+// NewPostApiVVersionBookingCancelIdRequest generates requests for PostApiVVersionBookingCancelId
+func NewPostApiVVersionBookingCancelIdRequest(server string, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1217,7 +2234,7 @@ func NewPostApiVVersionBookingCancelBypassIdRequest(server string, version strin
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v%s/Booking/cancel/bypass/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/api/v%s/Booking/cancel/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1225,6 +2242,28 @@ func NewPostApiVVersionBookingCancelBypassIdRequest(server string, version strin
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), nil)
@@ -1236,18 +2275,18 @@ func NewPostApiVVersionBookingCancelBypassIdRequest(server string, version strin
 }
 
 // NewPostApiVVersionBookingCompleteIdRequest calls the generic PostApiVVersionBookingCompleteId builder with application/json body
-func NewPostApiVVersionBookingCompleteIdRequest(server string, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody) (*http.Request, error) {
+func NewPostApiVVersionBookingCompleteIdRequest(server string, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, body PostApiVVersionBookingCompleteIdJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostApiVVersionBookingCompleteIdRequestWithBody(server, version, id, "application/json", bodyReader)
+	return NewPostApiVVersionBookingCompleteIdRequestWithBody(server, version, id, params, "application/json", bodyReader)
 }
 
 // NewPostApiVVersionBookingCompleteIdRequestWithBody generates requests for PostApiVVersionBookingCompleteId with any type of body
-func NewPostApiVVersionBookingCompleteIdRequestWithBody(server string, version string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+func NewPostApiVVersionBookingCompleteIdRequestWithBody(server string, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1277,6 +2316,44 @@ func NewPostApiVVersionBookingCompleteIdRequestWithBody(server string, version s
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.BookingNo != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "bookingNo", runtime.ParamLocationQuery, *params.BookingNo); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TicketNo != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ticketNo", runtime.ParamLocationQuery, *params.TicketNo); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), body)
@@ -1316,6 +2393,95 @@ func NewGetApiVVersionBookingCountsRequest(server string, version string) (*http
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionBookingCountsDirectionDateRequest generates requests for GetApiVVersionBookingCountsDirectionDate
+func NewGetApiVVersionBookingCountsDirectionDateRequest(server string, version string, direction string, date string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "Direction", runtime.ParamLocationPath, direction)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "Date", runtime.ParamLocationPath, date)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/counts/%s/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingRefundIdRequest generates requests for PostApiVVersionBookingRefundId
+func NewPostApiVVersionBookingRefundIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/refund/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1378,8 +2544,145 @@ func NewGetApiVVersionBookingReserveDirectionDateTimeRequest(server string, vers
 	return req, nil
 }
 
-// NewGetApiVVersionBookingUserIdIdRequest generates requests for GetApiVVersionBookingUserIdId
-func NewGetApiVVersionBookingUserIdIdRequest(server string, version string, userId string, id openapi_types.UUID) (*http.Request, error) {
+// NewPostApiVVersionBookingTerminateIdRequest generates requests for PostApiVVersionBookingTerminateId
+func NewPostApiVVersionBookingTerminateIdRequest(server string, version string, id openapi_types.UUID, params *PostApiVVersionBookingTerminateIdParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/terminate/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionBookingIdRequest generates requests for GetApiVVersionBookingId
+func NewGetApiVVersionBookingIdRequest(server string, version string, id openapi_types.UUID, params *GetApiVVersionBookingIdParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingUserIdPurchaseRequest calls the generic PostApiVVersionBookingUserIdPurchase builder with application/json body
+func NewPostApiVVersionBookingUserIdPurchaseRequest(server string, version string, userId string, body PostApiVVersionBookingUserIdPurchaseJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionBookingUserIdPurchaseRequestWithBody(server, version, userId, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionBookingUserIdPurchaseRequestWithBody generates requests for PostApiVVersionBookingUserIdPurchase with any type of body
+func NewPostApiVVersionBookingUserIdPurchaseRequestWithBody(server string, version string, userId string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1396,9 +2699,38 @@ func NewGetApiVVersionBookingUserIdIdRequest(server string, version string, user
 		return nil, err
 	}
 
-	var pathParam2 string
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
 
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	operationPath := fmt.Sprintf("/api/v%s/Booking/%s/purchase", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetApiVVersionCostRequest generates requests for GetApiVVersionCost
+func NewGetApiVVersionCostRequest(server string, version string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
 	if err != nil {
 		return nil, err
 	}
@@ -1408,7 +2740,7 @@ func NewGetApiVVersionBookingUserIdIdRequest(server string, version string, user
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v%s/Booking/%s/%s", pathParam0, pathParam1, pathParam2)
+	operationPath := fmt.Sprintf("/api/v%s/Cost", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1422,6 +2754,424 @@ func NewGetApiVVersionBookingUserIdIdRequest(server string, version string, user
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionCostRequest calls the generic PostApiVVersionCost builder with application/json body
+func NewPostApiVVersionCostRequest(server string, version string, body PostApiVVersionCostJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionCostRequestWithBody(server, version, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionCostRequestWithBody generates requests for PostApiVVersionCost with any type of body
+func NewPostApiVVersionCostRequestWithBody(server string, version string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Cost", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetApiVVersionCostCurrentRequest generates requests for GetApiVVersionCostCurrent
+func NewGetApiVVersionCostCurrentRequest(server string, version string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Cost/current", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionCostSelfRequest generates requests for GetApiVVersionCostSelf
+func NewGetApiVVersionCostSelfRequest(server string, version string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Cost/self", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionDiscountRequest generates requests for GetApiVVersionDiscount
+func NewGetApiVVersionDiscountRequest(server string, version string, params *GetApiVVersionDiscountParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Discount", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.DiscountType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "DiscountType", runtime.ParamLocationQuery, *params.DiscountType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.MatchMode != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "MatchMode", runtime.ParamLocationQuery, *params.MatchMode); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.MatchTarget != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "MatchTarget", runtime.ParamLocationQuery, *params.MatchTarget); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Disabled != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Disabled", runtime.ParamLocationQuery, *params.Disabled); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionDiscountRequest calls the generic PostApiVVersionDiscount builder with application/json body
+func NewPostApiVVersionDiscountRequest(server string, version string, body PostApiVVersionDiscountJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionDiscountRequestWithBody(server, version, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionDiscountRequestWithBody generates requests for PostApiVVersionDiscount with any type of body
+func NewPostApiVVersionDiscountRequestWithBody(server string, version string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Discount", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteApiVVersionDiscountIdRequest generates requests for DeleteApiVVersionDiscountId
+func NewDeleteApiVVersionDiscountIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Discount/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionDiscountIdRequest generates requests for GetApiVVersionDiscountId
+func NewGetApiVVersionDiscountIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Discount/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutApiVVersionDiscountIdRequest calls the generic PutApiVVersionDiscountId builder with application/json body
+func NewPutApiVVersionDiscountIdRequest(server string, version string, id openapi_types.UUID, body PutApiVVersionDiscountIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutApiVVersionDiscountIdRequestWithBody(server, version, id, "application/json", bodyReader)
+}
+
+// NewPutApiVVersionDiscountIdRequestWithBody generates requests for PutApiVVersionDiscountId with any type of body
+func NewPutApiVVersionDiscountIdRequestWithBody(server string, version string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Discount/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1530,6 +3280,145 @@ func NewGetApiVVersionPassengerRequest(server string, version string, params *Ge
 	return req, nil
 }
 
+// NewDeleteApiVVersionPassengerIdRequest generates requests for DeleteApiVVersionPassengerId
+func NewDeleteApiVVersionPassengerIdRequest(server string, version string, id openapi_types.UUID, params *DeleteApiVVersionPassengerIdParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Passenger/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutApiVVersionPassengerIdRequest calls the generic PutApiVVersionPassengerId builder with application/json body
+func NewPutApiVVersionPassengerIdRequest(server string, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, body PutApiVVersionPassengerIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutApiVVersionPassengerIdRequestWithBody(server, version, id, params, "application/json", bodyReader)
+}
+
+// NewPutApiVVersionPassengerIdRequestWithBody generates requests for PutApiVVersionPassengerId with any type of body
+func NewPutApiVVersionPassengerIdRequestWithBody(server string, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Passenger/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewPostApiVVersionPassengerUserIdRequest calls the generic PostApiVVersionPassengerUserId builder with application/json body
 func NewPostApiVVersionPassengerUserIdRequest(server string, version string, userId string, body PostApiVVersionPassengerUserIdJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1584,54 +3473,6 @@ func NewPostApiVVersionPassengerUserIdRequestWithBody(server string, version str
 	return req, nil
 }
 
-// NewDeleteApiVVersionPassengerUserIdIdRequest generates requests for DeleteApiVVersionPassengerUserIdId
-func NewDeleteApiVVersionPassengerUserIdIdRequest(server string, version string, userId string, id openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v%s/Passenger/%s/%s", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewGetApiVVersionPassengerUserIdIdRequest generates requests for GetApiVVersionPassengerUserIdId
 func NewGetApiVVersionPassengerUserIdIdRequest(server string, version string, userId string, id openapi_types.UUID) (*http.Request, error) {
 	var err error
@@ -1676,67 +3517,6 @@ func NewGetApiVVersionPassengerUserIdIdRequest(server string, version string, us
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewPutApiVVersionPassengerUserIdIdRequest calls the generic PutApiVVersionPassengerUserIdId builder with application/json body
-func NewPutApiVVersionPassengerUserIdIdRequest(server string, version string, userId string, id openapi_types.UUID, body PutApiVVersionPassengerUserIdIdJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPutApiVVersionPassengerUserIdIdRequestWithBody(server, version, userId, id, "application/json", bodyReader)
-}
-
-// NewPutApiVVersionPassengerUserIdIdRequestWithBody generates requests for PutApiVVersionPassengerUserIdId with any type of body
-func NewPutApiVVersionPassengerUserIdIdRequestWithBody(server string, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v%s/Passenger/%s/%s", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2101,6 +3881,294 @@ func NewPutApiVVersionTimingDirectionRequestWithBody(server string, version stri
 	return req, nil
 }
 
+// NewGetApiVVersionTransactionRequest generates requests for GetApiVVersionTransaction
+func NewGetApiVVersionTransactionRequest(server string, version string, params *GetApiVVersionTransactionParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Transaction", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TransactionType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "TransactionType", runtime.ParamLocationQuery, *params.TransactionType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Id != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WalletId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "WalletId", runtime.ParamLocationQuery, *params.WalletId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Before != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Before", runtime.ParamLocationQuery, *params.Before); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "After", runtime.ParamLocationQuery, *params.After); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Skip != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Skip", runtime.ParamLocationQuery, *params.Skip); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteApiVVersionTransactionIdRequest generates requests for DeleteApiVVersionTransactionId
+func NewDeleteApiVVersionTransactionIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Transaction/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionTransactionIdRequest generates requests for GetApiVVersionTransactionId
+func NewGetApiVVersionTransactionIdRequest(server string, version string, id openapi_types.UUID, params *GetApiVVersionTransactionIdParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Transaction/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetApiVVersionUserRequest generates requests for GetApiVVersionUser
 func NewGetApiVVersionUserRequest(server string, version string, params *GetApiVVersionUserParams) (*http.Request, error) {
 	var err error
@@ -2269,6 +4337,40 @@ func NewGetApiVVersionUserMeRequest(server string, version string) (*http.Reques
 	}
 
 	operationPath := fmt.Sprintf("/api/v%s/User/Me", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionUserMeAllRequest generates requests for GetApiVVersionUserMeAll
+func NewGetApiVVersionUserMeAllRequest(server string, version string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/User/Me/All", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2504,6 +4606,741 @@ func NewPutApiVVersionUserIdRequestWithBody(server string, version string, id st
 	return req, nil
 }
 
+// NewGetApiVVersionWalletRequest generates requests for GetApiVVersionWallet
+func NewGetApiVVersionWalletRequest(server string, version string, params *GetApiVVersionWalletParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Wallet", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "UserId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Id != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Skip != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Skip", runtime.ParamLocationQuery, *params.Skip); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionWalletUserUserIdRequest generates requests for GetApiVVersionWalletUserUserId
+func NewGetApiVVersionWalletUserUserIdRequest(server string, version string, userId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Wallet/user/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionWalletIdRequest generates requests for GetApiVVersionWalletId
+func NewGetApiVVersionWalletIdRequest(server string, version string, id openapi_types.UUID, params *GetApiVVersionWalletIdParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Wallet/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionWithdrawalRequest generates requests for GetApiVVersionWithdrawal
+func NewGetApiVVersionWithdrawalRequest(server string, version string, params *GetApiVVersionWithdrawalParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Id != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "UserId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.CompleterId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "CompleterId", runtime.ParamLocationQuery, *params.CompleterId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Min != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Min", runtime.ParamLocationQuery, *params.Min); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Max != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Max", runtime.ParamLocationQuery, *params.Max); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Before != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Before", runtime.ParamLocationQuery, *params.Before); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "After", runtime.ParamLocationQuery, *params.After); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Skip != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Skip", runtime.ParamLocationQuery, *params.Skip); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteApiVVersionWithdrawalIdRequest generates requests for DeleteApiVVersionWithdrawalId
+func NewDeleteApiVVersionWithdrawalIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionWithdrawalIdRequest generates requests for GetApiVVersionWithdrawalId
+func NewGetApiVVersionWithdrawalIdRequest(server string, version string, id openapi_types.UUID, params *GetApiVVersionWithdrawalIdParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionWithdrawalIdCompleteRequest calls the generic PostApiVVersionWithdrawalIdComplete builder with application/json body
+func NewPostApiVVersionWithdrawalIdCompleteRequest(server string, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdCompleteJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionWithdrawalIdCompleteRequestWithBody(server, version, id, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionWithdrawalIdCompleteRequestWithBody generates requests for PostApiVVersionWithdrawalIdComplete with any type of body
+func NewPostApiVVersionWithdrawalIdCompleteRequestWithBody(server string, version string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal/%s/complete", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostApiVVersionWithdrawalIdRejectRequest calls the generic PostApiVVersionWithdrawalIdReject builder with application/json body
+func NewPostApiVVersionWithdrawalIdRejectRequest(server string, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdRejectJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionWithdrawalIdRejectRequestWithBody(server, version, id, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionWithdrawalIdRejectRequestWithBody generates requests for PostApiVVersionWithdrawalIdReject with any type of body
+func NewPostApiVVersionWithdrawalIdRejectRequestWithBody(server string, version string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal/%s/reject", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostApiVVersionWithdrawalUserIdRequest calls the generic PostApiVVersionWithdrawalUserId builder with application/json body
+func NewPostApiVVersionWithdrawalUserIdRequest(server string, version string, userId string, body PostApiVVersionWithdrawalUserIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionWithdrawalUserIdRequestWithBody(server, version, userId, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionWithdrawalUserIdRequestWithBody generates requests for PostApiVVersionWithdrawalUserId with any type of body
+func NewPostApiVVersionWithdrawalUserIdRequestWithBody(server string, version string, userId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostApiVVersionWithdrawalUserIdIdCancelRequest calls the generic PostApiVVersionWithdrawalUserIdIdCancel builder with application/json body
+func NewPostApiVVersionWithdrawalUserIdIdCancelRequest(server string, version string, userId string, id openapi_types.UUID, body PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionWithdrawalUserIdIdCancelRequestWithBody(server, version, userId, id, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionWithdrawalUserIdIdCancelRequestWithBody generates requests for PostApiVVersionWithdrawalUserIdIdCancel with any type of body
+func NewPostApiVVersionWithdrawalUserIdIdCancelRequestWithBody(server string, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Withdrawal/%s/%s/cancel", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetApiVVersionErrorInfoRequest generates requests for GetApiVVersionErrorInfo
 func NewGetApiVVersionErrorInfoRequest(server string, version string) (*http.Request, error) {
 	var err error
@@ -2625,52 +5462,109 @@ type ClientWithResponsesInterface interface {
 	// GetWithResponse request
 	GetWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetResponse, error)
 
+	// PostApiVVersionAdminInflowUserIdWithBodyWithResponse request with any body
+	PostApiVVersionAdminInflowUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminInflowUserIdResponse, error)
+
+	PostApiVVersionAdminInflowUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionAdminInflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminInflowUserIdResponse, error)
+
+	// PostApiVVersionAdminOutflowUserIdWithBodyWithResponse request with any body
+	PostApiVVersionAdminOutflowUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminOutflowUserIdResponse, error)
+
+	PostApiVVersionAdminOutflowUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionAdminOutflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminOutflowUserIdResponse, error)
+
+	// PostApiVVersionAdminPromoUserIdWithBodyWithResponse request with any body
+	PostApiVVersionAdminPromoUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminPromoUserIdResponse, error)
+
+	PostApiVVersionAdminPromoUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionAdminPromoUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminPromoUserIdResponse, error)
+
 	// GetApiVVersionBookingWithResponse request
 	GetApiVVersionBookingWithResponse(ctx context.Context, version string, params *GetApiVVersionBookingParams, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingResponse, error)
 
 	// PostApiVVersionBookingBuyingIdWithResponse request
 	PostApiVVersionBookingBuyingIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBuyingIdResponse, error)
 
-	// PostApiVVersionBookingBypassUserIdWithBodyWithResponse request with any body
-	PostApiVVersionBookingBypassUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBypassUserIdResponse, error)
-
-	PostApiVVersionBookingBypassUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionBookingBypassUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBypassUserIdResponse, error)
-
-	// PostApiVVersionBookingCancelBypassIdWithResponse request
-	PostApiVVersionBookingCancelBypassIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCancelBypassIdResponse, error)
+	// PostApiVVersionBookingCancelIdWithResponse request
+	PostApiVVersionBookingCancelIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCancelIdResponse, error)
 
 	// PostApiVVersionBookingCompleteIdWithBodyWithResponse request with any body
-	PostApiVVersionBookingCompleteIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
+	PostApiVVersionBookingCompleteIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
 
-	PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
+	PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error)
 
 	// GetApiVVersionBookingCountsWithResponse request
 	GetApiVVersionBookingCountsWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingCountsResponse, error)
 
+	// GetApiVVersionBookingCountsDirectionDateWithResponse request
+	GetApiVVersionBookingCountsDirectionDateWithResponse(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingCountsDirectionDateResponse, error)
+
+	// PostApiVVersionBookingRefundIdWithResponse request
+	PostApiVVersionBookingRefundIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingRefundIdResponse, error)
+
 	// GetApiVVersionBookingReserveDirectionDateTimeWithResponse request
 	GetApiVVersionBookingReserveDirectionDateTimeWithResponse(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingReserveDirectionDateTimeResponse, error)
 
-	// GetApiVVersionBookingUserIdIdWithResponse request
-	GetApiVVersionBookingUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingUserIdIdResponse, error)
+	// PostApiVVersionBookingTerminateIdWithResponse request
+	PostApiVVersionBookingTerminateIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingTerminateIdParams, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingTerminateIdResponse, error)
+
+	// GetApiVVersionBookingIdWithResponse request
+	GetApiVVersionBookingIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionBookingIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingIdResponse, error)
+
+	// PostApiVVersionBookingUserIdPurchaseWithBodyWithResponse request with any body
+	PostApiVVersionBookingUserIdPurchaseWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingUserIdPurchaseResponse, error)
+
+	PostApiVVersionBookingUserIdPurchaseWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionBookingUserIdPurchaseJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingUserIdPurchaseResponse, error)
+
+	// GetApiVVersionCostWithResponse request
+	GetApiVVersionCostWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionCostResponse, error)
+
+	// PostApiVVersionCostWithBodyWithResponse request with any body
+	PostApiVVersionCostWithBodyWithResponse(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionCostResponse, error)
+
+	PostApiVVersionCostWithResponse(ctx context.Context, version string, body PostApiVVersionCostJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionCostResponse, error)
+
+	// GetApiVVersionCostCurrentWithResponse request
+	GetApiVVersionCostCurrentWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionCostCurrentResponse, error)
+
+	// GetApiVVersionCostSelfWithResponse request
+	GetApiVVersionCostSelfWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionCostSelfResponse, error)
+
+	// GetApiVVersionDiscountWithResponse request
+	GetApiVVersionDiscountWithResponse(ctx context.Context, version string, params *GetApiVVersionDiscountParams, reqEditors ...RequestEditorFn) (*GetApiVVersionDiscountResponse, error)
+
+	// PostApiVVersionDiscountWithBodyWithResponse request with any body
+	PostApiVVersionDiscountWithBodyWithResponse(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionDiscountResponse, error)
+
+	PostApiVVersionDiscountWithResponse(ctx context.Context, version string, body PostApiVVersionDiscountJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionDiscountResponse, error)
+
+	// DeleteApiVVersionDiscountIdWithResponse request
+	DeleteApiVVersionDiscountIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionDiscountIdResponse, error)
+
+	// GetApiVVersionDiscountIdWithResponse request
+	GetApiVVersionDiscountIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionDiscountIdResponse, error)
+
+	// PutApiVVersionDiscountIdWithBodyWithResponse request with any body
+	PutApiVVersionDiscountIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionDiscountIdResponse, error)
+
+	PutApiVVersionDiscountIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PutApiVVersionDiscountIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionDiscountIdResponse, error)
 
 	// GetApiVVersionPassengerWithResponse request
 	GetApiVVersionPassengerWithResponse(ctx context.Context, version string, params *GetApiVVersionPassengerParams, reqEditors ...RequestEditorFn) (*GetApiVVersionPassengerResponse, error)
+
+	// DeleteApiVVersionPassengerIdWithResponse request
+	DeleteApiVVersionPassengerIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *DeleteApiVVersionPassengerIdParams, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPassengerIdResponse, error)
+
+	// PutApiVVersionPassengerIdWithBodyWithResponse request with any body
+	PutApiVVersionPassengerIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerIdResponse, error)
+
+	PutApiVVersionPassengerIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, body PutApiVVersionPassengerIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerIdResponse, error)
 
 	// PostApiVVersionPassengerUserIdWithBodyWithResponse request with any body
 	PostApiVVersionPassengerUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionPassengerUserIdResponse, error)
 
 	PostApiVVersionPassengerUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionPassengerUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionPassengerUserIdResponse, error)
 
-	// DeleteApiVVersionPassengerUserIdIdWithResponse request
-	DeleteApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPassengerUserIdIdResponse, error)
-
 	// GetApiVVersionPassengerUserIdIdWithResponse request
 	GetApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionPassengerUserIdIdResponse, error)
-
-	// PutApiVVersionPassengerUserIdIdWithBodyWithResponse request with any body
-	PutApiVVersionPassengerUserIdIdWithBodyWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerUserIdIdResponse, error)
-
-	PutApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, body PutApiVVersionPassengerUserIdIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerUserIdIdResponse, error)
 
 	// PutApiVVersionScheduleBulkWithBodyWithResponse request with any body
 	PutApiVVersionScheduleBulkWithBodyWithResponse(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionScheduleBulkResponse, error)
@@ -2702,6 +5596,15 @@ type ClientWithResponsesInterface interface {
 
 	PutApiVVersionTimingDirectionWithResponse(ctx context.Context, version string, direction string, body PutApiVVersionTimingDirectionJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionTimingDirectionResponse, error)
 
+	// GetApiVVersionTransactionWithResponse request
+	GetApiVVersionTransactionWithResponse(ctx context.Context, version string, params *GetApiVVersionTransactionParams, reqEditors ...RequestEditorFn) (*GetApiVVersionTransactionResponse, error)
+
+	// DeleteApiVVersionTransactionIdWithResponse request
+	DeleteApiVVersionTransactionIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionTransactionIdResponse, error)
+
+	// GetApiVVersionTransactionIdWithResponse request
+	GetApiVVersionTransactionIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionTransactionIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionTransactionIdResponse, error)
+
 	// GetApiVVersionUserWithResponse request
 	GetApiVVersionUserWithResponse(ctx context.Context, version string, params *GetApiVVersionUserParams, reqEditors ...RequestEditorFn) (*GetApiVVersionUserResponse, error)
 
@@ -2712,6 +5615,9 @@ type ClientWithResponsesInterface interface {
 
 	// GetApiVVersionUserMeWithResponse request
 	GetApiVVersionUserMeWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionUserMeResponse, error)
+
+	// GetApiVVersionUserMeAllWithResponse request
+	GetApiVVersionUserMeAllWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionUserMeAllResponse, error)
 
 	// GetApiVVersionUserExistUsernameWithResponse request
 	GetApiVVersionUserExistUsernameWithResponse(ctx context.Context, version string, username string, reqEditors ...RequestEditorFn) (*GetApiVVersionUserExistUsernameResponse, error)
@@ -2729,6 +5635,44 @@ type ClientWithResponsesInterface interface {
 	PutApiVVersionUserIdWithBodyWithResponse(ctx context.Context, version string, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionUserIdResponse, error)
 
 	PutApiVVersionUserIdWithResponse(ctx context.Context, version string, id string, body PutApiVVersionUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionUserIdResponse, error)
+
+	// GetApiVVersionWalletWithResponse request
+	GetApiVVersionWalletWithResponse(ctx context.Context, version string, params *GetApiVVersionWalletParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWalletResponse, error)
+
+	// GetApiVVersionWalletUserUserIdWithResponse request
+	GetApiVVersionWalletUserUserIdWithResponse(ctx context.Context, version string, userId string, reqEditors ...RequestEditorFn) (*GetApiVVersionWalletUserUserIdResponse, error)
+
+	// GetApiVVersionWalletIdWithResponse request
+	GetApiVVersionWalletIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWalletIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWalletIdResponse, error)
+
+	// GetApiVVersionWithdrawalWithResponse request
+	GetApiVVersionWithdrawalWithResponse(ctx context.Context, version string, params *GetApiVVersionWithdrawalParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWithdrawalResponse, error)
+
+	// DeleteApiVVersionWithdrawalIdWithResponse request
+	DeleteApiVVersionWithdrawalIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionWithdrawalIdResponse, error)
+
+	// GetApiVVersionWithdrawalIdWithResponse request
+	GetApiVVersionWithdrawalIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWithdrawalIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWithdrawalIdResponse, error)
+
+	// PostApiVVersionWithdrawalIdCompleteWithBodyWithResponse request with any body
+	PostApiVVersionWithdrawalIdCompleteWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdCompleteResponse, error)
+
+	PostApiVVersionWithdrawalIdCompleteWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdCompleteResponse, error)
+
+	// PostApiVVersionWithdrawalIdRejectWithBodyWithResponse request with any body
+	PostApiVVersionWithdrawalIdRejectWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdRejectResponse, error)
+
+	PostApiVVersionWithdrawalIdRejectWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdRejectJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdRejectResponse, error)
+
+	// PostApiVVersionWithdrawalUserIdWithBodyWithResponse request with any body
+	PostApiVVersionWithdrawalUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdResponse, error)
+
+	PostApiVVersionWithdrawalUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionWithdrawalUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdResponse, error)
+
+	// PostApiVVersionWithdrawalUserIdIdCancelWithBodyWithResponse request with any body
+	PostApiVVersionWithdrawalUserIdIdCancelWithBodyWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdIdCancelResponse, error)
+
+	PostApiVVersionWithdrawalUserIdIdCancelWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, body PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdIdCancelResponse, error)
 
 	// GetApiVVersionErrorInfoWithResponse request
 	GetApiVVersionErrorInfoWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionErrorInfoResponse, error)
@@ -2752,6 +5696,72 @@ func (r GetResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionAdminInflowUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WalletPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionAdminInflowUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionAdminInflowUserIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionAdminOutflowUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WalletPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionAdminOutflowUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionAdminOutflowUserIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionAdminPromoUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WalletPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionAdminPromoUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionAdminPromoUserIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2802,14 +5812,14 @@ func (r PostApiVVersionBookingBuyingIdResponse) StatusCode() int {
 	return 0
 }
 
-type PostApiVVersionBookingBypassUserIdResponse struct {
+type PostApiVVersionBookingCancelIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *BookingPrincipalRes
 }
 
 // Status returns HTTPResponse.Status
-func (r PostApiVVersionBookingBypassUserIdResponse) Status() string {
+func (r PostApiVVersionBookingCancelIdResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -2817,29 +5827,7 @@ func (r PostApiVVersionBookingBypassUserIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostApiVVersionBookingBypassUserIdResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PostApiVVersionBookingCancelBypassIdResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *BookingPrincipalRes
-}
-
-// Status returns HTTPResponse.Status
-func (r PostApiVVersionBookingCancelBypassIdResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostApiVVersionBookingCancelBypassIdResponse) StatusCode() int {
+func (r PostApiVVersionBookingCancelIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2890,6 +5878,50 @@ func (r GetApiVVersionBookingCountsResponse) StatusCode() int {
 	return 0
 }
 
+type GetApiVVersionBookingCountsDirectionDateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]BookingCountRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionBookingCountsDirectionDateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionBookingCountsDirectionDateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionBookingRefundIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionBookingRefundIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionBookingRefundIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetApiVVersionBookingReserveDirectionDateTimeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2912,14 +5944,14 @@ func (r GetApiVVersionBookingReserveDirectionDateTimeResponse) StatusCode() int 
 	return 0
 }
 
-type GetApiVVersionBookingUserIdIdResponse struct {
+type PostApiVVersionBookingTerminateIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *BookingRes
+	JSON200      *BookingPrincipalRes
 }
 
 // Status returns HTTPResponse.Status
-func (r GetApiVVersionBookingUserIdIdResponse) Status() string {
+func (r PostApiVVersionBookingTerminateIdResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -2927,7 +5959,248 @@ func (r GetApiVVersionBookingUserIdIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetApiVVersionBookingUserIdIdResponse) StatusCode() int {
+func (r PostApiVVersionBookingTerminateIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionBookingIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionBookingIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionBookingIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionBookingUserIdPurchaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionBookingUserIdPurchaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionBookingUserIdPurchaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CostPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CostPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionCostCurrentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CostPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionCostCurrentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionCostCurrentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionCostSelfResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MaterializedCostRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionCostSelfResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionCostSelfResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionDiscountResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]DiscountPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionDiscountResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionDiscountResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionDiscountResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *DiscountPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionDiscountResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionDiscountResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteApiVVersionDiscountIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteApiVVersionDiscountIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteApiVVersionDiscountIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionDiscountIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *DiscountPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionDiscountIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionDiscountIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutApiVVersionDiscountIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *DiscountPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PutApiVVersionDiscountIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutApiVVersionDiscountIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2956,6 +6229,49 @@ func (r GetApiVVersionPassengerResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteApiVVersionPassengerIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteApiVVersionPassengerIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteApiVVersionPassengerIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutApiVVersionPassengerIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PassengerPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PutApiVVersionPassengerIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutApiVVersionPassengerIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type PostApiVVersionPassengerUserIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2978,27 +6294,6 @@ func (r PostApiVVersionPassengerUserIdResponse) StatusCode() int {
 	return 0
 }
 
-type DeleteApiVVersionPassengerUserIdIdResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteApiVVersionPassengerUserIdIdResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteApiVVersionPassengerUserIdIdResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type GetApiVVersionPassengerUserIdIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3015,28 +6310,6 @@ func (r GetApiVVersionPassengerUserIdIdResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetApiVVersionPassengerUserIdIdResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PutApiVVersionPassengerUserIdIdResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *PassengerPrincipalRes
-}
-
-// Status returns HTTPResponse.Status
-func (r PutApiVVersionPassengerUserIdIdResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PutApiVVersionPassengerUserIdIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3217,6 +6490,72 @@ func (r PutApiVVersionTimingDirectionResponse) StatusCode() int {
 	return 0
 }
 
+type GetApiVVersionTransactionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]TransactionPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionTransactionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionTransactionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteApiVVersionTransactionIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TransactionRes
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteApiVVersionTransactionIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteApiVVersionTransactionIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionTransactionIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TransactionRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionTransactionIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionTransactionIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetApiVVersionUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3277,6 +6616,28 @@ func (r GetApiVVersionUserMeResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetApiVVersionUserMeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionUserMeAllResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *UserRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionUserMeAllResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionUserMeAllResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3392,6 +6753,226 @@ func (r PutApiVVersionUserIdResponse) StatusCode() int {
 	return 0
 }
 
+type GetApiVVersionWalletResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]WalletPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionWalletResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionWalletResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionWalletUserUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WalletRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionWalletUserUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionWalletUserUserIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionWalletIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WalletRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionWalletIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionWalletIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionWithdrawalResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]WithdrawalPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionWithdrawalResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionWithdrawalResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteApiVVersionWithdrawalIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WithdrawalPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteApiVVersionWithdrawalIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteApiVVersionWithdrawalIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionWithdrawalIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WithdrawalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionWithdrawalIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionWithdrawalIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionWithdrawalIdCompleteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WithdrawalPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionWithdrawalIdCompleteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionWithdrawalIdCompleteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionWithdrawalIdRejectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WithdrawalPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionWithdrawalIdRejectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionWithdrawalIdRejectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionWithdrawalUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WithdrawalPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionWithdrawalUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionWithdrawalUserIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionWithdrawalUserIdIdCancelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WithdrawalPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionWithdrawalUserIdIdCancelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionWithdrawalUserIdIdCancelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetApiVVersionErrorInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3445,6 +7026,57 @@ func (c *ClientWithResponses) GetWithResponse(ctx context.Context, reqEditors ..
 	return ParseGetResponse(rsp)
 }
 
+// PostApiVVersionAdminInflowUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionAdminInflowUserIdResponse
+func (c *ClientWithResponses) PostApiVVersionAdminInflowUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminInflowUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionAdminInflowUserIdWithBody(ctx, version, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionAdminInflowUserIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionAdminInflowUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionAdminInflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminInflowUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionAdminInflowUserId(ctx, version, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionAdminInflowUserIdResponse(rsp)
+}
+
+// PostApiVVersionAdminOutflowUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionAdminOutflowUserIdResponse
+func (c *ClientWithResponses) PostApiVVersionAdminOutflowUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminOutflowUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionAdminOutflowUserIdWithBody(ctx, version, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionAdminOutflowUserIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionAdminOutflowUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionAdminOutflowUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminOutflowUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionAdminOutflowUserId(ctx, version, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionAdminOutflowUserIdResponse(rsp)
+}
+
+// PostApiVVersionAdminPromoUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionAdminPromoUserIdResponse
+func (c *ClientWithResponses) PostApiVVersionAdminPromoUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminPromoUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionAdminPromoUserIdWithBody(ctx, version, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionAdminPromoUserIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionAdminPromoUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionAdminPromoUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionAdminPromoUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionAdminPromoUserId(ctx, version, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionAdminPromoUserIdResponse(rsp)
+}
+
 // GetApiVVersionBookingWithResponse request returning *GetApiVVersionBookingResponse
 func (c *ClientWithResponses) GetApiVVersionBookingWithResponse(ctx context.Context, version string, params *GetApiVVersionBookingParams, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingResponse, error) {
 	rsp, err := c.GetApiVVersionBooking(ctx, version, params, reqEditors...)
@@ -3463,43 +7095,26 @@ func (c *ClientWithResponses) PostApiVVersionBookingBuyingIdWithResponse(ctx con
 	return ParsePostApiVVersionBookingBuyingIdResponse(rsp)
 }
 
-// PostApiVVersionBookingBypassUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionBookingBypassUserIdResponse
-func (c *ClientWithResponses) PostApiVVersionBookingBypassUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBypassUserIdResponse, error) {
-	rsp, err := c.PostApiVVersionBookingBypassUserIdWithBody(ctx, version, userId, contentType, body, reqEditors...)
+// PostApiVVersionBookingCancelIdWithResponse request returning *PostApiVVersionBookingCancelIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingCancelIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCancelIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingCancelId(ctx, version, id, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostApiVVersionBookingBypassUserIdResponse(rsp)
-}
-
-func (c *ClientWithResponses) PostApiVVersionBookingBypassUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionBookingBypassUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingBypassUserIdResponse, error) {
-	rsp, err := c.PostApiVVersionBookingBypassUserId(ctx, version, userId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostApiVVersionBookingBypassUserIdResponse(rsp)
-}
-
-// PostApiVVersionBookingCancelBypassIdWithResponse request returning *PostApiVVersionBookingCancelBypassIdResponse
-func (c *ClientWithResponses) PostApiVVersionBookingCancelBypassIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCancelBypassIdResponse, error) {
-	rsp, err := c.PostApiVVersionBookingCancelBypassId(ctx, version, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostApiVVersionBookingCancelBypassIdResponse(rsp)
+	return ParsePostApiVVersionBookingCancelIdResponse(rsp)
 }
 
 // PostApiVVersionBookingCompleteIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionBookingCompleteIdResponse
-func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
-	rsp, err := c.PostApiVVersionBookingCompleteIdWithBody(ctx, version, id, contentType, body, reqEditors...)
+func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingCompleteIdWithBody(ctx, version, id, params, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParsePostApiVVersionBookingCompleteIdResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
-	rsp, err := c.PostApiVVersionBookingCompleteId(ctx, version, id, body, reqEditors...)
+func (c *ClientWithResponses) PostApiVVersionBookingCompleteIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, body PostApiVVersionBookingCompleteIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingCompleteIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingCompleteId(ctx, version, id, params, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3515,6 +7130,24 @@ func (c *ClientWithResponses) GetApiVVersionBookingCountsWithResponse(ctx contex
 	return ParseGetApiVVersionBookingCountsResponse(rsp)
 }
 
+// GetApiVVersionBookingCountsDirectionDateWithResponse request returning *GetApiVVersionBookingCountsDirectionDateResponse
+func (c *ClientWithResponses) GetApiVVersionBookingCountsDirectionDateWithResponse(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingCountsDirectionDateResponse, error) {
+	rsp, err := c.GetApiVVersionBookingCountsDirectionDate(ctx, version, direction, date, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionBookingCountsDirectionDateResponse(rsp)
+}
+
+// PostApiVVersionBookingRefundIdWithResponse request returning *PostApiVVersionBookingRefundIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingRefundIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingRefundIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingRefundId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingRefundIdResponse(rsp)
+}
+
 // GetApiVVersionBookingReserveDirectionDateTimeWithResponse request returning *GetApiVVersionBookingReserveDirectionDateTimeResponse
 func (c *ClientWithResponses) GetApiVVersionBookingReserveDirectionDateTimeWithResponse(ctx context.Context, version string, direction string, date string, time string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingReserveDirectionDateTimeResponse, error) {
 	rsp, err := c.GetApiVVersionBookingReserveDirectionDateTime(ctx, version, direction, date, time, reqEditors...)
@@ -3524,13 +7157,144 @@ func (c *ClientWithResponses) GetApiVVersionBookingReserveDirectionDateTimeWithR
 	return ParseGetApiVVersionBookingReserveDirectionDateTimeResponse(rsp)
 }
 
-// GetApiVVersionBookingUserIdIdWithResponse request returning *GetApiVVersionBookingUserIdIdResponse
-func (c *ClientWithResponses) GetApiVVersionBookingUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingUserIdIdResponse, error) {
-	rsp, err := c.GetApiVVersionBookingUserIdId(ctx, version, userId, id, reqEditors...)
+// PostApiVVersionBookingTerminateIdWithResponse request returning *PostApiVVersionBookingTerminateIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingTerminateIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingTerminateIdParams, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingTerminateIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingTerminateId(ctx, version, id, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetApiVVersionBookingUserIdIdResponse(rsp)
+	return ParsePostApiVVersionBookingTerminateIdResponse(rsp)
+}
+
+// GetApiVVersionBookingIdWithResponse request returning *GetApiVVersionBookingIdResponse
+func (c *ClientWithResponses) GetApiVVersionBookingIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionBookingIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingIdResponse, error) {
+	rsp, err := c.GetApiVVersionBookingId(ctx, version, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionBookingIdResponse(rsp)
+}
+
+// PostApiVVersionBookingUserIdPurchaseWithBodyWithResponse request with arbitrary body returning *PostApiVVersionBookingUserIdPurchaseResponse
+func (c *ClientWithResponses) PostApiVVersionBookingUserIdPurchaseWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingUserIdPurchaseResponse, error) {
+	rsp, err := c.PostApiVVersionBookingUserIdPurchaseWithBody(ctx, version, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingUserIdPurchaseResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionBookingUserIdPurchaseWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionBookingUserIdPurchaseJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingUserIdPurchaseResponse, error) {
+	rsp, err := c.PostApiVVersionBookingUserIdPurchase(ctx, version, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingUserIdPurchaseResponse(rsp)
+}
+
+// GetApiVVersionCostWithResponse request returning *GetApiVVersionCostResponse
+func (c *ClientWithResponses) GetApiVVersionCostWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionCostResponse, error) {
+	rsp, err := c.GetApiVVersionCost(ctx, version, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionCostResponse(rsp)
+}
+
+// PostApiVVersionCostWithBodyWithResponse request with arbitrary body returning *PostApiVVersionCostResponse
+func (c *ClientWithResponses) PostApiVVersionCostWithBodyWithResponse(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionCostResponse, error) {
+	rsp, err := c.PostApiVVersionCostWithBody(ctx, version, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionCostResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionCostWithResponse(ctx context.Context, version string, body PostApiVVersionCostJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionCostResponse, error) {
+	rsp, err := c.PostApiVVersionCost(ctx, version, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionCostResponse(rsp)
+}
+
+// GetApiVVersionCostCurrentWithResponse request returning *GetApiVVersionCostCurrentResponse
+func (c *ClientWithResponses) GetApiVVersionCostCurrentWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionCostCurrentResponse, error) {
+	rsp, err := c.GetApiVVersionCostCurrent(ctx, version, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionCostCurrentResponse(rsp)
+}
+
+// GetApiVVersionCostSelfWithResponse request returning *GetApiVVersionCostSelfResponse
+func (c *ClientWithResponses) GetApiVVersionCostSelfWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionCostSelfResponse, error) {
+	rsp, err := c.GetApiVVersionCostSelf(ctx, version, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionCostSelfResponse(rsp)
+}
+
+// GetApiVVersionDiscountWithResponse request returning *GetApiVVersionDiscountResponse
+func (c *ClientWithResponses) GetApiVVersionDiscountWithResponse(ctx context.Context, version string, params *GetApiVVersionDiscountParams, reqEditors ...RequestEditorFn) (*GetApiVVersionDiscountResponse, error) {
+	rsp, err := c.GetApiVVersionDiscount(ctx, version, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionDiscountResponse(rsp)
+}
+
+// PostApiVVersionDiscountWithBodyWithResponse request with arbitrary body returning *PostApiVVersionDiscountResponse
+func (c *ClientWithResponses) PostApiVVersionDiscountWithBodyWithResponse(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionDiscountResponse, error) {
+	rsp, err := c.PostApiVVersionDiscountWithBody(ctx, version, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionDiscountResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionDiscountWithResponse(ctx context.Context, version string, body PostApiVVersionDiscountJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionDiscountResponse, error) {
+	rsp, err := c.PostApiVVersionDiscount(ctx, version, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionDiscountResponse(rsp)
+}
+
+// DeleteApiVVersionDiscountIdWithResponse request returning *DeleteApiVVersionDiscountIdResponse
+func (c *ClientWithResponses) DeleteApiVVersionDiscountIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionDiscountIdResponse, error) {
+	rsp, err := c.DeleteApiVVersionDiscountId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteApiVVersionDiscountIdResponse(rsp)
+}
+
+// GetApiVVersionDiscountIdWithResponse request returning *GetApiVVersionDiscountIdResponse
+func (c *ClientWithResponses) GetApiVVersionDiscountIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionDiscountIdResponse, error) {
+	rsp, err := c.GetApiVVersionDiscountId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionDiscountIdResponse(rsp)
+}
+
+// PutApiVVersionDiscountIdWithBodyWithResponse request with arbitrary body returning *PutApiVVersionDiscountIdResponse
+func (c *ClientWithResponses) PutApiVVersionDiscountIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionDiscountIdResponse, error) {
+	rsp, err := c.PutApiVVersionDiscountIdWithBody(ctx, version, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutApiVVersionDiscountIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutApiVVersionDiscountIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PutApiVVersionDiscountIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionDiscountIdResponse, error) {
+	rsp, err := c.PutApiVVersionDiscountId(ctx, version, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutApiVVersionDiscountIdResponse(rsp)
 }
 
 // GetApiVVersionPassengerWithResponse request returning *GetApiVVersionPassengerResponse
@@ -3540,6 +7304,32 @@ func (c *ClientWithResponses) GetApiVVersionPassengerWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseGetApiVVersionPassengerResponse(rsp)
+}
+
+// DeleteApiVVersionPassengerIdWithResponse request returning *DeleteApiVVersionPassengerIdResponse
+func (c *ClientWithResponses) DeleteApiVVersionPassengerIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *DeleteApiVVersionPassengerIdParams, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPassengerIdResponse, error) {
+	rsp, err := c.DeleteApiVVersionPassengerId(ctx, version, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteApiVVersionPassengerIdResponse(rsp)
+}
+
+// PutApiVVersionPassengerIdWithBodyWithResponse request with arbitrary body returning *PutApiVVersionPassengerIdResponse
+func (c *ClientWithResponses) PutApiVVersionPassengerIdWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerIdResponse, error) {
+	rsp, err := c.PutApiVVersionPassengerIdWithBody(ctx, version, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutApiVVersionPassengerIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutApiVVersionPassengerIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *PutApiVVersionPassengerIdParams, body PutApiVVersionPassengerIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerIdResponse, error) {
+	rsp, err := c.PutApiVVersionPassengerId(ctx, version, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutApiVVersionPassengerIdResponse(rsp)
 }
 
 // PostApiVVersionPassengerUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionPassengerUserIdResponse
@@ -3559,15 +7349,6 @@ func (c *ClientWithResponses) PostApiVVersionPassengerUserIdWithResponse(ctx con
 	return ParsePostApiVVersionPassengerUserIdResponse(rsp)
 }
 
-// DeleteApiVVersionPassengerUserIdIdWithResponse request returning *DeleteApiVVersionPassengerUserIdIdResponse
-func (c *ClientWithResponses) DeleteApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPassengerUserIdIdResponse, error) {
-	rsp, err := c.DeleteApiVVersionPassengerUserIdId(ctx, version, userId, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteApiVVersionPassengerUserIdIdResponse(rsp)
-}
-
 // GetApiVVersionPassengerUserIdIdWithResponse request returning *GetApiVVersionPassengerUserIdIdResponse
 func (c *ClientWithResponses) GetApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionPassengerUserIdIdResponse, error) {
 	rsp, err := c.GetApiVVersionPassengerUserIdId(ctx, version, userId, id, reqEditors...)
@@ -3575,23 +7356,6 @@ func (c *ClientWithResponses) GetApiVVersionPassengerUserIdIdWithResponse(ctx co
 		return nil, err
 	}
 	return ParseGetApiVVersionPassengerUserIdIdResponse(rsp)
-}
-
-// PutApiVVersionPassengerUserIdIdWithBodyWithResponse request with arbitrary body returning *PutApiVVersionPassengerUserIdIdResponse
-func (c *ClientWithResponses) PutApiVVersionPassengerUserIdIdWithBodyWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerUserIdIdResponse, error) {
-	rsp, err := c.PutApiVVersionPassengerUserIdIdWithBody(ctx, version, userId, id, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutApiVVersionPassengerUserIdIdResponse(rsp)
-}
-
-func (c *ClientWithResponses) PutApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, body PutApiVVersionPassengerUserIdIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutApiVVersionPassengerUserIdIdResponse, error) {
-	rsp, err := c.PutApiVVersionPassengerUserIdId(ctx, version, userId, id, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutApiVVersionPassengerUserIdIdResponse(rsp)
 }
 
 // PutApiVVersionScheduleBulkWithBodyWithResponse request with arbitrary body returning *PutApiVVersionScheduleBulkResponse
@@ -3690,6 +7454,33 @@ func (c *ClientWithResponses) PutApiVVersionTimingDirectionWithResponse(ctx cont
 	return ParsePutApiVVersionTimingDirectionResponse(rsp)
 }
 
+// GetApiVVersionTransactionWithResponse request returning *GetApiVVersionTransactionResponse
+func (c *ClientWithResponses) GetApiVVersionTransactionWithResponse(ctx context.Context, version string, params *GetApiVVersionTransactionParams, reqEditors ...RequestEditorFn) (*GetApiVVersionTransactionResponse, error) {
+	rsp, err := c.GetApiVVersionTransaction(ctx, version, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionTransactionResponse(rsp)
+}
+
+// DeleteApiVVersionTransactionIdWithResponse request returning *DeleteApiVVersionTransactionIdResponse
+func (c *ClientWithResponses) DeleteApiVVersionTransactionIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionTransactionIdResponse, error) {
+	rsp, err := c.DeleteApiVVersionTransactionId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteApiVVersionTransactionIdResponse(rsp)
+}
+
+// GetApiVVersionTransactionIdWithResponse request returning *GetApiVVersionTransactionIdResponse
+func (c *ClientWithResponses) GetApiVVersionTransactionIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionTransactionIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionTransactionIdResponse, error) {
+	rsp, err := c.GetApiVVersionTransactionId(ctx, version, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionTransactionIdResponse(rsp)
+}
+
 // GetApiVVersionUserWithResponse request returning *GetApiVVersionUserResponse
 func (c *ClientWithResponses) GetApiVVersionUserWithResponse(ctx context.Context, version string, params *GetApiVVersionUserParams, reqEditors ...RequestEditorFn) (*GetApiVVersionUserResponse, error) {
 	rsp, err := c.GetApiVVersionUser(ctx, version, params, reqEditors...)
@@ -3723,6 +7514,15 @@ func (c *ClientWithResponses) GetApiVVersionUserMeWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseGetApiVVersionUserMeResponse(rsp)
+}
+
+// GetApiVVersionUserMeAllWithResponse request returning *GetApiVVersionUserMeAllResponse
+func (c *ClientWithResponses) GetApiVVersionUserMeAllWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionUserMeAllResponse, error) {
+	rsp, err := c.GetApiVVersionUserMeAll(ctx, version, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionUserMeAllResponse(rsp)
 }
 
 // GetApiVVersionUserExistUsernameWithResponse request returning *GetApiVVersionUserExistUsernameResponse
@@ -3778,6 +7578,128 @@ func (c *ClientWithResponses) PutApiVVersionUserIdWithResponse(ctx context.Conte
 	return ParsePutApiVVersionUserIdResponse(rsp)
 }
 
+// GetApiVVersionWalletWithResponse request returning *GetApiVVersionWalletResponse
+func (c *ClientWithResponses) GetApiVVersionWalletWithResponse(ctx context.Context, version string, params *GetApiVVersionWalletParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWalletResponse, error) {
+	rsp, err := c.GetApiVVersionWallet(ctx, version, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionWalletResponse(rsp)
+}
+
+// GetApiVVersionWalletUserUserIdWithResponse request returning *GetApiVVersionWalletUserUserIdResponse
+func (c *ClientWithResponses) GetApiVVersionWalletUserUserIdWithResponse(ctx context.Context, version string, userId string, reqEditors ...RequestEditorFn) (*GetApiVVersionWalletUserUserIdResponse, error) {
+	rsp, err := c.GetApiVVersionWalletUserUserId(ctx, version, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionWalletUserUserIdResponse(rsp)
+}
+
+// GetApiVVersionWalletIdWithResponse request returning *GetApiVVersionWalletIdResponse
+func (c *ClientWithResponses) GetApiVVersionWalletIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWalletIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWalletIdResponse, error) {
+	rsp, err := c.GetApiVVersionWalletId(ctx, version, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionWalletIdResponse(rsp)
+}
+
+// GetApiVVersionWithdrawalWithResponse request returning *GetApiVVersionWithdrawalResponse
+func (c *ClientWithResponses) GetApiVVersionWithdrawalWithResponse(ctx context.Context, version string, params *GetApiVVersionWithdrawalParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWithdrawalResponse, error) {
+	rsp, err := c.GetApiVVersionWithdrawal(ctx, version, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionWithdrawalResponse(rsp)
+}
+
+// DeleteApiVVersionWithdrawalIdWithResponse request returning *DeleteApiVVersionWithdrawalIdResponse
+func (c *ClientWithResponses) DeleteApiVVersionWithdrawalIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionWithdrawalIdResponse, error) {
+	rsp, err := c.DeleteApiVVersionWithdrawalId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteApiVVersionWithdrawalIdResponse(rsp)
+}
+
+// GetApiVVersionWithdrawalIdWithResponse request returning *GetApiVVersionWithdrawalIdResponse
+func (c *ClientWithResponses) GetApiVVersionWithdrawalIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, params *GetApiVVersionWithdrawalIdParams, reqEditors ...RequestEditorFn) (*GetApiVVersionWithdrawalIdResponse, error) {
+	rsp, err := c.GetApiVVersionWithdrawalId(ctx, version, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionWithdrawalIdResponse(rsp)
+}
+
+// PostApiVVersionWithdrawalIdCompleteWithBodyWithResponse request with arbitrary body returning *PostApiVVersionWithdrawalIdCompleteResponse
+func (c *ClientWithResponses) PostApiVVersionWithdrawalIdCompleteWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdCompleteResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalIdCompleteWithBody(ctx, version, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalIdCompleteResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionWithdrawalIdCompleteWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdCompleteResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalIdComplete(ctx, version, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalIdCompleteResponse(rsp)
+}
+
+// PostApiVVersionWithdrawalIdRejectWithBodyWithResponse request with arbitrary body returning *PostApiVVersionWithdrawalIdRejectResponse
+func (c *ClientWithResponses) PostApiVVersionWithdrawalIdRejectWithBodyWithResponse(ctx context.Context, version string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdRejectResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalIdRejectWithBody(ctx, version, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalIdRejectResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionWithdrawalIdRejectWithResponse(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionWithdrawalIdRejectJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalIdRejectResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalIdReject(ctx, version, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalIdRejectResponse(rsp)
+}
+
+// PostApiVVersionWithdrawalUserIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionWithdrawalUserIdResponse
+func (c *ClientWithResponses) PostApiVVersionWithdrawalUserIdWithBodyWithResponse(ctx context.Context, version string, userId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalUserIdWithBody(ctx, version, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalUserIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionWithdrawalUserIdWithResponse(ctx context.Context, version string, userId string, body PostApiVVersionWithdrawalUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalUserId(ctx, version, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalUserIdResponse(rsp)
+}
+
+// PostApiVVersionWithdrawalUserIdIdCancelWithBodyWithResponse request with arbitrary body returning *PostApiVVersionWithdrawalUserIdIdCancelResponse
+func (c *ClientWithResponses) PostApiVVersionWithdrawalUserIdIdCancelWithBodyWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdIdCancelResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalUserIdIdCancelWithBody(ctx, version, userId, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalUserIdIdCancelResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionWithdrawalUserIdIdCancelWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, body PostApiVVersionWithdrawalUserIdIdCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionWithdrawalUserIdIdCancelResponse, error) {
+	rsp, err := c.PostApiVVersionWithdrawalUserIdIdCancel(ctx, version, userId, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionWithdrawalUserIdIdCancelResponse(rsp)
+}
+
 // GetApiVVersionErrorInfoWithResponse request returning *GetApiVVersionErrorInfoResponse
 func (c *ClientWithResponses) GetApiVVersionErrorInfoWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionErrorInfoResponse, error) {
 	rsp, err := c.GetApiVVersionErrorInfo(ctx, version, reqEditors...)
@@ -3807,6 +7729,93 @@ func ParseGetResponse(rsp *http.Response) (*GetResponse, error) {
 	response := &GetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionAdminInflowUserIdResponse parses an HTTP response from a PostApiVVersionAdminInflowUserIdWithResponse call
+func ParsePostApiVVersionAdminInflowUserIdResponse(rsp *http.Response) (*PostApiVVersionAdminInflowUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionAdminInflowUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalletPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionAdminOutflowUserIdResponse parses an HTTP response from a PostApiVVersionAdminOutflowUserIdWithResponse call
+func ParsePostApiVVersionAdminOutflowUserIdResponse(rsp *http.Response) (*PostApiVVersionAdminOutflowUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionAdminOutflowUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalletPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionAdminPromoUserIdResponse parses an HTTP response from a PostApiVVersionAdminPromoUserIdWithResponse call
+func ParsePostApiVVersionAdminPromoUserIdResponse(rsp *http.Response) (*PostApiVVersionAdminPromoUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionAdminPromoUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalletPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
 	}
 
 	return response, nil
@@ -3870,44 +7879,15 @@ func ParsePostApiVVersionBookingBuyingIdResponse(rsp *http.Response) (*PostApiVV
 	return response, nil
 }
 
-// ParsePostApiVVersionBookingBypassUserIdResponse parses an HTTP response from a PostApiVVersionBookingBypassUserIdWithResponse call
-func ParsePostApiVVersionBookingBypassUserIdResponse(rsp *http.Response) (*PostApiVVersionBookingBypassUserIdResponse, error) {
+// ParsePostApiVVersionBookingCancelIdResponse parses an HTTP response from a PostApiVVersionBookingCancelIdWithResponse call
+func ParsePostApiVVersionBookingCancelIdResponse(rsp *http.Response) (*PostApiVVersionBookingCancelIdResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostApiVVersionBookingBypassUserIdResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest BookingPrincipalRes
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case rsp.StatusCode == 200:
-		// Content-type (text/plain) unsupported
-
-	}
-
-	return response, nil
-}
-
-// ParsePostApiVVersionBookingCancelBypassIdResponse parses an HTTP response from a PostApiVVersionBookingCancelBypassIdWithResponse call
-func ParsePostApiVVersionBookingCancelBypassIdResponse(rsp *http.Response) (*PostApiVVersionBookingCancelBypassIdResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostApiVVersionBookingCancelBypassIdResponse{
+	response := &PostApiVVersionBookingCancelIdResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -3986,6 +7966,64 @@ func ParseGetApiVVersionBookingCountsResponse(rsp *http.Response) (*GetApiVVersi
 	return response, nil
 }
 
+// ParseGetApiVVersionBookingCountsDirectionDateResponse parses an HTTP response from a GetApiVVersionBookingCountsDirectionDateWithResponse call
+func ParseGetApiVVersionBookingCountsDirectionDateResponse(rsp *http.Response) (*GetApiVVersionBookingCountsDirectionDateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionBookingCountsDirectionDateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []BookingCountRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionBookingRefundIdResponse parses an HTTP response from a PostApiVVersionBookingRefundIdWithResponse call
+func ParsePostApiVVersionBookingRefundIdResponse(rsp *http.Response) (*PostApiVVersionBookingRefundIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionBookingRefundIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParseGetApiVVersionBookingReserveDirectionDateTimeResponse parses an HTTP response from a GetApiVVersionBookingReserveDirectionDateTimeWithResponse call
 func ParseGetApiVVersionBookingReserveDirectionDateTimeResponse(rsp *http.Response) (*GetApiVVersionBookingReserveDirectionDateTimeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4015,15 +8053,44 @@ func ParseGetApiVVersionBookingReserveDirectionDateTimeResponse(rsp *http.Respon
 	return response, nil
 }
 
-// ParseGetApiVVersionBookingUserIdIdResponse parses an HTTP response from a GetApiVVersionBookingUserIdIdWithResponse call
-func ParseGetApiVVersionBookingUserIdIdResponse(rsp *http.Response) (*GetApiVVersionBookingUserIdIdResponse, error) {
+// ParsePostApiVVersionBookingTerminateIdResponse parses an HTTP response from a PostApiVVersionBookingTerminateIdWithResponse call
+func ParsePostApiVVersionBookingTerminateIdResponse(rsp *http.Response) (*PostApiVVersionBookingTerminateIdResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetApiVVersionBookingUserIdIdResponse{
+	response := &PostApiVVersionBookingTerminateIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionBookingIdResponse parses an HTTP response from a GetApiVVersionBookingIdWithResponse call
+func ParseGetApiVVersionBookingIdResponse(rsp *http.Response) (*GetApiVVersionBookingIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionBookingIdResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -4031,6 +8098,283 @@ func ParseGetApiVVersionBookingUserIdIdResponse(rsp *http.Response) (*GetApiVVer
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest BookingRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionBookingUserIdPurchaseResponse parses an HTTP response from a PostApiVVersionBookingUserIdPurchaseWithResponse call
+func ParsePostApiVVersionBookingUserIdPurchaseResponse(rsp *http.Response) (*PostApiVVersionBookingUserIdPurchaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionBookingUserIdPurchaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionCostResponse parses an HTTP response from a GetApiVVersionCostWithResponse call
+func ParseGetApiVVersionCostResponse(rsp *http.Response) (*GetApiVVersionCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CostPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionCostResponse parses an HTTP response from a PostApiVVersionCostWithResponse call
+func ParsePostApiVVersionCostResponse(rsp *http.Response) (*PostApiVVersionCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CostPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionCostCurrentResponse parses an HTTP response from a GetApiVVersionCostCurrentWithResponse call
+func ParseGetApiVVersionCostCurrentResponse(rsp *http.Response) (*GetApiVVersionCostCurrentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionCostCurrentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CostPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionCostSelfResponse parses an HTTP response from a GetApiVVersionCostSelfWithResponse call
+func ParseGetApiVVersionCostSelfResponse(rsp *http.Response) (*GetApiVVersionCostSelfResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionCostSelfResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MaterializedCostRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionDiscountResponse parses an HTTP response from a GetApiVVersionDiscountWithResponse call
+func ParseGetApiVVersionDiscountResponse(rsp *http.Response) (*GetApiVVersionDiscountResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionDiscountResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []DiscountPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionDiscountResponse parses an HTTP response from a PostApiVVersionDiscountWithResponse call
+func ParsePostApiVVersionDiscountResponse(rsp *http.Response) (*PostApiVVersionDiscountResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionDiscountResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DiscountPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteApiVVersionDiscountIdResponse parses an HTTP response from a DeleteApiVVersionDiscountIdWithResponse call
+func ParseDeleteApiVVersionDiscountIdResponse(rsp *http.Response) (*DeleteApiVVersionDiscountIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteApiVVersionDiscountIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionDiscountIdResponse parses an HTTP response from a GetApiVVersionDiscountIdWithResponse call
+func ParseGetApiVVersionDiscountIdResponse(rsp *http.Response) (*GetApiVVersionDiscountIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionDiscountIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DiscountPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePutApiVVersionDiscountIdResponse parses an HTTP response from a PutApiVVersionDiscountIdWithResponse call
+func ParsePutApiVVersionDiscountIdResponse(rsp *http.Response) (*PutApiVVersionDiscountIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutApiVVersionDiscountIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DiscountPrincipalRes
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4073,6 +8417,51 @@ func ParseGetApiVVersionPassengerResponse(rsp *http.Response) (*GetApiVVersionPa
 	return response, nil
 }
 
+// ParseDeleteApiVVersionPassengerIdResponse parses an HTTP response from a DeleteApiVVersionPassengerIdWithResponse call
+func ParseDeleteApiVVersionPassengerIdResponse(rsp *http.Response) (*DeleteApiVVersionPassengerIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteApiVVersionPassengerIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePutApiVVersionPassengerIdResponse parses an HTTP response from a PutApiVVersionPassengerIdWithResponse call
+func ParsePutApiVVersionPassengerIdResponse(rsp *http.Response) (*PutApiVVersionPassengerIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutApiVVersionPassengerIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PassengerPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParsePostApiVVersionPassengerUserIdResponse parses an HTTP response from a PostApiVVersionPassengerUserIdWithResponse call
 func ParsePostApiVVersionPassengerUserIdResponse(rsp *http.Response) (*PostApiVVersionPassengerUserIdResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4102,22 +8491,6 @@ func ParsePostApiVVersionPassengerUserIdResponse(rsp *http.Response) (*PostApiVV
 	return response, nil
 }
 
-// ParseDeleteApiVVersionPassengerUserIdIdResponse parses an HTTP response from a DeleteApiVVersionPassengerUserIdIdWithResponse call
-func ParseDeleteApiVVersionPassengerUserIdIdResponse(rsp *http.Response) (*DeleteApiVVersionPassengerUserIdIdResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteApiVVersionPassengerUserIdIdResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
 // ParseGetApiVVersionPassengerUserIdIdResponse parses an HTTP response from a GetApiVVersionPassengerUserIdIdWithResponse call
 func ParseGetApiVVersionPassengerUserIdIdResponse(rsp *http.Response) (*GetApiVVersionPassengerUserIdIdResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4134,35 +8507,6 @@ func ParseGetApiVVersionPassengerUserIdIdResponse(rsp *http.Response) (*GetApiVV
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest PassengerRes
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case rsp.StatusCode == 200:
-		// Content-type (text/plain) unsupported
-
-	}
-
-	return response, nil
-}
-
-// ParsePutApiVVersionPassengerUserIdIdResponse parses an HTTP response from a PutApiVVersionPassengerUserIdIdWithResponse call
-func ParsePutApiVVersionPassengerUserIdIdResponse(rsp *http.Response) (*PutApiVVersionPassengerUserIdIdResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PutApiVVersionPassengerUserIdIdResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest PassengerPrincipalRes
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4382,6 +8726,93 @@ func ParsePutApiVVersionTimingDirectionResponse(rsp *http.Response) (*PutApiVVer
 	return response, nil
 }
 
+// ParseGetApiVVersionTransactionResponse parses an HTTP response from a GetApiVVersionTransactionWithResponse call
+func ParseGetApiVVersionTransactionResponse(rsp *http.Response) (*GetApiVVersionTransactionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionTransactionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []TransactionPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteApiVVersionTransactionIdResponse parses an HTTP response from a DeleteApiVVersionTransactionIdWithResponse call
+func ParseDeleteApiVVersionTransactionIdResponse(rsp *http.Response) (*DeleteApiVVersionTransactionIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteApiVVersionTransactionIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TransactionRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionTransactionIdResponse parses an HTTP response from a GetApiVVersionTransactionIdWithResponse call
+func ParseGetApiVVersionTransactionIdResponse(rsp *http.Response) (*GetApiVVersionTransactionIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionTransactionIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TransactionRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParseGetApiVVersionUserResponse parses an HTTP response from a GetApiVVersionUserWithResponse call
 func ParseGetApiVVersionUserResponse(rsp *http.Response) (*GetApiVVersionUserResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4456,6 +8887,35 @@ func ParseGetApiVVersionUserMeResponse(rsp *http.Response) (*GetApiVVersionUserM
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest string
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionUserMeAllResponse parses an HTTP response from a GetApiVVersionUserMeAllWithResponse call
+func ParseGetApiVVersionUserMeAllResponse(rsp *http.Response) (*GetApiVVersionUserMeAllResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionUserMeAllResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UserRes
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4601,6 +9061,296 @@ func ParsePutApiVVersionUserIdResponse(rsp *http.Response) (*PutApiVVersionUserI
 	return response, nil
 }
 
+// ParseGetApiVVersionWalletResponse parses an HTTP response from a GetApiVVersionWalletWithResponse call
+func ParseGetApiVVersionWalletResponse(rsp *http.Response) (*GetApiVVersionWalletResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionWalletResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []WalletPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionWalletUserUserIdResponse parses an HTTP response from a GetApiVVersionWalletUserUserIdWithResponse call
+func ParseGetApiVVersionWalletUserUserIdResponse(rsp *http.Response) (*GetApiVVersionWalletUserUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionWalletUserUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalletRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionWalletIdResponse parses an HTTP response from a GetApiVVersionWalletIdWithResponse call
+func ParseGetApiVVersionWalletIdResponse(rsp *http.Response) (*GetApiVVersionWalletIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionWalletIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalletRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionWithdrawalResponse parses an HTTP response from a GetApiVVersionWithdrawalWithResponse call
+func ParseGetApiVVersionWithdrawalResponse(rsp *http.Response) (*GetApiVVersionWithdrawalResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionWithdrawalResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []WithdrawalPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteApiVVersionWithdrawalIdResponse parses an HTTP response from a DeleteApiVVersionWithdrawalIdWithResponse call
+func ParseDeleteApiVVersionWithdrawalIdResponse(rsp *http.Response) (*DeleteApiVVersionWithdrawalIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteApiVVersionWithdrawalIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WithdrawalPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionWithdrawalIdResponse parses an HTTP response from a GetApiVVersionWithdrawalIdWithResponse call
+func ParseGetApiVVersionWithdrawalIdResponse(rsp *http.Response) (*GetApiVVersionWithdrawalIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionWithdrawalIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WithdrawalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionWithdrawalIdCompleteResponse parses an HTTP response from a PostApiVVersionWithdrawalIdCompleteWithResponse call
+func ParsePostApiVVersionWithdrawalIdCompleteResponse(rsp *http.Response) (*PostApiVVersionWithdrawalIdCompleteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionWithdrawalIdCompleteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WithdrawalPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionWithdrawalIdRejectResponse parses an HTTP response from a PostApiVVersionWithdrawalIdRejectWithResponse call
+func ParsePostApiVVersionWithdrawalIdRejectResponse(rsp *http.Response) (*PostApiVVersionWithdrawalIdRejectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionWithdrawalIdRejectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WithdrawalPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionWithdrawalUserIdResponse parses an HTTP response from a PostApiVVersionWithdrawalUserIdWithResponse call
+func ParsePostApiVVersionWithdrawalUserIdResponse(rsp *http.Response) (*PostApiVVersionWithdrawalUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionWithdrawalUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WithdrawalPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionWithdrawalUserIdIdCancelResponse parses an HTTP response from a PostApiVVersionWithdrawalUserIdIdCancelWithResponse call
+func ParsePostApiVVersionWithdrawalUserIdIdCancelResponse(rsp *http.Response) (*PostApiVVersionWithdrawalUserIdIdCancelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionWithdrawalUserIdIdCancelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WithdrawalPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParseGetApiVVersionErrorInfoResponse parses an HTTP response from a GetApiVVersionErrorInfoWithResponse call
 func ParseGetApiVVersionErrorInfoResponse(rsp *http.Response) (*GetApiVVersionErrorInfoResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4665,44 +9415,89 @@ type ServerInterface interface {
 	// (GET /)
 	Get(ctx echo.Context) error
 
+	// (POST /api/v{version}/Admin/inflow/{userId})
+	PostApiVVersionAdminInflowUserId(ctx echo.Context, version string, userId string) error
+
+	// (POST /api/v{version}/Admin/outflow/{userId})
+	PostApiVVersionAdminOutflowUserId(ctx echo.Context, version string, userId string) error
+
+	// (POST /api/v{version}/Admin/promo/{userId})
+	PostApiVVersionAdminPromoUserId(ctx echo.Context, version string, userId string) error
+
 	// (GET /api/v{version}/Booking)
 	GetApiVVersionBooking(ctx echo.Context, version string, params GetApiVVersionBookingParams) error
 
 	// (POST /api/v{version}/Booking/buying/{id})
 	PostApiVVersionBookingBuyingId(ctx echo.Context, version string, id openapi_types.UUID) error
 
-	// (POST /api/v{version}/Booking/bypass/{userId})
-	PostApiVVersionBookingBypassUserId(ctx echo.Context, version string, userId string) error
-
-	// (POST /api/v{version}/Booking/cancel/bypass/{id})
-	PostApiVVersionBookingCancelBypassId(ctx echo.Context, version string, id openapi_types.UUID) error
+	// (POST /api/v{version}/Booking/cancel/{id})
+	PostApiVVersionBookingCancelId(ctx echo.Context, version string, id openapi_types.UUID, params PostApiVVersionBookingCancelIdParams) error
 
 	// (POST /api/v{version}/Booking/complete/{id})
-	PostApiVVersionBookingCompleteId(ctx echo.Context, version string, id openapi_types.UUID) error
+	PostApiVVersionBookingCompleteId(ctx echo.Context, version string, id openapi_types.UUID, params PostApiVVersionBookingCompleteIdParams) error
 
 	// (GET /api/v{version}/Booking/counts)
 	GetApiVVersionBookingCounts(ctx echo.Context, version string) error
 
+	// (GET /api/v{version}/Booking/counts/{Direction}/{Date})
+	GetApiVVersionBookingCountsDirectionDate(ctx echo.Context, version string, direction string, date string) error
+
+	// (POST /api/v{version}/Booking/refund/{id})
+	PostApiVVersionBookingRefundId(ctx echo.Context, version string, id openapi_types.UUID) error
+
 	// (GET /api/v{version}/Booking/reserve/{Direction}/{Date}/{Time})
 	GetApiVVersionBookingReserveDirectionDateTime(ctx echo.Context, version string, direction string, date string, time string) error
 
-	// (GET /api/v{version}/Booking/{userId}/{id})
-	GetApiVVersionBookingUserIdId(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
+	// (POST /api/v{version}/Booking/terminate/{id})
+	PostApiVVersionBookingTerminateId(ctx echo.Context, version string, id openapi_types.UUID, params PostApiVVersionBookingTerminateIdParams) error
+
+	// (GET /api/v{version}/Booking/{id})
+	GetApiVVersionBookingId(ctx echo.Context, version string, id openapi_types.UUID, params GetApiVVersionBookingIdParams) error
+
+	// (POST /api/v{version}/Booking/{userId}/purchase)
+	PostApiVVersionBookingUserIdPurchase(ctx echo.Context, version string, userId string) error
+
+	// (GET /api/v{version}/Cost)
+	GetApiVVersionCost(ctx echo.Context, version string) error
+
+	// (POST /api/v{version}/Cost)
+	PostApiVVersionCost(ctx echo.Context, version string) error
+
+	// (GET /api/v{version}/Cost/current)
+	GetApiVVersionCostCurrent(ctx echo.Context, version string) error
+
+	// (GET /api/v{version}/Cost/self)
+	GetApiVVersionCostSelf(ctx echo.Context, version string) error
+
+	// (GET /api/v{version}/Discount)
+	GetApiVVersionDiscount(ctx echo.Context, version string, params GetApiVVersionDiscountParams) error
+
+	// (POST /api/v{version}/Discount)
+	PostApiVVersionDiscount(ctx echo.Context, version string) error
+
+	// (DELETE /api/v{version}/Discount/{id})
+	DeleteApiVVersionDiscountId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (GET /api/v{version}/Discount/{id})
+	GetApiVVersionDiscountId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (PUT /api/v{version}/Discount/{id})
+	PutApiVVersionDiscountId(ctx echo.Context, version string, id openapi_types.UUID) error
 
 	// (GET /api/v{version}/Passenger)
 	GetApiVVersionPassenger(ctx echo.Context, version string, params GetApiVVersionPassengerParams) error
 
+	// (DELETE /api/v{version}/Passenger/{id})
+	DeleteApiVVersionPassengerId(ctx echo.Context, version string, id openapi_types.UUID, params DeleteApiVVersionPassengerIdParams) error
+
+	// (PUT /api/v{version}/Passenger/{id})
+	PutApiVVersionPassengerId(ctx echo.Context, version string, id openapi_types.UUID, params PutApiVVersionPassengerIdParams) error
+
 	// (POST /api/v{version}/Passenger/{userId})
 	PostApiVVersionPassengerUserId(ctx echo.Context, version string, userId string) error
 
-	// (DELETE /api/v{version}/Passenger/{userId}/{id})
-	DeleteApiVVersionPassengerUserIdId(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
-
 	// (GET /api/v{version}/Passenger/{userId}/{id})
 	GetApiVVersionPassengerUserIdId(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
-
-	// (PUT /api/v{version}/Passenger/{userId}/{id})
-	PutApiVVersionPassengerUserIdId(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
 
 	// (PUT /api/v{version}/Schedule/bulk)
 	PutApiVVersionScheduleBulk(ctx echo.Context, version string) error
@@ -4728,6 +9523,15 @@ type ServerInterface interface {
 	// (PUT /api/v{version}/Timing/{Direction})
 	PutApiVVersionTimingDirection(ctx echo.Context, version string, direction string) error
 
+	// (GET /api/v{version}/Transaction)
+	GetApiVVersionTransaction(ctx echo.Context, version string, params GetApiVVersionTransactionParams) error
+
+	// (DELETE /api/v{version}/Transaction/{id})
+	DeleteApiVVersionTransactionId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (GET /api/v{version}/Transaction/{id})
+	GetApiVVersionTransactionId(ctx echo.Context, version string, id openapi_types.UUID, params GetApiVVersionTransactionIdParams) error
+
 	// (GET /api/v{version}/User)
 	GetApiVVersionUser(ctx echo.Context, version string, params GetApiVVersionUserParams) error
 
@@ -4736,6 +9540,9 @@ type ServerInterface interface {
 
 	// (GET /api/v{version}/User/Me)
 	GetApiVVersionUserMe(ctx echo.Context, version string) error
+
+	// (GET /api/v{version}/User/Me/All)
+	GetApiVVersionUserMeAll(ctx echo.Context, version string) error
 
 	// (GET /api/v{version}/User/exist/{username})
 	GetApiVVersionUserExistUsername(ctx echo.Context, version string, username string) error
@@ -4751,6 +9558,36 @@ type ServerInterface interface {
 
 	// (PUT /api/v{version}/User/{id})
 	PutApiVVersionUserId(ctx echo.Context, version string, id string) error
+
+	// (GET /api/v{version}/Wallet)
+	GetApiVVersionWallet(ctx echo.Context, version string, params GetApiVVersionWalletParams) error
+
+	// (GET /api/v{version}/Wallet/user/{userId})
+	GetApiVVersionWalletUserUserId(ctx echo.Context, version string, userId string) error
+
+	// (GET /api/v{version}/Wallet/{id})
+	GetApiVVersionWalletId(ctx echo.Context, version string, id openapi_types.UUID, params GetApiVVersionWalletIdParams) error
+
+	// (GET /api/v{version}/Withdrawal)
+	GetApiVVersionWithdrawal(ctx echo.Context, version string, params GetApiVVersionWithdrawalParams) error
+
+	// (DELETE /api/v{version}/Withdrawal/{id})
+	DeleteApiVVersionWithdrawalId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (GET /api/v{version}/Withdrawal/{id})
+	GetApiVVersionWithdrawalId(ctx echo.Context, version string, id openapi_types.UUID, params GetApiVVersionWithdrawalIdParams) error
+
+	// (POST /api/v{version}/Withdrawal/{id}/complete)
+	PostApiVVersionWithdrawalIdComplete(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (POST /api/v{version}/Withdrawal/{id}/reject)
+	PostApiVVersionWithdrawalIdReject(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (POST /api/v{version}/Withdrawal/{userId})
+	PostApiVVersionWithdrawalUserId(ctx echo.Context, version string, userId string) error
+
+	// (POST /api/v{version}/Withdrawal/{userId}/{id}/cancel)
+	PostApiVVersionWithdrawalUserIdIdCancel(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
 
 	// (GET /api/v{version}/error-info)
 	GetApiVVersionErrorInfo(ctx echo.Context, version string) error
@@ -4772,6 +9609,84 @@ func (w *ServerInterfaceWrapper) Get(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.Get(ctx)
+	return err
+}
+
+// PostApiVVersionAdminInflowUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionAdminInflowUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionAdminInflowUserId(ctx, version, userId)
+	return err
+}
+
+// PostApiVVersionAdminOutflowUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionAdminOutflowUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionAdminOutflowUserId(ctx, version, userId)
+	return err
+}
+
+// PostApiVVersionAdminPromoUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionAdminPromoUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionAdminPromoUserId(ctx, version, userId)
 	return err
 }
 
@@ -4802,6 +9717,13 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBooking(ctx echo.Context) error {
 	err = runtime.BindQueryParameter("form", true, false, "Direction", ctx.QueryParams(), &params.Direction)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Direction: %s", err))
+	}
+
+	// ------------- Optional query parameter "Status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Status: %s", err))
 	}
 
 	// ------------- Optional query parameter "Time" -------------
@@ -4863,34 +9785,8 @@ func (w *ServerInterfaceWrapper) PostApiVVersionBookingBuyingId(ctx echo.Context
 	return err
 }
 
-// PostApiVVersionBookingBypassUserId converts echo context to params.
-func (w *ServerInterfaceWrapper) PostApiVVersionBookingBypassUserId(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "version" -------------
-	var version string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
-	}
-
-	// ------------- Path parameter "userId" -------------
-	var userId string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
-	}
-
-	ctx.Set(BearerScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostApiVVersionBookingBypassUserId(ctx, version, userId)
-	return err
-}
-
-// PostApiVVersionBookingCancelBypassId converts echo context to params.
-func (w *ServerInterfaceWrapper) PostApiVVersionBookingCancelBypassId(ctx echo.Context) error {
+// PostApiVVersionBookingCancelId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingCancelId(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "version" -------------
 	var version string
@@ -4910,8 +9806,17 @@ func (w *ServerInterfaceWrapper) PostApiVVersionBookingCancelBypassId(ctx echo.C
 
 	ctx.Set(BearerScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PostApiVVersionBookingCancelIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostApiVVersionBookingCancelBypassId(ctx, version, id)
+	err = w.Handler.PostApiVVersionBookingCancelId(ctx, version, id, params)
 	return err
 }
 
@@ -4936,8 +9841,24 @@ func (w *ServerInterfaceWrapper) PostApiVVersionBookingCompleteId(ctx echo.Conte
 
 	ctx.Set(BearerScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PostApiVVersionBookingCompleteIdParams
+	// ------------- Optional query parameter "bookingNo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "bookingNo", ctx.QueryParams(), &params.BookingNo)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter bookingNo: %s", err))
+	}
+
+	// ------------- Optional query parameter "ticketNo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "ticketNo", ctx.QueryParams(), &params.TicketNo)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter ticketNo: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostApiVVersionBookingCompleteId(ctx, version, id)
+	err = w.Handler.PostApiVVersionBookingCompleteId(ctx, version, id, params)
 	return err
 }
 
@@ -4956,6 +9877,66 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBookingCounts(ctx echo.Context) e
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetApiVVersionBookingCounts(ctx, version)
+	return err
+}
+
+// GetApiVVersionBookingCountsDirectionDate converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionBookingCountsDirectionDate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "Direction" -------------
+	var direction string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "Direction", runtime.ParamLocationPath, ctx.Param("Direction"), &direction)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Direction: %s", err))
+	}
+
+	// ------------- Path parameter "Date" -------------
+	var date string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "Date", runtime.ParamLocationPath, ctx.Param("Date"), &date)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Date: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionBookingCountsDirectionDate(ctx, version, direction, date)
+	return err
+}
+
+// PostApiVVersionBookingRefundId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingRefundId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingRefundId(ctx, version, id)
 	return err
 }
 
@@ -5001,8 +9982,78 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBookingReserveDirectionDateTime(c
 	return err
 }
 
-// GetApiVVersionBookingUserIdId converts echo context to params.
-func (w *ServerInterfaceWrapper) GetApiVVersionBookingUserIdId(ctx echo.Context) error {
+// PostApiVVersionBookingTerminateId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingTerminateId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PostApiVVersionBookingTerminateIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingTerminateId(ctx, version, id, params)
+	return err
+}
+
+// GetApiVVersionBookingId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionBookingId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionBookingIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionBookingId(ctx, version, id, params)
+	return err
+}
+
+// PostApiVVersionBookingUserIdPurchase converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingUserIdPurchase(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "version" -------------
 	var version string
@@ -5020,6 +10071,169 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBookingUserIdId(ctx echo.Context)
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
 	}
 
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingUserIdPurchase(ctx, version, userId)
+	return err
+}
+
+// GetApiVVersionCost converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionCost(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionCost(ctx, version)
+	return err
+}
+
+// PostApiVVersionCost converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionCost(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionCost(ctx, version)
+	return err
+}
+
+// GetApiVVersionCostCurrent converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionCostCurrent(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionCostCurrent(ctx, version)
+	return err
+}
+
+// GetApiVVersionCostSelf converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionCostSelf(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionCostSelf(ctx, version)
+	return err
+}
+
+// GetApiVVersionDiscount converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionDiscount(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionDiscountParams
+	// ------------- Optional query parameter "Search" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Search", ctx.QueryParams(), &params.Search)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Search: %s", err))
+	}
+
+	// ------------- Optional query parameter "DiscountType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "DiscountType", ctx.QueryParams(), &params.DiscountType)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter DiscountType: %s", err))
+	}
+
+	// ------------- Optional query parameter "MatchMode" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "MatchMode", ctx.QueryParams(), &params.MatchMode)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter MatchMode: %s", err))
+	}
+
+	// ------------- Optional query parameter "MatchTarget" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "MatchTarget", ctx.QueryParams(), &params.MatchTarget)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter MatchTarget: %s", err))
+	}
+
+	// ------------- Optional query parameter "Disabled" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Disabled", ctx.QueryParams(), &params.Disabled)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Disabled: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionDiscount(ctx, version, params)
+	return err
+}
+
+// PostApiVVersionDiscount converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionDiscount(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionDiscount(ctx, version)
+	return err
+}
+
+// DeleteApiVVersionDiscountId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteApiVVersionDiscountId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
 	// ------------- Path parameter "id" -------------
 	var id openapi_types.UUID
 
@@ -5031,7 +10245,59 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBookingUserIdId(ctx echo.Context)
 	ctx.Set(BearerScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetApiVVersionBookingUserIdId(ctx, version, userId, id)
+	err = w.Handler.DeleteApiVVersionDiscountId(ctx, version, id)
+	return err
+}
+
+// GetApiVVersionDiscountId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionDiscountId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionDiscountId(ctx, version, id)
+	return err
+}
+
+// PutApiVVersionDiscountId converts echo context to params.
+func (w *ServerInterfaceWrapper) PutApiVVersionDiscountId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PutApiVVersionDiscountId(ctx, version, id)
 	return err
 }
 
@@ -5083,6 +10349,76 @@ func (w *ServerInterfaceWrapper) GetApiVVersionPassenger(ctx echo.Context) error
 	return err
 }
 
+// DeleteApiVVersionPassengerId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteApiVVersionPassengerId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteApiVVersionPassengerIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteApiVVersionPassengerId(ctx, version, id, params)
+	return err
+}
+
+// PutApiVVersionPassengerId converts echo context to params.
+func (w *ServerInterfaceWrapper) PutApiVVersionPassengerId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PutApiVVersionPassengerIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PutApiVVersionPassengerId(ctx, version, id, params)
+	return err
+}
+
 // PostApiVVersionPassengerUserId converts echo context to params.
 func (w *ServerInterfaceWrapper) PostApiVVersionPassengerUserId(ctx echo.Context) error {
 	var err error
@@ -5106,40 +10442,6 @@ func (w *ServerInterfaceWrapper) PostApiVVersionPassengerUserId(ctx echo.Context
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostApiVVersionPassengerUserId(ctx, version, userId)
-	return err
-}
-
-// DeleteApiVVersionPassengerUserIdId converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteApiVVersionPassengerUserIdId(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "version" -------------
-	var version string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
-	}
-
-	// ------------- Path parameter "userId" -------------
-	var userId string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	ctx.Set(BearerScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.DeleteApiVVersionPassengerUserIdId(ctx, version, userId, id)
 	return err
 }
 
@@ -5174,40 +10476,6 @@ func (w *ServerInterfaceWrapper) GetApiVVersionPassengerUserIdId(ctx echo.Contex
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetApiVVersionPassengerUserIdId(ctx, version, userId, id)
-	return err
-}
-
-// PutApiVVersionPassengerUserIdId converts echo context to params.
-func (w *ServerInterfaceWrapper) PutApiVVersionPassengerUserIdId(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "version" -------------
-	var version string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
-	}
-
-	// ------------- Path parameter "userId" -------------
-	var userId string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	ctx.Set(BearerScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PutApiVVersionPassengerUserIdId(ctx, version, userId, id)
 	return err
 }
 
@@ -5411,6 +10679,150 @@ func (w *ServerInterfaceWrapper) PutApiVVersionTimingDirection(ctx echo.Context)
 	return err
 }
 
+// GetApiVVersionTransaction converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionTransaction(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionTransactionParams
+	// ------------- Optional query parameter "Search" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Search", ctx.QueryParams(), &params.Search)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Search: %s", err))
+	}
+
+	// ------------- Optional query parameter "TransactionType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "TransactionType", ctx.QueryParams(), &params.TransactionType)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter TransactionType: %s", err))
+	}
+
+	// ------------- Optional query parameter "Id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Id", ctx.QueryParams(), &params.Id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Id: %s", err))
+	}
+
+	// ------------- Optional query parameter "WalletId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "WalletId", ctx.QueryParams(), &params.WalletId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter WalletId: %s", err))
+	}
+
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// ------------- Optional query parameter "Before" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Before", ctx.QueryParams(), &params.Before)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Before: %s", err))
+	}
+
+	// ------------- Optional query parameter "After" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "After", ctx.QueryParams(), &params.After)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter After: %s", err))
+	}
+
+	// ------------- Optional query parameter "Limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "Skip" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Skip", ctx.QueryParams(), &params.Skip)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Skip: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionTransaction(ctx, version, params)
+	return err
+}
+
+// DeleteApiVVersionTransactionId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteApiVVersionTransactionId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteApiVVersionTransactionId(ctx, version, id)
+	return err
+}
+
+// GetApiVVersionTransactionId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionTransactionId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionTransactionIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionTransactionId(ctx, version, id, params)
+	return err
+}
+
 // GetApiVVersionUser converts echo context to params.
 func (w *ServerInterfaceWrapper) GetApiVVersionUser(ctx echo.Context) error {
 	var err error
@@ -5492,6 +10904,24 @@ func (w *ServerInterfaceWrapper) GetApiVVersionUserMe(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetApiVVersionUserMe(ctx, version)
+	return err
+}
+
+// GetApiVVersionUserMeAll converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionUserMeAll(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionUserMeAll(ctx, version)
 	return err
 }
 
@@ -5625,6 +11055,378 @@ func (w *ServerInterfaceWrapper) PutApiVVersionUserId(ctx echo.Context) error {
 	return err
 }
 
+// GetApiVVersionWallet converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionWallet(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionWalletParams
+	// ------------- Optional query parameter "UserId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "UserId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter UserId: %s", err))
+	}
+
+	// ------------- Optional query parameter "Id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Id", ctx.QueryParams(), &params.Id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Id: %s", err))
+	}
+
+	// ------------- Optional query parameter "Limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "Skip" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Skip", ctx.QueryParams(), &params.Skip)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Skip: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionWallet(ctx, version, params)
+	return err
+}
+
+// GetApiVVersionWalletUserUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionWalletUserUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionWalletUserUserId(ctx, version, userId)
+	return err
+}
+
+// GetApiVVersionWalletId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionWalletId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionWalletIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionWalletId(ctx, version, id, params)
+	return err
+}
+
+// GetApiVVersionWithdrawal converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionWithdrawal(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionWithdrawalParams
+	// ------------- Optional query parameter "Id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Id", ctx.QueryParams(), &params.Id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Id: %s", err))
+	}
+
+	// ------------- Optional query parameter "UserId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "UserId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter UserId: %s", err))
+	}
+
+	// ------------- Optional query parameter "CompleterId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "CompleterId", ctx.QueryParams(), &params.CompleterId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter CompleterId: %s", err))
+	}
+
+	// ------------- Optional query parameter "Min" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Min", ctx.QueryParams(), &params.Min)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Min: %s", err))
+	}
+
+	// ------------- Optional query parameter "Max" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Max", ctx.QueryParams(), &params.Max)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Max: %s", err))
+	}
+
+	// ------------- Optional query parameter "Status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Status: %s", err))
+	}
+
+	// ------------- Optional query parameter "Before" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Before", ctx.QueryParams(), &params.Before)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Before: %s", err))
+	}
+
+	// ------------- Optional query parameter "After" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "After", ctx.QueryParams(), &params.After)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter After: %s", err))
+	}
+
+	// ------------- Optional query parameter "Limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "Skip" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Skip", ctx.QueryParams(), &params.Skip)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Skip: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionWithdrawal(ctx, version, params)
+	return err
+}
+
+// DeleteApiVVersionWithdrawalId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteApiVVersionWithdrawalId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteApiVVersionWithdrawalId(ctx, version, id)
+	return err
+}
+
+// GetApiVVersionWithdrawalId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionWithdrawalId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionWithdrawalIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionWithdrawalId(ctx, version, id, params)
+	return err
+}
+
+// PostApiVVersionWithdrawalIdComplete converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionWithdrawalIdComplete(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionWithdrawalIdComplete(ctx, version, id)
+	return err
+}
+
+// PostApiVVersionWithdrawalIdReject converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionWithdrawalIdReject(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionWithdrawalIdReject(ctx, version, id)
+	return err
+}
+
+// PostApiVVersionWithdrawalUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionWithdrawalUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionWithdrawalUserId(ctx, version, userId)
+	return err
+}
+
+// PostApiVVersionWithdrawalUserIdIdCancel converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionWithdrawalUserIdIdCancel(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "userId", runtime.ParamLocationPath, ctx.Param("userId"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionWithdrawalUserIdIdCancel(ctx, version, userId, id)
+	return err
+}
+
 // GetApiVVersionErrorInfo converts echo context to params.
 func (w *ServerInterfaceWrapper) GetApiVVersionErrorInfo(ctx echo.Context) error {
 	var err error
@@ -5698,19 +11500,34 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/", wrapper.Get)
+	router.POST(baseURL+"/api/v:version/Admin/inflow/:userId", wrapper.PostApiVVersionAdminInflowUserId)
+	router.POST(baseURL+"/api/v:version/Admin/outflow/:userId", wrapper.PostApiVVersionAdminOutflowUserId)
+	router.POST(baseURL+"/api/v:version/Admin/promo/:userId", wrapper.PostApiVVersionAdminPromoUserId)
 	router.GET(baseURL+"/api/v:version/Booking", wrapper.GetApiVVersionBooking)
 	router.POST(baseURL+"/api/v:version/Booking/buying/:id", wrapper.PostApiVVersionBookingBuyingId)
-	router.POST(baseURL+"/api/v:version/Booking/bypass/:userId", wrapper.PostApiVVersionBookingBypassUserId)
-	router.POST(baseURL+"/api/v:version/Booking/cancel/bypass/:id", wrapper.PostApiVVersionBookingCancelBypassId)
+	router.POST(baseURL+"/api/v:version/Booking/cancel/:id", wrapper.PostApiVVersionBookingCancelId)
 	router.POST(baseURL+"/api/v:version/Booking/complete/:id", wrapper.PostApiVVersionBookingCompleteId)
 	router.GET(baseURL+"/api/v:version/Booking/counts", wrapper.GetApiVVersionBookingCounts)
+	router.GET(baseURL+"/api/v:version/Booking/counts/:Direction/:Date", wrapper.GetApiVVersionBookingCountsDirectionDate)
+	router.POST(baseURL+"/api/v:version/Booking/refund/:id", wrapper.PostApiVVersionBookingRefundId)
 	router.GET(baseURL+"/api/v:version/Booking/reserve/:Direction/:Date/:Time", wrapper.GetApiVVersionBookingReserveDirectionDateTime)
-	router.GET(baseURL+"/api/v:version/Booking/:userId/:id", wrapper.GetApiVVersionBookingUserIdId)
+	router.POST(baseURL+"/api/v:version/Booking/terminate/:id", wrapper.PostApiVVersionBookingTerminateId)
+	router.GET(baseURL+"/api/v:version/Booking/:id", wrapper.GetApiVVersionBookingId)
+	router.POST(baseURL+"/api/v:version/Booking/:userId/purchase", wrapper.PostApiVVersionBookingUserIdPurchase)
+	router.GET(baseURL+"/api/v:version/Cost", wrapper.GetApiVVersionCost)
+	router.POST(baseURL+"/api/v:version/Cost", wrapper.PostApiVVersionCost)
+	router.GET(baseURL+"/api/v:version/Cost/current", wrapper.GetApiVVersionCostCurrent)
+	router.GET(baseURL+"/api/v:version/Cost/self", wrapper.GetApiVVersionCostSelf)
+	router.GET(baseURL+"/api/v:version/Discount", wrapper.GetApiVVersionDiscount)
+	router.POST(baseURL+"/api/v:version/Discount", wrapper.PostApiVVersionDiscount)
+	router.DELETE(baseURL+"/api/v:version/Discount/:id", wrapper.DeleteApiVVersionDiscountId)
+	router.GET(baseURL+"/api/v:version/Discount/:id", wrapper.GetApiVVersionDiscountId)
+	router.PUT(baseURL+"/api/v:version/Discount/:id", wrapper.PutApiVVersionDiscountId)
 	router.GET(baseURL+"/api/v:version/Passenger", wrapper.GetApiVVersionPassenger)
+	router.DELETE(baseURL+"/api/v:version/Passenger/:id", wrapper.DeleteApiVVersionPassengerId)
+	router.PUT(baseURL+"/api/v:version/Passenger/:id", wrapper.PutApiVVersionPassengerId)
 	router.POST(baseURL+"/api/v:version/Passenger/:userId", wrapper.PostApiVVersionPassengerUserId)
-	router.DELETE(baseURL+"/api/v:version/Passenger/:userId/:id", wrapper.DeleteApiVVersionPassengerUserIdId)
 	router.GET(baseURL+"/api/v:version/Passenger/:userId/:id", wrapper.GetApiVVersionPassengerUserIdId)
-	router.PUT(baseURL+"/api/v:version/Passenger/:userId/:id", wrapper.PutApiVVersionPassengerUserIdId)
 	router.PUT(baseURL+"/api/v:version/Schedule/bulk", wrapper.PutApiVVersionScheduleBulk)
 	router.GET(baseURL+"/api/v:version/Schedule/latest", wrapper.GetApiVVersionScheduleLatest)
 	router.GET(baseURL+"/api/v:version/Schedule/range/:From/:To", wrapper.GetApiVVersionScheduleRangeFromTo)
@@ -5719,14 +11536,28 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/api/v:version/Schedule/:Date", wrapper.PutApiVVersionScheduleDate)
 	router.GET(baseURL+"/api/v:version/Timing/:Direction", wrapper.GetApiVVersionTimingDirection)
 	router.PUT(baseURL+"/api/v:version/Timing/:Direction", wrapper.PutApiVVersionTimingDirection)
+	router.GET(baseURL+"/api/v:version/Transaction", wrapper.GetApiVVersionTransaction)
+	router.DELETE(baseURL+"/api/v:version/Transaction/:id", wrapper.DeleteApiVVersionTransactionId)
+	router.GET(baseURL+"/api/v:version/Transaction/:id", wrapper.GetApiVVersionTransactionId)
 	router.GET(baseURL+"/api/v:version/User", wrapper.GetApiVVersionUser)
 	router.POST(baseURL+"/api/v:version/User", wrapper.PostApiVVersionUser)
 	router.GET(baseURL+"/api/v:version/User/Me", wrapper.GetApiVVersionUserMe)
+	router.GET(baseURL+"/api/v:version/User/Me/All", wrapper.GetApiVVersionUserMeAll)
 	router.GET(baseURL+"/api/v:version/User/exist/:username", wrapper.GetApiVVersionUserExistUsername)
 	router.GET(baseURL+"/api/v:version/User/username/:username", wrapper.GetApiVVersionUserUsernameUsername)
 	router.DELETE(baseURL+"/api/v:version/User/:id", wrapper.DeleteApiVVersionUserId)
 	router.GET(baseURL+"/api/v:version/User/:id", wrapper.GetApiVVersionUserId)
 	router.PUT(baseURL+"/api/v:version/User/:id", wrapper.PutApiVVersionUserId)
+	router.GET(baseURL+"/api/v:version/Wallet", wrapper.GetApiVVersionWallet)
+	router.GET(baseURL+"/api/v:version/Wallet/user/:userId", wrapper.GetApiVVersionWalletUserUserId)
+	router.GET(baseURL+"/api/v:version/Wallet/:id", wrapper.GetApiVVersionWalletId)
+	router.GET(baseURL+"/api/v:version/Withdrawal", wrapper.GetApiVVersionWithdrawal)
+	router.DELETE(baseURL+"/api/v:version/Withdrawal/:id", wrapper.DeleteApiVVersionWithdrawalId)
+	router.GET(baseURL+"/api/v:version/Withdrawal/:id", wrapper.GetApiVVersionWithdrawalId)
+	router.POST(baseURL+"/api/v:version/Withdrawal/:id/complete", wrapper.PostApiVVersionWithdrawalIdComplete)
+	router.POST(baseURL+"/api/v:version/Withdrawal/:id/reject", wrapper.PostApiVVersionWithdrawalIdReject)
+	router.POST(baseURL+"/api/v:version/Withdrawal/:userId", wrapper.PostApiVVersionWithdrawalUserId)
+	router.POST(baseURL+"/api/v:version/Withdrawal/:userId/:id/cancel", wrapper.PostApiVVersionWithdrawalUserIdIdCancel)
 	router.GET(baseURL+"/api/v:version/error-info", wrapper.GetApiVVersionErrorInfo)
 	router.GET(baseURL+"/api/v:version/error-info/:id", wrapper.GetApiVVersionErrorInfoId)
 
@@ -5735,41 +11566,67 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xcX2/buhX/KgI34L64UXvvwzA/rWmzoXe9RZC6vcCKPDDSscNGIhWSauMZ+u4DSUmW",
-	"Y8om9SddHb00hcxzSJ3zO39JaoMilmaMApUCzTdIRLeQYv3fc8buCF29YTmVV6Af4TgmkjCKk0vOMuCS",
-	"qOdLnAiYoazxaINiLEH9pXmS4JsE0FzyHGZIrjNAcyQkJ3SFihmKCYdIMXUaLUl0B1J8AIghVhRLxlMs",
-	"0RwRKn/7FdUkhEpYATc0qctSivoJu/kKkVSkpQwusRBAV8Cv4N5TDss8ST7g1E0WK6AxcKehGRYiY1xe",
-	"PGSEr71IPuTpjdMsbhIRk0S0RDihEclw4i8RZYIJSIhfyx1IKxt6odE7O/4uEQd8mMW+6Y1jo2TXMPOc",
-	"xKhF+BpCavRfOSzRHP0l3LqjsPRFoQ1yxQwJiWUuPLzGe0LvHIf3dRj+GMgq+LhKowm3YoZycVyQnwTw",
-	"XTrbK7zRQKpf5P7/w/H3QMt9T50agUwx4JFAFJr8ZaFwSnFnXVxwzvg7umSe0xqfdFQ8BkT7QzWAZOKm",
-	"wW/AhRusbW/4HksQ8mN0C3GewGiJl23qGuI9YtlYWPcIKj/CJHrkQ86e366eQX1/BbvzPLn7lCko+Vu4",
-	"KHkYu5OQimNrq2ZtrE/77BY9YM7x+vD6dziNFL84RIzHru92pUfrF3NcuH8WSZeEp6YsKie4YSwBTL2S",
-	"va8L9ufFQ5TkZYVVq3Bv5GH9zND3Bft9CE6HBLaV66DS+jmEsCBpv8rDt/hW04lx3sJfhSMvZzQ/btGa",
-	"dSHGAU955yOB/JC8U0168UBEh04YKDJhczNtE/UwaMc8dwBpjGggLrmKStYhyjmRaxUKUjPFOWBu4BWD",
-	"iDjJjG9Dv/+5CF7n8pZx8l+sngW3gGPgQS4IXQXyFgJDGug1wFlwQSXw4Bfz9Jfgi8hwBNcBprEaTYM1",
-	"y3kg2R3QgFDNQMKDDAjNchncQMK+n6EZImpyMxWaISNxtLOQbRKLM/JvUD5JZbtlhRMxKnGkWzqQYpKg",
-	"ObojnFAK8Pe//WOlHp1FLN3yrn7VEX9HBB+I5EywF/8hNJoHry/fBUvGg/Oc0rUqmfUCyxoHvccZxyIo",
-	"SQJFoihQo7ZBr85eqklYBhRnBM3Rb2cvz14hZeryVisjVP+sQK9e4UC/77sYzdG/QCKVQImMUWE09+vL",
-	"l/tq+5hHEYhS/1i5+i/o41pISNG1ehbijITfNuWiiqr2PzTv64x8/mzGV6PVkjlOQQJXM2yM1u5z4Out",
-	"YN+q9KlZIO7XjnKthadqFFTMWtjUAbc/r4Vp6/Vlo6ztXTwAo/ckJXKHj0Nz3onzxzuS9Wa8C63FLQQc",
-	"7nMQEmJtDhW0S6tVMN6uYPujIiJc5XLGXW4XFcMS54ksbWPWLkVB0iwBVFzbbUAZPVANX5xlCYk0gMOv",
-	"wqRp2wmdiquWfuF+HgQP8knmyBJMxptkz+/ZfEhl+YecSHiTr9WfDYkLHb2YsHiUSyYsLuVck2qjsrmW",
-	"XWjpRkY7qo62PB6j6iSh7g2MdkR3ZmUBrj+vAfG5Vkl1uMm1//bHqCavnf9xnObV0HZY/MTY1Es4Z/F6",
-	"MFju7aMUWvuTGQxrBhGmESS1NXTw1m80B2MPk8+efPaYYC13+rvhtCSeMNrDdwONWFzWiEtidvR2S4Wd",
-	"bcBHDbWSoJbdDaFYFypHmybFDKV5IkmGuQwV/YsYS/xDVzRFozEMPC9P0rk3IN4Ymj2bft4Fa33ucKRi",
-	"9Tj/noXqgQmGwxsHAfwbhJu6sVSEm7dYQhFuFiSFwg+KV4ZdzUxxKttMxwNO2SLrVx7Y+DZ6ZoMzL9/u",
-	"JGuaybUPaWpVoV3nbu5mZarsp62zp6plNOT3B/wAOB8K3pfNg5UOkN6Od9o3GWx3QW9kT5sUp5nztR5t",
-	"GzTz85yla/7nOo2T7W7N7bD1+veBa9KpBzxyD3j3LPq4dXcL+LpFqyPMPANXG7dx7KBO02JIwBx93DWH",
-	"t/p5u0FM6doPDC9+gJh5JS6Tek8jG9+9ENbTww3i2Dr6sxnKclu8zif4nmZaYDnZO6UFY6QF1S2B8CZP",
-	"9N1PB0Nr3oH5aZryw2PUfhWoHaYOJzdLjkdUlegLcI7diIrK3Jp7Dnsoh3S2f3ewo4UfYORp3TZOTpbt",
-	"iBaO6QrCzT85S4tws2CFJ3CuFL2iXjCngKqGjrIPwaZdiG5dHevVuaFbR36TdO0cOc4ypP2YzUKvOrmi",
-	"Lff7nmhj8IRK14ZqZj6+ahL4eKHTbnrdoudhXp4BtIWZrw+Y+aS+E9BGTambd8FHrfpOHdSWwGYu1zbP",
-	"wzgmhIawedbEAf6DnUx5Xs52e8W6IxgtDDwR2OTgBDtD4OpJJzQ9iUfdfjpgZE/adme/K3QH8aJWVn5g",
-	"tnjQT8L5LIge6nQMZJAjIJ+qW+vTMZDTLOX3L/4PXMa7T9C1hHeYwclCtWnpYONylsNuiM/smEX1YZCR",
-	"Q4H96xT+gaCdj2cYsDDygVhLCAj/AI8o8Ac8h9675U6NXe8tAy2KfTxyCM3pL86YgzBKmoWHHvU3bhpx",
-	"1m2HuRw8lUB+Rlt/UKiHB9nn0cF7NJgMgb8KEt0gWKFvQuHToLAnAPtibzjYeR/48zj4SuJpA8OSnDqa",
-	"9CTkyXybJc3x/tmEmhEPnk2F0lCFEnDO+Ivqa30O3nD7/fLndN17/0uyvk0dRw6HujbHWDhB4fMrrcFj",
-	"aPC5I1pDYoqS4/ihrc11dEAWBp6ep8nBF2eNL51qSFTfOP1yXVwX/wsAAP//tF6wccBpAAA=",
+	"H4sIAAAAAAAC/+xd32/bOPL/Vwx9v8C+uHV39+FwebokzR261/SCxN0Ct8gDLdEJG0lUKWoTb+D//UBS",
+	"v2xT0pCS7CTmS1u4nCE5/MyHwyFFPns+jRIa45in3smzl/r3OELyn2eUPpD47pxmMb/G8icUBIQTGqPw",
+	"itEEM07E70sUpnjqJbWfnr0AcSz+jrMwRIsQeyecZXjq8VWCvRMv5YzEd9566gWEYV8oBZXmxH/APP2C",
+	"cYADIbGkLELcO/FIzH/9xStFSMzxHWZKJoI0ZT31GP6RESYU/7FV021ZnC6+Y58LvbmBrlCa4vgOs2v8",
+	"w9BIyywMv6AIZqg7HAeYgYomKE0TyvjFU0LYykjkSxYtQLWsQRZJnUWkRRiJfZKg0NwiC6XhCwU1Wnhz",
+	"iDkOTvmGdwh3fCcdYQpQwjBqV7HrxeO4O9n08SwjgdcwVBJwovT/M7z0Trz/m1XMNstpbaYD6HrqpRzx",
+	"LDUgoM8kfjAoDhw8O6KqRkvaq26NFtYyB2JSYBhq5Drm11MvS7vH52uK2abcVmerRuQKdV08R7GPw2+E",
+	"3wcMPQpFpsQcU44tPf6cpryHu/s03XI7mokGlDXFio7s3BTkT9v4Ei2absNMa3dZpATYj5cRMvQghx/2",
+	"XtnuhMpSAirmZgIjRDeOzY35SFJfhXqmDWLYpyzosm6lX5QubIvYHeZQ0bksLUW3+pY3oVTY3E0XrW0Z",
+	"RFCuuS0E98Yowr2q7sPQKBKIADJlglZf6KOJsergyqvSYapA5iXi/r15JyIhNpdKAYP+JwozW4NvNTR9",
+	"8Q3tMYUCg0Y72tqKFyGiN7J0LmrHeLuBkOxTSXt5g1r5b5eAR/S4AKc+Iwl4ko6hvMphIDR34WqAnVlq",
+	"ZinAaxzMkVS0Q/pXrnxBaYhRvNOKsiikHemB21HFIBYMekkD2HDK0jmbcRyBqaach9aNy3zEGFq1c2/F",
+	"Oi+4j6ldHy8Yo+xTvKRWk0pnp1Rjd4vKdQQPgfMnZimMIXQ9/Iw4TvmNf4+DLMSjZW51VV8ijhlBIfkL",
+	"B2pxM+LyN8jxYI6gjbm8HUJTb0lilfKwWm8V8jpKKZciPWKdsdYkBom3PSxdtgKfVmOOmNjSD9heU1vX",
+	"WPzrQKmtglPOsvDhayJ4wrz6NNcB99qi1prxLOc3raaRclSw1UXF0mVSRJ/ZuIV1x5xu4yVhkT48Msjq",
+	"f5/TbxdPfpjlu3LlwO5GtB10+zinvw2haYeMi462WdJ2adRhxldunTmJ+m1hmW7xiurSnt1r6IX52I7c",
+	"nNEmK82oNc842mFnKE6RHLceY2+0PLbZeDRcUS8ZjYaMgOArdOAeYGX1eZ81PWjDpjbEYyKxAUiCz1AY",
+	"dmfDvslS4OApV9rY4aVNwts4zTNoNkZFWwfZorHLdY6zuwNJcypTuW2eLYMcZJtHVHrxRGwSAViIpYCs",
+	"XV7wtqH63vsInYM0gI1GJN/dZef+WVejyeoM1DVOMfsTA0kYOIFnqRowkE4x1p9gsHjM1+gmjd4y71a3",
+	"8+M9eYN3a2g2/Yj40qFknwmRKhVynh99s1kFdx+a2w38KDwTgEnCLQ521ZrV3vVeGQBVSec4a+1cxuyD",
+	"H0KCZlDqqTDjHdpKuLZH2zAKXq2rU/32a/sg7WWDcbSTDvV+2GKM2UxWcCbSu4M1Gw04T1YGmO6yWvvU",
+	"qUGoYcIVerZ1NzgRfoT9jBG+uhGdVQrPMGLKnhtrb++3b/PJacbvKSN/IfHb5B6jALNJlpL4bsLv8USJ",
+	"TqTl8PvJRcwxm/ykfv1p8keaIB/fTlAciNLxZEUzNuH0AccTEksFHD/xCYmTjE8WOKSP74UrispVVV6x",
+	"Hvc2GlI5CkrIv/HKW4uukXwT0KcxR74cZhwhEnon3gNhJI4x/vvf/nEnfnrv06jSXfzvTvrB+0I4oyl9",
+	"918S+yeT06tPkyVlk7MsjldnlD7IBubbgN5nlDCUTnKRiRAREl5t+8/7+f0HUQlNcIwS4p14v77/8P5n",
+	"ecSX38vBmIk/8kWWGHXZXxGheP/CXFJUmtA4VSP3y4cPu8N2k/k+ThVmObpLBV5vVinHkXcrfpuhhMz+",
+	"fM4btZ6dBhGJZyRehvRx9qwCorUMGfKtu81mXNGUnybk99+VvJT+JIW/qlhKdIahSHiHqPtZjafoYGXx",
+	"rChaOZWCcLXdursTy1fSzikRvuetp9sdn9/jidCHU44DOViF4ae6NlT/2dyIAC9RFvJ85KbdjbpV2nDK",
+	"z2iwKtCIFd2jJAmJL005+56q/FZVV2fGJU9zrNeKjXZxMEhVDewnHHVATUmISF9VO96qQ77EZxvwacZ7",
+	"IP8/StpB30H/9UE/YTSilsC/ErIO9g72rwn2+QchbSFWDedFaT28f2SYrSpsfURyRQlAs1j0SSxr1ZQ7",
+	"q/113RTJ9b6K5mrd31dNyRZ9FX0mEeEbegAfDcNM9kCS3opfKEf1YA/QsZ6GrwR3d871vDJ8HRrGGbAS",
+	"EBcVFNLGRrNFthJ/PRODOTiXPZOiwCmYtE+/nfm71zMdjzRRaoFhN1O2qjKcKvW6hsOnL7++tcKn+nD3",
+	"cPjUcXxmMw05oB8D0POsrh3Uc+GXBfbqson+YVd59cGbcB2TJRuOfRrkC4clUZvLm/3c+FJk6/gJ2dqN",
+	"XpAYSbtC8vVRFnKSIMZnQv5dgDg6aItGXYkeLe8UX73AV6XnSmaHao578VHebTXSwqNbf89FR0sFQ+Nt",
+	"9lwmG9az54+I47UNBEsleQake+rLC/ZLBOr01nInbzLL6JzoBTkRw8ssDqxCxWsp6lbtbjEzYlDB1CFC",
+	"DcvPnuckMiX7/EziBtvneeG3wPga5Xnv3EziXK3D1ThmEYmRZeJgXki7NJmD+2uAewFy+OThkP06kd0f",
+	"0APgeHD45uddZknG/HuUYlPCVvvYV4W0O/0y/OmXnYtHXeJxSCY/z9EOYPBzdemNyzJKWG5fBTx0hgRe",
+	"gW2KBFADCF8SF7frKYw5XxWKxqKz4nbgkblsd4TtiKxZjyGLaRSZQKyBv2Z+xlhuLCCPnecSR0BnDiB8",
+	"luJwaYCOG1H8yKGhu+/PEh2tqgwBotfVEyPFNRVAiJTFQceBbzBi/v0gB4LzyzSEdH91l+WNngPpUpd8",
+	"bGhrvlVp+/YrqAXULa6aFtfu5HLHcDdvXxk1TjWrxDZWBdYC4oHSfcExa7PDH1ncWr+laOTYVT/idhNQ",
+	"uy7DGahBmSn0WqahMq0a4OL6hk14fpS/awDqNpI7KdaQHwzCAWf8/USmb50Zpl6S6eakzIHuIFPf7gV9",
+	"buobeuq7qj/kBeDcqjxoDTbY94by8kD32eLbXC813gE/6ILJsBbbFRO0GpDzVu7W7r3mkWsp2jiRDbFl",
+	"78Iwwxi4PuCgeMSN46uNbDYfxRw3tGlgJbvYpkOZYXDTpG1ggjS9YqUUdTesjJzccn5wAD8wOUK45Qr7",
+	"dQYXQozoBUOAfxDMDwf14t2Z2SIL5XvygCCq/gjTEe816N+iamZkwKWXucaOoQrl83pANiqk1Jt8x35c",
+	"YPdlQkt/blFk6NQ6TSDPBqKFofgOz57/yWi0nj3P6doQONdCXkjPKWgiE0VH+bqJum+b7FI52lfahs4X",
+	"mVVimy4C1jKk/1QfmoOzRYXsfj8wf0N5ndrQTE24yhl8vKlT73p2s2e7LsMJtEGZKQdMTUJfB7RRQ+r6",
+	"Y6SjJjjeOqg1E5t6lbH+lT0wIFSC9S/YAfB3N5zYXaZcvs1pCUaNAkME1jWAYKcEoEzq0LSfW7nLN2dH",
+	"ZtKGx16toTsIi2pVmYFZx6DVa6JQ6qxJ7Pc0/nzrMdf+Grd2Q8Hp41al6vL0UVRnQx2qOcNLyoaw4OlS",
+	"vcPkjue8xWxLy1vDgyZcjOuxzbnAK4Ixa40Lu+jV/KBOTdidOd1TrLr5hLftrN+gxXTG31Zjgcmp4ZTu",
+	"LotxiD0sYjUs+jUFn1L+mkIPKA8SR30tXqt2EdDbjIB0D5kOGvrAK7CNeQA1gNxUuhb4A069Ix7Z+Tb1",
+	"Gv3o+Qrt298Ws0CzHsN5QKPIBGINU8DsEhvMApf4GA6IaN4M0I97Q0HNwG6XHGbkZqdhaDR6ovyRn/BR",
+	"9NHLnft68XDOi59IytUhVDEeawMwXAjRWqgFO4GaF3ZbNWYjLo3dE3W7OiygV1MyBP4KSNhBsECfQ6Gj",
+	"PSPYGWf9DD46IYE7aKVZnwBd2hnZuW99Vdu9z+9QM+I3kW6tPNRaWW1AA4ObvPB+73QYZXPcJVBfYgJV",
+	"95T8wClUkypsk6igOkB+mztci+fKpcrGZ8tgPy6WKu6r5fFmEGXpHlOHRoHhnFHXMBToDL4Krp1wclvF",
+	"DrgHAy7h9wFDjwiaWK4J2GwRDxOmDBZEFW9eD6PtksT6zgY0W4S46m6cRQuD2OkSPY2i94YjnqXuKKSL",
+	"Y/cUx5bcMW4sa1iNdTwLrQfG0hWxdjC1eT60knWHIPcUJzRgwzJo6NBmGkE0qTMH6tQsZnDx7qvF8SDw",
+	"HQa1tmDtZlVZb0GqoDNadWwX0aSjWOtsN459GghlwgQklOOw6YLreoMSJgaHEwX8QqC03YLESDq85uSO",
+	"+oUuvmOfy1+iLOQkQYzPhPy7AHF00BaNmsI/lvkJ4PIMS4PbOPy1EnXuPu7mljJznf9/OP/Yi3+YXvtZ",
+	"yboM+sjnop07HMwd8lARxT4OrV3jU3CuFBxyQeQcsZcjygF0jrgfR8SMUfaOxEsK3Kq4EAKfRPljev65",
+	"481CQG4VqKEtbdqlAgSI33+WI9iFBpNd1xIS7uDiOPxU+ZwlJWkUGLJQXYMpzoS1sJ8xwlcSEmcYMcy8",
+	"kz9u17fr/wUAAP//AAbrgJrcAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

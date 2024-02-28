@@ -301,7 +301,7 @@ zinc:
   api:
     configMountPath: /app/Config
     image:
-      repository: ghcr.io/atomicloud/nitroso.zinc/api-arm
+      repository: ghcr.io/atomicloud/nitroso.zinc/api
 
   migration:
     enabled: false

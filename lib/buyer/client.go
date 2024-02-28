@@ -173,7 +173,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		return er
 	}
 
-	reserved, err := c.zinc.PostApiVVersionBookingBuyingId(ctx, "1.0", *data.Id)
+	reserved, err := c.zinc.PostApiVVersionBookingBuyingId(ctx, "1.0", data.Id)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to get buying id")
 		return err
@@ -198,6 +198,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		PassportExpiry: fmt.Sprintf("%sT00:00:00", lib.ZincToHeliumDate(*data.Passenger.PassportExpiry)),
 		PassportNumber: *data.Passenger.PassportNumber,
 	}
+
 	c.logger.Info().Any("passenger", p).Msg("Passenger")
 	buy, err := c.buyer.Buy(userData, bookingData, p)
 	if err != nil {
@@ -213,7 +214,10 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		c.logger.Error().Err(err).Msg("Failed to create form")
 		return err
 	}
-	completed, err := c.zinc.PostApiVVersionBookingCompleteIdWithBody(ctx, "1.0", *data.Id, contentType, rr)
+	completed, err := c.zinc.PostApiVVersionBookingCompleteIdWithBody(ctx, "1.0", data.Id, &zinc.PostApiVVersionBookingCompleteIdParams{
+		BookingNo: nil,
+		TicketNo:  nil,
+	}, contentType, rr)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to get buying id")
 		return err

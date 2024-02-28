@@ -69,6 +69,8 @@ zinc:
   serviceTree:
     landscape: *landscape
 
+  bromine:
+    enable: true
   api:
     enabled: true
     replicaCount: 1
@@ -118,6 +120,8 @@ zinc:
 
 helium:
   enable: true
+  zinc:
+    enable: false
   appSettings:
     cache:
       live:
