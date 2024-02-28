@@ -85,7 +85,7 @@ poller:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  replicaCount: 5
+  replicaCount: 3
   configMountPath: /app/config
 
   resources:
@@ -110,7 +110,7 @@ reserver:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  replicaCount: 3
+  replicaCount: 1
   configMountPath: /app/config
 
   resources:
