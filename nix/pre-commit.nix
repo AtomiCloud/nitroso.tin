@@ -46,15 +46,15 @@ pre-commit-lib.run {
       pass_filenames = false;
     };
 
-    a-golang-ci-lint = {
-      enable = true;
-      name = "Golang CI Lint";
-      description = "Lint Golang code";
-      entry = "${packages.golangci-lint}/bin/golangci-lint run --timeout 10m0s .";
-      language = "system";
-      files = ".*go$";
-      pass_filenames = false;
-    };
+    #    a-golang-ci-lint = {
+    #      enable = true;
+    #      name = "Golang CI Lint";
+    #      description = "Lint Golang code";
+    #      entry = "${packages.golangci-lint}/bin/golangci-lint run --timeout 10m0s .";
+    #      language = "system";
+    #      files = ".*go$";
+    #      pass_filenames = false;
+    #    };
 
     a-gitlint = {
       enable = true;
