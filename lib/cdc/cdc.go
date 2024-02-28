@@ -155,7 +155,7 @@ func (c *Cdc) sync(ctx context.Context, tracer trace.Tracer) error {
 	counts := make(map[string]map[string]map[string]int)
 
 	for _, d := range data {
-		count := int(*d.TicketsNeeded)
+		count := int(d.TicketsNeeded)
 		dir := *d.Direction
 		date := *d.Date
 		t := *d.Time
