@@ -1,3 +1,17 @@
+## [1.13.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.12.1...v1.13.0) (2024-02-28)
+
+
+### ✨ Features ✨
+
+* release reverse sessions ([e28762e](https://github.com/AtomiCloud/nitroso.tin/commit/e28762e38db8abb2471d9a5e277f904e52bbc4d4))
+* set ticket number and booking number in tickets ([7ed38e1](https://github.com/AtomiCloud/nitroso.tin/commit/7ed38e17ede15fa130862358a2165b0c1c2d6121))
+* set ticket number and booking number in tickets ([c1116bd](https://github.com/AtomiCloud/nitroso.tin/commit/c1116bd3df28ec6835903ba05cff26c11f4673e1))
+
+
+### 🐛 Bug Fixes 🐛
+
+* compile errors due to change in SDK generator from swagger ([1e04ecc](https://github.com/AtomiCloud/nitroso.tin/commit/1e04eccc67fa4972639c586a49847ec6ba508740))
+
 ## [1.12.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.12.0...v1.12.1) (2024-02-28)
 
 
