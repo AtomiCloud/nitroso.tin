@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.12.0...v1.12.1) (2024-02-28)
+
+
+### 🐛 Bug Fixes 🐛
+
+* bump release ([eaafe54](https://github.com/AtomiCloud/nitroso.tin/commit/eaafe5441b8007184c791de1d9ea3ecec951b408))
+
 ## [1.12.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.11.0...v1.12.0) (2024-02-27)
 
 
