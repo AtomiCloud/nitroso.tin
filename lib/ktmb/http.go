@@ -45,7 +45,6 @@ func (k HttpClient[T, Y]) client() (*http.Client, error) {
 	randomIndex := rand.Intn(len(proxies))
 	p := proxies[randomIndex]
 
-	k.logger.Info().Str("proxy", p).Msg("Using proxy")
 	pUrl, err := u.Parse(p)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to parse URL")
