@@ -200,7 +200,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	}
 
 	c.logger.Info().Any("passenger", p).Msg("Passenger")
-	buy, err := c.buyer.Buy(userData, bookingData, p)
+	buy, bookingNo, ticketNo, err := c.buyer.Buy(userData, bookingData, p)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("failed to buy")
 		return err
@@ -215,8 +215,8 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		return err
 	}
 	completed, err := c.zinc.PostApiVVersionBookingCompleteIdWithBody(ctx, "1.0", data.Id, &zinc.PostApiVVersionBookingCompleteIdParams{
-		BookingNo: nil,
-		TicketNo:  nil,
+		BookingNo: &bookingNo,
+		TicketNo:  &ticketNo,
 	}, contentType, rr)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to get buying id")
