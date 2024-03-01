@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.13.0...v1.13.1) (2024-02-28)
+
+
+### 🐛 Bug Fixes 🐛
+
+* remove logs about proxies ([ff1de70](https://github.com/AtomiCloud/nitroso.tin/commit/ff1de700694efe08bd61aa373f70ad6d32e86182))
+
 ## [1.13.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.12.1...v1.13.0) (2024-02-28)
 
 
