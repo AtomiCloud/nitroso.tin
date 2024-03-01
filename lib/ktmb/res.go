@@ -354,3 +354,323 @@ type CompleteTicketRes struct {
 	TotalAddOnAmount            float32 `json:"totalAddOnAmount"`
 	TotalAmount                 float32 `json:"totalAmount"`
 }
+
+// GetTicketRes
+type GetTicketRes struct {
+	Bookings              []GetTicketBookingRes `json:"bookings"`
+	CompanyAddress        string                `json:"companyAddress"`
+	CompanyName           string                `json:"companyName"`
+	CompanyRegistrationNo string                `json:"companyRegistrationNo"`
+	ErlTicketMessage      interface{}           `json:"erlTicketMessage"`
+	TicketMessage         string                `json:"ticketMessage"`
+}
+
+type GetTicketBookingRes struct {
+	BookingData                       string           `json:"bookingData"`
+	BookingLocalDateTime              string           `json:"bookingLocalDateTime"`
+	BookingNo                         string           `json:"bookingNo"`
+	BookingStatusKey                  string           `json:"bookingStatusKey"`
+	BookingStatusLabel                string           `json:"bookingStatusLabel"`
+	BookingStatusLabelBackgroundColor string           `json:"bookingStatusLabelBackgroundColor"`
+	BookingTypeKey                    string           `json:"bookingTypeKey"`
+	CurrencyCode                      string           `json:"currencyCode"`
+	DepartFromLocalDateTime           string           `json:"departFromLocalDateTime"`
+	DepartToLocalDateTime             string           `json:"departToLocalDateTime"`
+	FromStationName                   string           `json:"fromStationName"`
+	HasReturn                         bool             `json:"hasReturn"`
+	IsPrintTicketAllowed              bool             `json:"isPrintTicketAllowed"`
+	IsRefundAllowed                   bool             `json:"isRefundAllowed"`
+	OriginalBooking                   interface{}      `json:"originalBooking"`
+	PassengerCount                    int64            `json:"passengerCount"`
+	Payment                           GetTicketPayment `json:"payment"`
+	ReturnFromLocalDateTime           interface{}      `json:"returnFromLocalDateTime"`
+	ReturnToLocalDateTime             interface{}      `json:"returnToLocalDateTime"`
+	RoundingAmount                    float32          `json:"roundingAmount"`
+	TicketAddOnCount                  int64            `json:"ticketAddOnCount"`
+	TicketCount                       int64            `json:"ticketCount"`
+	ToStationName                     string           `json:"toStationName"`
+	TotalAddOnAmount                  float32          `json:"totalAddOnAmount"`
+	TotalAmount                       float32          `json:"totalAmount"`
+	TotalTicketAmount                 float32          `json:"totalTicketAmount"`
+	TripCount                         int64            `json:"tripCount"`
+	Trips                             []GetTicketTrip  `json:"trips"`
+}
+
+type GetTicketPayment struct {
+	BookingPaymentData     string            `json:"bookingPaymentData"`
+	CompletedLocalDateTime string            `json:"completedLocalDateTime"`
+	CurrencyCode           string            `json:"currencyCode"`
+	Details                []GetTicketDetail `json:"details"`
+	DiscountAmount         float32           `json:"discountAmount"`
+	PaymentAmount          float32           `json:"paymentAmount"`
+	PaymentLocalDateTime   string            `json:"paymentLocalDateTime"`
+	PaymentNo              string            `json:"paymentNo"`
+	PaymentStatusKey       string            `json:"paymentStatusKey"`
+	RoundingAmount         float32           `json:"roundingAmount"`
+	TotalAddOnAmount       float32           `json:"totalAddOnAmount"`
+	TotalBookingAmount     float32           `json:"totalBookingAmount"`
+	TotalTicketAmount      float32           `json:"totalTicketAmount"`
+}
+
+type GetTicketDetail struct {
+	CurrencyCode         string  `json:"currencyCode"`
+	DetailData           string  `json:"detailData"`
+	PaymentAmount        float32 `json:"paymentAmount"`
+	PaymentDetailTypeKey string  `json:"paymentDetailTypeKey"`
+	PaymentMethodKey     string  `json:"paymentMethodKey"`
+	PaymentMethodName    string  `json:"paymentMethodName"`
+	UserEnteredAmount    float32 `json:"userEnteredAmount"`
+	UserEnteredText      string  `json:"userEnteredText"`
+}
+
+type GetTicketTrip struct {
+	AddOns                          []interface{}     `json:"addOns"`
+	CurrencyCode                    string            `json:"currencyCode"`
+	FromLocalDateTime               string            `json:"fromLocalDateTime"`
+	FromStationName                 string            `json:"fromStationName"`
+	IsCanceled                      bool              `json:"isCanceled"`
+	IsRefundAllowed                 bool              `json:"isRefundAllowed"`
+	IsReturn                        bool              `json:"isReturn"`
+	OriginalTrip                    interface{}       `json:"originalTrip"`
+	Tickets                         []GetTicketTicket `json:"tickets"`
+	ToLocalDateTime                 string            `json:"toLocalDateTime"`
+	ToStationName                   string            `json:"toStationName"`
+	TotalAddOnAmount                float32           `json:"totalAddOnAmount"`
+	TotalAmount                     float32           `json:"totalAmount"`
+	TotalInsuranceAddOnAmount       float32           `json:"totalInsuranceAddOnAmount"`
+	TotalTicketAmount               float32           `json:"totalTicketAmount"`
+	TotalTicketInsuranceAddOnAmount float32           `json:"totalTicketInsuranceAddOnAmount"`
+	TrainService                    string            `json:"trainService"`
+	TrainServiceCategory            string            `json:"trainServiceCategory"`
+	TrainServiceLabel               string            `json:"trainServiceLabel"`
+	TripBorderLeftColor             interface{}       `json:"tripBorderLeftColor"`
+	TripData                        string            `json:"tripData"`
+	TripIndex                       int64             `json:"tripIndex"`
+	TripLabelTagText                interface{}       `json:"tripLabelTagText"`
+	TripName                        string            `json:"tripName"`
+	TripNo                          string            `json:"tripNo"`
+	TripStatusKey                   string            `json:"tripStatusKey"`
+	TripStatusLabel                 string            `json:"tripStatusLabel"`
+}
+
+type GetTicketTicket struct {
+	AddOns                      []interface{} `json:"addOns"`
+	BoardingCode                string        `json:"boardingCode"`
+	CoachName                   string        `json:"coachName"`
+	CoachNameFrom               interface{}   `json:"coachNameFrom"`
+	CurrencyCode                string        `json:"currencyCode"`
+	FromLocalDateTime           string        `json:"fromLocalDateTime"`
+	InsuranceAddOn              interface{}   `json:"insuranceAddOn"`
+	IsPrintTicketAllowed        bool          `json:"isPrintTicketAllowed"`
+	IsRefundAllowed             bool          `json:"isRefundAllowed"`
+	IsSeatTransferred           bool          `json:"isSeatTransferred"`
+	IsTicketExtended            bool          `json:"isTicketExtended"`
+	NewBookingNo                interface{}   `json:"newBookingNo"`
+	OriginalTicket              interface{}   `json:"originalTicket"`
+	PackageID                   string        `json:"packageId"`
+	PackageName                 string        `json:"packageName"`
+	PackageName2                string        `json:"packageName2"`
+	PassengerContactNo          string        `json:"passengerContactNo"`
+	PassengerFullName           string        `json:"passengerFullName"`
+	PassengerGender             string        `json:"passengerGender"`
+	PassengerIdentityNo         string        `json:"passengerIdentityNo"`
+	PassengerIndex              int64         `json:"passengerIndex"`
+	PassengerPNRNo              string        `json:"passengerPNRNo"`
+	PassengerPassportExpiryDate string        `json:"passengerPassportExpiryDate"`
+	PassengerPassportNo         string        `json:"passengerPassportNo"`
+	PromoAmount                 float32       `json:"promoAmount"`
+	PromoCode                   string        `json:"promoCode"`
+	SeatNo                      string        `json:"seatNo"`
+	SeatNoFrom                  interface{}   `json:"seatNoFrom"`
+	SeatTypeName                string        `json:"seatTypeName"`
+	ServiceTypeName             string        `json:"serviceTypeName"`
+	TicketAmount                float32       `json:"ticketAmount"`
+	TicketData                  string        `json:"ticketData"`
+	TicketIndex                 int64         `json:"ticketIndex"`
+	TicketMinusPromoAmount      float32       `json:"ticketMinusPromoAmount"`
+	TicketNo                    string        `json:"ticketNo"`
+	TicketStatusKey             string        `json:"ticketStatusKey"`
+	TicketStatusLabel           string        `json:"ticketStatusLabel"`
+	TicketTypeID                string        `json:"ticketTypeId"`
+	TicketTypeName              string        `json:"ticketTypeName"`
+	ToLocalDateTime             string        `json:"toLocalDateTime"`
+	TotalAddOnAmount            float32       `json:"totalAddOnAmount"`
+	TotalAmount                 float32       `json:"totalAmount"`
+}
+
+// TicketListRes
+
+type TicketListRes struct {
+	Bookings          []TicketListBookingRes `json:"bookings"`
+	IsAcceptPdpa      bool                   `json:"isAcceptPdpa"`
+	Page              int64                  `json:"page"`
+	RefundPassword    interface{}            `json:"refundPassword"`
+	ShareBookingEmail interface{}            `json:"shareBookingEmail"`
+	ShareReceiptEmail interface{}            `json:"shareReceiptEmail"`
+	TotalCount        int64                  `json:"totalCount"`
+	TotalPage         int64                  `json:"totalPage"`
+}
+
+type TicketListBookingRes struct {
+	BookingData                       string               `json:"bookingData"`
+	BookingLocalDateTime              string               `json:"bookingLocalDateTime"`
+	BookingNo                         string               `json:"bookingNo"`
+	BookingStatusKey                  string               `json:"bookingStatusKey"`
+	BookingStatusLabel                string               `json:"bookingStatusLabel"`
+	BookingStatusLabelBackgroundColor string               `json:"bookingStatusLabelBackgroundColor"`
+	BookingTypeKey                    string               `json:"bookingTypeKey"`
+	CurrencyCode                      string               `json:"currencyCode"`
+	DepartFromLocalDateTime           string               `json:"departFromLocalDateTime"`
+	DepartToLocalDateTime             string               `json:"departToLocalDateTime"`
+	FromStationName                   string               `json:"fromStationName"`
+	HasReturn                         bool                 `json:"hasReturn"`
+	IsPrintTicketAllowed              bool                 `json:"isPrintTicketAllowed"`
+	IsRefundAllowed                   bool                 `json:"isRefundAllowed"`
+	OriginalBooking                   interface{}          `json:"originalBooking"`
+	PassengerCount                    int64                `json:"passengerCount"`
+	Payment                           TicketListPaymentRes `json:"payment"`
+	ReturnFromLocalDateTime           interface{}          `json:"returnFromLocalDateTime"`
+	ReturnToLocalDateTime             interface{}          `json:"returnToLocalDateTime"`
+	RoundingAmount                    float32              `json:"roundingAmount"`
+	TicketAddOnCount                  int64                `json:"ticketAddOnCount"`
+	TicketCount                       int64                `json:"ticketCount"`
+	ToStationName                     string               `json:"toStationName"`
+	TotalAddOnAmount                  float32              `json:"totalAddOnAmount"`
+	TotalAmount                       float32              `json:"totalAmount"`
+	TotalTicketAmount                 float32              `json:"totalTicketAmount"`
+	TripCount                         int64                `json:"tripCount"`
+	Trips                             []TicketListTripRes  `json:"trips"`
+}
+
+type TicketListPaymentRes struct {
+	BookingPaymentData     string                `json:"bookingPaymentData"`
+	CompletedLocalDateTime string                `json:"completedLocalDateTime"`
+	CurrencyCode           string                `json:"currencyCode"`
+	Details                []TicketListDetailRes `json:"details"`
+	DiscountAmount         float32               `json:"discountAmount"`
+	PaymentAmount          float32               `json:"paymentAmount"`
+	PaymentLocalDateTime   string                `json:"paymentLocalDateTime"`
+	PaymentNo              string                `json:"paymentNo"`
+	PaymentStatusKey       string                `json:"paymentStatusKey"`
+	RoundingAmount         float32               `json:"roundingAmount"`
+	TotalAddOnAmount       float32               `json:"totalAddOnAmount"`
+	TotalBookingAmount     float32               `json:"totalBookingAmount"`
+	TotalTicketAmount      float32               `json:"totalTicketAmount"`
+}
+
+type TicketListDetailRes struct {
+	CurrencyCode         string      `json:"currencyCode"`
+	DetailData           string      `json:"detailData"`
+	PaymentAmount        float32     `json:"paymentAmount"`
+	PaymentDetailTypeKey string      `json:"paymentDetailTypeKey"`
+	PaymentMethodKey     string      `json:"paymentMethodKey"`
+	PaymentMethodName    interface{} `json:"paymentMethodName"`
+	UserEnteredAmount    float32     `json:"userEnteredAmount"`
+	UserEnteredText      string      `json:"userEnteredText"`
+}
+
+type TicketListTripRes struct {
+	AddOns                          []interface{}         `json:"addOns"`
+	CurrencyCode                    string                `json:"currencyCode"`
+	FromLocalDateTime               string                `json:"fromLocalDateTime"`
+	FromStationName                 string                `json:"fromStationName"`
+	IsCanceled                      bool                  `json:"isCanceled"`
+	IsRefundAllowed                 bool                  `json:"isRefundAllowed"`
+	IsReturn                        bool                  `json:"isReturn"`
+	OriginalTrip                    interface{}           `json:"originalTrip"`
+	Tickets                         []TicketListTicketRes `json:"tickets"`
+	ToLocalDateTime                 string                `json:"toLocalDateTime"`
+	ToStationName                   string                `json:"toStationName"`
+	TotalAddOnAmount                float32               `json:"totalAddOnAmount"`
+	TotalAmount                     float32               `json:"totalAmount"`
+	TotalInsuranceAddOnAmount       float32               `json:"totalInsuranceAddOnAmount"`
+	TotalTicketAmount               float32               `json:"totalTicketAmount"`
+	TotalTicketInsuranceAddOnAmount float32               `json:"totalTicketInsuranceAddOnAmount"`
+	TrainService                    string                `json:"trainService"`
+	TrainServiceCategory            string                `json:"trainServiceCategory"`
+	TrainServiceLabel               string                `json:"trainServiceLabel"`
+	TripBorderLeftColor             interface{}           `json:"tripBorderLeftColor"`
+	TripData                        string                `json:"tripData"`
+	TripIndex                       int64                 `json:"tripIndex"`
+	TripLabelTagText                interface{}           `json:"tripLabelTagText"`
+	TripName                        string                `json:"tripName"`
+	TripNo                          string                `json:"tripNo"`
+	TripStatusKey                   string                `json:"tripStatusKey"`
+	TripStatusLabel                 string                `json:"tripStatusLabel"`
+}
+
+type TicketListTicketRes struct {
+	AddOns                      []interface{} `json:"addOns"`
+	BoardingCode                string        `json:"boardingCode"`
+	CoachName                   string        `json:"coachName"`
+	CoachNameFrom               interface{}   `json:"coachNameFrom"`
+	CurrencyCode                string        `json:"currencyCode"`
+	FromLocalDateTime           string        `json:"fromLocalDateTime"`
+	InsuranceAddOn              interface{}   `json:"insuranceAddOn"`
+	IsPrintTicketAllowed        bool          `json:"isPrintTicketAllowed"`
+	IsRefundAllowed             bool          `json:"isRefundAllowed"`
+	IsSeatTransferred           bool          `json:"isSeatTransferred"`
+	IsTicketExtended            bool          `json:"isTicketExtended"`
+	NewBookingNo                interface{}   `json:"newBookingNo"`
+	OriginalTicket              interface{}   `json:"originalTicket"`
+	PackageID                   string        `json:"packageId"`
+	PackageName                 string        `json:"packageName"`
+	PackageName2                string        `json:"packageName2"`
+	PassengerContactNo          string        `json:"passengerContactNo"`
+	PassengerFullName           string        `json:"passengerFullName"`
+	PassengerGender             string        `json:"passengerGender"`
+	PassengerIdentityNo         string        `json:"passengerIdentityNo"`
+	PassengerIndex              int64         `json:"passengerIndex"`
+	PassengerPNRNo              string        `json:"passengerPNRNo"`
+	PassengerPassportExpiryDate string        `json:"passengerPassportExpiryDate"`
+	PassengerPassportNo         string        `json:"passengerPassportNo"`
+	PromoAmount                 float32       `json:"promoAmount"`
+	PromoCode                   string        `json:"promoCode"`
+	SeatNo                      string        `json:"seatNo"`
+	SeatNoFrom                  interface{}   `json:"seatNoFrom"`
+	SeatTypeName                string        `json:"seatTypeName"`
+	ServiceTypeName             string        `json:"serviceTypeName"`
+	TicketAmount                float32       `json:"ticketAmount"`
+	TicketData                  string        `json:"ticketData"`
+	TicketIndex                 int64         `json:"ticketIndex"`
+	TicketMinusPromoAmount      float32       `json:"ticketMinusPromoAmount"`
+	TicketNo                    string        `json:"ticketNo"`
+	TicketStatusKey             string        `json:"ticketStatusKey"`
+	TicketStatusLabel           string        `json:"ticketStatusLabel"`
+	TicketTypeID                string        `json:"ticketTypeId"`
+	TicketTypeName              string        `json:"ticketTypeName"`
+	ToLocalDateTime             string        `json:"toLocalDateTime"`
+	TotalAddOnAmount            float32       `json:"totalAddOnAmount"`
+	TotalAmount                 float32       `json:"totalAmount"`
+}
+
+// RefundPolicyRes
+type RefundPolicyRes struct {
+	BookingData       string                `json:"bookingData"`
+	CurrencyCode      string                `json:"currencyCode"`
+	IsRefundAllowed   bool                  `json:"isRefundAllowed"`
+	TotalRefundAmount float32               `json:"totalRefundAmount"`
+	Trips             []RefundPolicyTripRes `json:"trips"`
+}
+
+type RefundPolicyTripRes struct {
+	FromLocalDateTime string                      `json:"fromLocalDateTime"`
+	FromStationName   string                      `json:"fromStationName"`
+	Tickets           []RefundPolicyTripTicketRes `json:"tickets"`
+	ToLocalDateTime   string                      `json:"toLocalDateTime"`
+	ToStationName     string                      `json:"toStationName"`
+	TripName          string                      `json:"tripName"`
+}
+
+type RefundPolicyTripTicketRes struct {
+	AddOns                 []interface{} `json:"addOns"`
+	CurrencyCode           string        `json:"currencyCode"`
+	InsuranceAddOn         interface{}   `json:"insuranceAddOn"`
+	PassengerFullName      string        `json:"passengerFullName"`
+	RefundAmount           float32       `json:"refundAmount"`
+	RefundPercentage       float32       `json:"refundPercentage"`
+	TicketData             string        `json:"ticketData"`
+	TicketMinusPromoAmount float32       `json:"ticketMinusPromoAmount"`
+	TicketNo               string        `json:"ticketNo"`
+	TotalAmount            float32       `json:"totalAmount"`
+}

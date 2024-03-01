@@ -1,6 +1,17 @@
 def start(landscape, platform, service, port, live):
 
 
+    terminator_image_name = platform + "-" + service + "-terminator"
+    docker_build(
+        terminator_image_name,
+        '.',
+        dockerfile = './infra/dev.Dockerfile',
+        entrypoint='air -- terminator',
+        live_update=[
+            sync('.', '/app'),
+        ]
+    )
+
     cdc_image_name = platform + "-" + service + "-cdc"
     docker_build(
         cdc_image_name,

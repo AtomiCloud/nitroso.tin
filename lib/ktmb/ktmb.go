@@ -257,3 +257,81 @@ func (k *Ktmb) Cancel(userData, bookingData string) (GenericRes[*interface{}], e
 	}
 	return r, nil
 }
+
+func (k *Ktmb) GetTicket(userData, bookingNo, ticketNo string) (GenericRes[GetTicketRes], error) {
+	client := NewHttp[GetTicketReq, GenericRes[GetTicketRes]](k.NewApi())
+
+	req := GetTicketReq{
+		BookingNo: bookingNo,
+		Tickets: []GetTicketTicketReq{
+			{
+				TicketNo: ticketNo,
+			},
+		},
+	}
+	r, err := client.SendWith("POST", "v1/booking/PrintTicket", req, appHost, map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to print ticket")
+		return GenericRes[GetTicketRes]{}, err
+	}
+	return r, nil
+}
+
+func (k *Ktmb) RefundTicket(userData, password, bookingData, ticketData string) (GenericRes[*interface{}], error) {
+
+	client := NewHttp[RefundTicketReq, GenericRes[*interface{}]](k.NewApi())
+
+	req := RefundTicketReq{
+		BookingData:    bookingData,
+		RefundPassword: password,
+		Tickets: []RefundTicketTicketReq{
+			{
+				TicketData: ticketData,
+			},
+		},
+	}
+
+	r, err := client.SendWith("POST", "v1/booking/RefundTicket", req, appHost, map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to print ticket")
+		return GenericRes[*interface{}]{}, err
+	}
+	return r, nil
+}
+
+func (k *Ktmb) ListTicket(userData string, page int64) (GenericRes[TicketListRes], error) {
+	client := NewHttp[TicketListReq, GenericRes[TicketListRes]](k.NewApi())
+
+	req := TicketListReq{
+		Page: page,
+	}
+	r, err := client.SendWith("POST", "v1/booking/UpcomingShuttleList", req, appHost, map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to list ticket")
+		return GenericRes[TicketListRes]{}, err
+	}
+	return r, nil
+}
+
+func (k *Ktmb) GetRefundPolicy(userData, bookingData, ticketData string) (GenericRes[RefundPolicyRes], error) {
+	client := NewHttp[RefundPolicyReq, GenericRes[RefundPolicyRes]](k.NewApi())
+
+	req := RefundPolicyReq{
+		BookingData: bookingData,
+		Tickets:     []RefundPolicyTicketReq{{TicketData: ticketData}},
+	}
+	r, err := client.SendWith("POST", "v1/booking/GetRefundTicketPolicy", req, appHost, map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to refund ticket policy")
+		return GenericRes[RefundPolicyRes]{}, err
+	}
+	return r, nil
+}

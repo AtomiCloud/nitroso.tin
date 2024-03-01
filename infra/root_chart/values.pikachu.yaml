@@ -47,6 +47,18 @@ cdc:
       memory: "256Mi"
       cpu: "250m"
 
+terminator:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-terminator"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 enricher:
   enabled: true
 

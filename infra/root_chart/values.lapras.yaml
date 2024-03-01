@@ -16,6 +16,18 @@ buyer:
 
   configMountPath: /app/config
 
+terminator:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-terminator"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 cdc:
   serviceTree:
     landscape: *landscape

@@ -10,6 +10,7 @@ Root Chart to a single Service
 |------------|------|---------|
 | file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
 | file://../consumer_chart | poller(golang-chart) | 0.1.0 |
+| file://../consumer_chart | terminator(golang-chart) | 0.1.0 |
 | file://../consumer_chart | enricher(golang-chart) | 0.1.0 |
 | file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
 | file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
@@ -203,6 +204,33 @@ Root Chart to a single Service
 | tags."atomi.cloud/layer" | string | `"2"` |  |
 | tags."atomi.cloud/platform" | string | `"nitroso"` |  |
 | tags."atomi.cloud/service" | string | `"tin"` |  |
+| terminator.affinity | object | `{}` |  |
+| terminator.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| terminator.appSettings.app.module | string | `"terminator"` |  |
+| terminator.autoscaling | object | `{}` |  |
+| terminator.configMountPath | string | `"/app/config"` |  |
+| terminator.envFromSecret | string | `"nitroso-tin"` |  |
+| terminator.image.pullPolicy | string | `"IfNotPresent"` |  |
+| terminator.image.repository | string | `"nitroso-tin-terminator"` |  |
+| terminator.image.tag | string | `""` |  |
+| terminator.imagePullSecrets | list | `[]` |  |
+| terminator.jobRbac.create | bool | `false` |  |
+| terminator.nameOverride | string | `"tin-terminator"` |  |
+| terminator.nodeSelector | object | `{}` |  |
+| terminator.podAnnotations | object | `{}` |  |
+| terminator.podSecurityContext | object | `{}` |  |
+| terminator.replicaCount | int | `1` |  |
+| terminator.resources | object | `{}` |  |
+| terminator.securityContext | object | `{}` |  |
+| terminator.serviceAccount.create | bool | `false` |  |
+| terminator.serviceTree.<<.landscape | string | `"lapras"` |  |
+| terminator.serviceTree.<<.layer | string | `"2"` |  |
+| terminator.serviceTree.<<.platform | string | `"nitroso"` |  |
+| terminator.serviceTree.<<.service | string | `"tin"` |  |
+| terminator.serviceTree.module | string | `"terminator"` |  |
+| terminator.stateful | bool | `false` |  |
+| terminator.tolerations | list | `[]` |  |
+| terminator.topologySpreadConstraints | object | `{}` |  |
 | zinc.api.configMountPath | string | `"/app/Config"` |  |
 | zinc.api.image.repository | string | `"ghcr.io/atomicloud/nitroso.zinc/api"` |  |
 | zinc.migration.enabled | bool | `false` |  |

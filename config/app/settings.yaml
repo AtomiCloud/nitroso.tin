@@ -26,6 +26,10 @@ buyer:
   host: localhost
   port: 9000
 
+terminator:
+  backoffLimit: 3
+  queueName: "terminator"
+
 app:
   landscape: lapras
   platform: nitroso

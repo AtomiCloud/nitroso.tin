@@ -24,6 +24,13 @@ dependencies:
   - name: golang-chart
     version: 0.1.0
     repository: file://../consumer_chart
+    condition: terminator.enabled
+    alias: terminator
+    tags:
+      - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
     condition: enricher.enabled
     alias: enricher
     tags:

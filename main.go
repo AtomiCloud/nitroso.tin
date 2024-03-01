@@ -5,6 +5,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/cmds"
 	"github.com/AtomiCloud/nitroso-tin/lib/auth"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
+	"github.com/AtomiCloud/nitroso-tin/lib/terminator"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
 	"github.com/urfave/cli/v2"
@@ -103,24 +104,27 @@ func main() {
 				Action: state.Buyer,
 			},
 			{
+				Name:   "terminator",
+				Action: state.Terminator,
+			},
+			{
 				Name: "test",
 				Action: func(context *cli.Context) error {
 					ktmbConfig := state.Config.Ktmb
-					state.Logger.Info().Str("request", ktmbConfig.RequestSignature).Msg("Starting Test")
-					state.Logger.Info().Any("ktmbConfig", ktmbConfig).Msg("Configurations")
+					enricherConfig := state.Config.Enricher
+
 					k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
-					login, e := k.Login("xxluna001@gmail.com", "Pokemon1288!")
+					term := terminator.NewTerminator(k, state.Logger, enricherConfig)
+
+					e := term.Terminate(terminator.BookingTermination{
+						BookingNo: "KST240255503142",
+						TicketNo:  "TST240247666907",
+					})
 					if e != nil {
-						state.Logger.Error().Err(e).Msg("Failed to login")
+						state.Logger.Err(e).Msg("Failed to terminate")
 						return e
 					}
-					state.Logger.Info().Any("login", login).Msg("Login success")
-					sd, e := k.StationsAll(login.Data.UserData)
-					if e != nil {
-						state.Logger.Error().Err(e).Msg("Failed to login")
-						return e
-					}
-					state.Logger.Info().Any("sd", sd).Msg("StationsAll success")
+
 					return nil
 				},
 			},

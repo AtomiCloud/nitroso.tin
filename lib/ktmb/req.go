@@ -94,3 +94,39 @@ type PrintTicketTicketReq struct {
 type CancelReserveReq struct {
 	BookingData string `json:"bookingData"`
 }
+
+// GetTicket Req
+type GetTicketReq struct {
+	BookingNo string               `json:"bookingNo"`
+	Tickets   []GetTicketTicketReq `json:"tickets"`
+}
+
+type GetTicketTicketReq struct {
+	TicketNo string `json:"ticketNo"`
+}
+
+// Refund Ticket Req
+type RefundTicketReq struct {
+	BookingData    string                  `json:"bookingData"`
+	RefundPassword string                  `json:"refundPassword"`
+	Tickets        []RefundTicketTicketReq `json:"tickets"`
+}
+
+type RefundTicketTicketReq struct {
+	TicketData string `json:"ticketData"`
+}
+
+// TicketList Req
+type TicketListReq struct {
+	Page int64 `json:"page"`
+}
+
+// RefundPolicyReq
+type RefundPolicyReq struct {
+	BookingData string                  `json:"bookingData"`
+	Tickets     []RefundPolicyTicketReq `json:"tickets"`
+}
+
+type RefundPolicyTicketReq struct {
+	TicketData string `json:"ticketData"`
+}

@@ -23,6 +23,18 @@ securityContext: &securityContext
     drop:
       - ALL
 
+terminator:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: "tin-terminator"
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 cdc:
   enabled: true
 

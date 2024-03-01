@@ -24,6 +24,59 @@ bromine:
 
   target: &target "nitroso-tin"
 
+terminator:
+  stateful: false
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: "tin-terminator"
+
+  serviceTree:
+    <<: *serviceTree
+    module: terminator
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings:
+    app:
+      module: terminator
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-terminator
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    create: false
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
 cdc:
   stateful: false
   annotations:

@@ -1,18 +1,19 @@
 package config
 
 type RootConfig struct {
-	Cache     map[string]CacheConfig
-	App       AppConfig
-	Otel      OtelConfig
-	Cdc       CdcConfig
-	Stream    StreamConfig
-	Auth      AuthConfig
-	Poller    PollerConfig
-	Reserver  ReserverConfig
-	Encryptor EncryptorConfig
-	Enricher  EnricherConfig
-	Ktmb      KtmbConfig
-	Buyer     BuyerConfig
+	Cache      map[string]CacheConfig
+	App        AppConfig
+	Otel       OtelConfig
+	Cdc        CdcConfig
+	Stream     StreamConfig
+	Auth       AuthConfig
+	Poller     PollerConfig
+	Reserver   ReserverConfig
+	Encryptor  EncryptorConfig
+	Enricher   EnricherConfig
+	Ktmb       KtmbConfig
+	Buyer      BuyerConfig
+	Terminator TerminatorConfig
 }
 
 // Buyer Config
@@ -23,6 +24,12 @@ type BuyerConfig struct {
 	Scheme string
 	Host   string
 	Port   string
+}
+
+// Terminator Config
+type TerminatorConfig struct {
+	BackoffLimit int
+	QueueName    string
 }
 
 // KTMB Config
