@@ -1,3 +1,16 @@
+## [1.14.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.13.1...v1.14.0) (2024-03-01)
+
+
+### ✨ Features ✨
+
+* terminator ([e8ad6af](https://github.com/AtomiCloud/nitroso.tin/commit/e8ad6afc56cf6a79b2bdd5067574f33de0378bbc))
+
+
+### 🐛 Bug Fixes 🐛
+
+* chart unsynced ([69919bf](https://github.com/AtomiCloud/nitroso.tin/commit/69919bf67eb6e1cc0fc876ad056db11df90dc2a9))
+* incorrect values file ([6bd6325](https://github.com/AtomiCloud/nitroso.tin/commit/6bd6325edefa7297ace732afac59495895b2c7bf))
+
 ## [1.13.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.13.0...v1.13.1) (2024-02-28)
 
 
