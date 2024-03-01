@@ -48,16 +48,28 @@ cdc:
       cpu: "250m"
 
 terminator:
-  serviceTree:
-    landscape: *landscape
-
-  imagePullSecrets: []
+  enabled: true
 
   fullnameOverride: "tin-terminator"
+  command: ["/app/nitroso-tin", "terminator"]
 
-  replicaCount: 1
-
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 2
   configMountPath: /app/config
+  resources:
+    requests:
+      memory: "25Mi"
+      cpu: "5m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 enricher:
   enabled: true
