@@ -49,8 +49,10 @@ encryptor:
 reserver:
   group: reserver
   backoffLimit: 3
-  concurrency: 10
-  attempts: 100
+  normalConcurrency: 25
+  maintenanceConcurrency: 10
+  normalAttempts: 5
+  maintenanceAttempts: 100
 
 enricher:
   group: enricher

@@ -57,10 +57,12 @@ type EncryptorConfig struct {
 
 // Reserver
 type ReserverConfig struct {
-	Group        string
-	BackoffLimit int
-	Concurrency  int
-	Attempts     int
+	Group                  string
+	BackoffLimit           int
+	NormalConcurrency      int
+	MaintenanceConcurrency int
+	NormalAttempts         int
+	MaintenanceAttempts    int
 }
 
 // Enricher

@@ -183,17 +183,28 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		})
 		return deferred
 	}
-	for replica := 0; replica < c.reserver.Concurrency; replica++ {
+
+	tn := time.Now()
+	isM := c.isMaintenance(tn)
+	attempt := c.reserver.NormalAttempts
+	concurrency := c.reserver.NormalConcurrency
+	if isM {
+		attempt = c.reserver.MaintenanceAttempts
+		concurrency = c.reserver.MaintenanceConcurrency
+	}
+
+	for replica := 0; replica < concurrency; replica++ {
 		term := make(chan bool, 1)
 
 		go func(term chan bool, ct context.Context, replica int, userData, searchData, tripData string) {
-			err := c.blockIfMaintenance()
+			_, err := c.blockIfMaintenance()
 			if err != nil {
 				c.logger.Error().Err(err).Msg("Failed to block if maintenance")
 				return
 			}
+
 			c.logger.Info().Int("replica", replica).Msg("Starting reserve")
-			for i := 0; i < c.reserver.Attempts; i++ {
+			for i := 0; i < attempt; i++ {
 				select {
 				case <-term:
 					c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Received term signal from local replicas")
@@ -218,7 +229,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 	return deferred
 }
 
-func (c *Client) blockIfMaintenance() error {
+func (c *Client) blockIfMaintenance() (bool, error) {
 	n := time.Now()
 	m := c.isMaintenance(n)
 	c.logger.Info().Bool("maintenance", m).Msg("Maintenance")
@@ -227,11 +238,11 @@ func (c *Client) blockIfMaintenance() error {
 		till, err := c.maintenanceOver(n)
 		if err != nil {
 			c.logger.Error().Err(err).Msg("Failed to calculate maintenance over")
-			return err
+			return false, err
 		}
 		time.Sleep(time.Until(till))
 	}
-	return nil
+	return m, nil
 }
 
 func (c *Client) isMaintenance(t time.Time) bool {
