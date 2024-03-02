@@ -1,3 +1,10 @@
+## [1.15.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.14.0...v1.15.0) (2024-03-02)
+
+
+### ✨ Features ✨
+
+* emitted logs for term signal and added propogation for term signal ([0ffd85b](https://github.com/AtomiCloud/nitroso.tin/commit/0ffd85b21800def489a19464727cd34cacf9d82e))
+
 ## [1.14.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.13.1...v1.14.0) (2024-03-01)
 
 
