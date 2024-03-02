@@ -193,9 +193,8 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		concurrency = c.reserver.MaintenanceConcurrency
 	}
 
+	term := make(chan bool, concurrency)
 	for replica := 0; replica < concurrency; replica++ {
-		term := make(chan bool, 1)
-
 		go func(term chan bool, ct context.Context, replica int, userData, searchData, tripData string) {
 			_, err := c.blockIfMaintenance()
 			if err != nil {
