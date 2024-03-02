@@ -1,3 +1,10 @@
+## [1.17.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.16.0...v1.17.0) (2024-03-02)
+
+
+### ✨ Features ✨
+
+* reserver logs to more clearly indicate ticket targeting time ([615f905](https://github.com/AtomiCloud/nitroso.tin/commit/615f90517c84de5edc39dab1c79399ba063f992a))
+
 ## [1.16.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.15.0...v1.16.0) (2024-03-02)
 
 
