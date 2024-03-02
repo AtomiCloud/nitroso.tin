@@ -184,7 +184,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		return deferred
 	}
 	for replica := 0; replica < c.reserver.Concurrency; replica++ {
-		term := make(chan bool)
+		term := make(chan bool, 1)
 
 		go func(term chan bool, ct context.Context, replica int, userData, searchData, tripData string) {
 			err := c.blockIfMaintenance()
@@ -198,6 +198,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 				case <-term:
 					c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Received term signal from local replicas")
 					term <- true
+					c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Re-Emitted Term Signal")
 					return
 				default:
 					err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
@@ -206,6 +207,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 					} else {
 						c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Successfully booked")
 						term <- true
+						c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Emitted Term Signal")
 						return
 					}
 				}
