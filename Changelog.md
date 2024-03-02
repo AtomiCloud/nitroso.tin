@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.17.0...v1.17.1) (2024-03-02)
+
+
+### 🐛 Bug Fixes 🐛
+
+* term signal not working ([065c6f6](https://github.com/AtomiCloud/nitroso.tin/commit/065c6f6cfd5a40a2546ef09e2b45e474655aea82))
+
 ## [1.17.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.16.0...v1.17.0) (2024-03-02)
 
 
