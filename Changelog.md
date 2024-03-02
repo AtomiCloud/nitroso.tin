@@ -1,3 +1,10 @@
+## [1.16.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.15.0...v1.16.0) (2024-03-02)
+
+
+### ✨ Features ✨
+
+* dynamic concurrency and attempts inside and outside maintainence ([e5683c7](https://github.com/AtomiCloud/nitroso.tin/commit/e5683c7c2f32838d732632408d1544ac5d717d20))
+
 ## [1.15.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.14.0...v1.15.0) (2024-03-02)
 
 
