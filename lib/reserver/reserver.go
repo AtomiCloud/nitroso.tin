@@ -155,9 +155,9 @@ func (c *Client) Start(ctx context.Context) error {
 
 			// foreach, we buy
 			for i := 0; i < buy; i++ {
-				c.logger.Info().Any("deferred", deferred).Msg("before reserve process")
+				c.logger.Info().Any("deferred", deferred).Str("time", diffTime).Str("date", diff.Date).Str("dir", diff.Direction).Msg("before reserve process")
 				deferred = c.reserveProcess(ctx, loginCache, now, diff.Direction, diff.Date, diffTime, deferred)
-				c.logger.Info().Any("deferred", deferred).Msg("after reserve process")
+				c.logger.Info().Any("deferred", deferred).Str("time", diffTime).Str("date", diff.Date).Str("dir", diff.Direction).Msg("after reserve process")
 			}
 		}
 
@@ -199,7 +199,7 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 		go func(term chan bool, ct context.Context, replica int, userData, searchData, tripData string) {
 			_, err := c.blockIfMaintenance()
 			if err != nil {
-				c.logger.Error().Err(err).Msg("Failed to block if maintenance")
+				c.logger.Error().Err(err).Int("replica", replica).Str("time", t).Str("date", date).Str("dir", direction).Msg("Failed to block if maintenance")
 				return
 			}
 
@@ -207,18 +207,18 @@ func (c *Client) reserveProcess(ctx context.Context, loginCache LoginStore, n ti
 			for i := 0; i < attempt; i++ {
 				select {
 				case <-term:
-					c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Received term signal from local replicas")
+					c.logger.Info().Int("attempt", i).Str("time", t).Str("date", date).Str("dir", direction).Int("replica", replica).Msg("Received term signal from local replicas")
 					term <- true
-					c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Re-Emitted Term Signal")
+					c.logger.Info().Int("attempt", i).Str("time", t).Str("date", date).Str("dir", direction).Int("replica", replica).Msg("Re-Emitted Term Signal")
 					return
 				default:
 					err = c.reserve(ct, direction, date, t, userData, searchData, tripData)
 					if err != nil {
-						c.logger.Error().Err(err).Int("replica", replica).Int("attempt", i).Msg("Failed to reserve")
+						c.logger.Error().Err(err).Str("time", t).Str("date", date).Str("dir", direction).Int("replica", replica).Int("attempt", i).Msg("Failed to reserve")
 					} else {
-						c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Successfully booked")
+						c.logger.Info().Str("time", t).Str("date", date).Str("dir", direction).Int("attempt", i).Int("replica", replica).Msg("Successfully booked")
 						term <- true
-						c.logger.Info().Int("attempt", i).Int("replica", replica).Msg("Emitted Term Signal")
+						c.logger.Info().Str("time", t).Str("date", date).Str("dir", direction).Int("attempt", i).Int("replica", replica).Msg("Emitted Term Signal")
 						return
 					}
 				}
