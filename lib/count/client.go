@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
+	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/rs/zerolog"
 	"time"
 )
@@ -16,21 +17,22 @@ type Client struct {
 	logger *zerolog.Logger
 	ps     string
 	loc    *time.Location
+	buffer config.BufferConfig
 }
 
-func New(rds *otelredis.OtelRedis, logger *zerolog.Logger, ps string, loc *time.Location) *Client {
+func New(buffer config.BufferConfig, rds *otelredis.OtelRedis, logger *zerolog.Logger, ps string, loc *time.Location) *Client {
 	return &Client{
 		redis:  rds,
 		logger: logger,
 		ps:     ps,
 		loc:    loc,
+		buffer: buffer,
 	}
 }
 
 func (p *Client) GetPollerCount(ctx context.Context, now time.Time) (bool, Count, error) {
 	exist, counts, err := p.getCount(ctx, now)
 	if counts != nil {
-
 		counts, err = p.filterPoller(counts, now)
 	}
 	return exist, counts, err
@@ -39,7 +41,6 @@ func (p *Client) GetPollerCount(ctx context.Context, now time.Time) (bool, Count
 func (p *Client) GetReserverCount(ctx context.Context, now time.Time) (bool, Count, error) {
 	exist, counts, err := p.getCount(ctx, now)
 	if counts != nil {
-
 		counts, err = p.filterReserve(counts, now)
 	}
 	return exist, counts, err
@@ -135,10 +136,11 @@ func (p *Client) parseDateTime(dateStr, timeStr string) (time.Time, error) {
 	return time.ParseInLocation(layout, dateStr+" "+timeStr, p.loc)
 }
 
+// Generate the range of reservable/poll-able, to based on the time of the given
 func (p *Client) genRange(n time.Time) (time.Time, time.Time) {
 
 	now := n.In(p.loc)
-	plus30m := now.Add(30 * time.Minute)
+	plus30m := now.Add(time.Duration(p.buffer.Closing) * time.Minute)
 	sixMonthsLater := now.AddDate(0, 6, 0)
 	lastDay := time.Date(sixMonthsLater.Year(), sixMonthsLater.Month()+1, 0, 0, 0, 0, 0, p.loc)
 	lastMinute := time.Date(lastDay.Year(), lastDay.Month(), lastDay.Day(), 23, 59, 59, 0, p.loc)

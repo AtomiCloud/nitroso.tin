@@ -14,6 +14,13 @@ type RootConfig struct {
 	Ktmb       KtmbConfig
 	Buyer      BuyerConfig
 	Terminator TerminatorConfig
+	Buffer     BufferConfig
+}
+
+// Buffer Config
+type BufferConfig struct {
+	// Number of minutes before reserver and poller stops working
+	Closing int
 }
 
 // Buyer Config

@@ -14,6 +14,11 @@ cache:
     ssl: false
     endpoints:
       0: "zinc-streamcache-master:6379"
+
+# the amount of time before the pollers and reserver stops
+buffers:
+  closing: 120
+
 ktmb:
   apiUrl: https://online-api.ktmb.com.my
   appUrl: https://shuttleonline-api.ktmb.com.my

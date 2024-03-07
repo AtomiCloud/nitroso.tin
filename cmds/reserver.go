@@ -28,7 +28,7 @@ func (state *State) Reserver(c *cli.Context) error {
 	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 	rEncr := encryptor.NewSymEncryptor[reserver.ReserveDto](state.Config.Encryptor.Key, state.Logger)
 
-	countReader := count.New(&mainRedis, state.Logger, state.Ps, state.Location)
+	countReader := count.New(state.Config.Buffer, &mainRedis, state.Logger, state.Ps, state.Location)
 	countToDiff := make(chan reserver.Count)
 	diffToReserve := make(chan reserver.Diff)
 	countToReserve := make(chan reserver.Count)
