@@ -1,3 +1,10 @@
+## [1.18.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.17.1...v1.18.0) (2024-03-07)
+
+
+### ✨ Features ✨
+
+* allow configurable buffers ([1418453](https://github.com/AtomiCloud/nitroso.tin/commit/1418453d2f6c017873e2d9fd0709f82c982592b2))
+
 ## [1.17.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.17.0...v1.17.1) (2024-03-02)
 
 
