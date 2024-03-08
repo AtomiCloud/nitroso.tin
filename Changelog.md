@@ -1,3 +1,10 @@
+## [1.19.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.18.0...v1.19.0) (2024-03-08)
+
+
+### ✨ Features ✨
+
+* tweak concurrency values for better performance ([e7260a3](https://github.com/AtomiCloud/nitroso.tin/commit/e7260a3f1bb0d2475d092997f6f3de196f17e2a9))
+
 ## [1.18.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.17.1...v1.18.0) (2024-03-07)
 
 
