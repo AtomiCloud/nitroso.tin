@@ -259,7 +259,7 @@ func (c *Client) maintenanceOver(t time.Time) (time.Time, error) {
 
 	now := t.In(c.loc)
 
-	targetTime, err := time.ParseInLocation("2006-01-02 15:04:05", now.Format("2006-01-02")+" 00:14:58", c.loc)
+	targetTime, err := time.ParseInLocation("2006-01-02 15:04:05", now.Format("2006-01-02")+" 00:14:59", c.loc)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to parse time")
 		return now, err

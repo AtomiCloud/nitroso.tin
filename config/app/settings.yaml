@@ -55,9 +55,9 @@ reserver:
   group: reserver
   backoffLimit: 3
   normalConcurrency: 25
-  maintenanceConcurrency: 10
-  normalAttempts: 5
-  maintenanceAttempts: 100
+  maintenanceConcurrency: 15
+  normalAttempts: 3
+  maintenanceAttempts: 15
 
 enricher:
   group: enricher
