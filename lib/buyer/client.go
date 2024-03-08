@@ -74,6 +74,7 @@ func (c *Client) Start(ctx context.Context) error {
 
 	for {
 		shouldExit, err := c.loop(ctx)
+		time.Sleep(5 * time.Second)
 		if err != nil {
 			if errorCounter >= maxCounter {
 				c.logger.Error().Err(err).Msg("Failed all backoff attempts, exiting...")
@@ -129,7 +130,6 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 			c.logger.Error().Err(er).Msg("Failed to buy")
 			return er
 		}
-		time.Sleep(5 * time.Second)
 		return nil
 	})
 	if err != nil {
