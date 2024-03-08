@@ -1,3 +1,10 @@
+## [1.19.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.19.1...v1.19.2) (2024-03-08)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect throttle placement ([fc87382](https://github.com/AtomiCloud/nitroso.tin/commit/fc8738262c785050737ce49ac1d5ee89d9450c07))
+
 ## [1.19.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.19.0...v1.19.1) (2024-03-08)
 
 
