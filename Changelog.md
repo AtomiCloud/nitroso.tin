@@ -1,3 +1,10 @@
+## [1.19.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.19.0...v1.19.1) (2024-03-08)
+
+
+### 🐛 Bug Fixes 🐛
+
+* throttle buyer ([24dbd7f](https://github.com/AtomiCloud/nitroso.tin/commit/24dbd7fc027512f51a23b7aa01a806800c154b77))
+
 ## [1.19.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.18.0...v1.19.0) (2024-03-08)
 
 
