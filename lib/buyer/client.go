@@ -129,6 +129,7 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 			c.logger.Error().Err(er).Msg("Failed to buy")
 			return er
 		}
+		time.Sleep(5 * time.Second)
 		return nil
 	})
 	if err != nil {
