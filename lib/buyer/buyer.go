@@ -103,6 +103,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger) ([]byte, string, 
 		return nil, "", "", err
 	}
 
+	c.logger.Info().Any("passenger", p).Msg("Successfully purchased Ticket")
 	return ticket, complete.Data.Booking.BookingNo, complete.Data.Booking.Trips[0].Tickets[0].TicketNo, nil
 
 }
