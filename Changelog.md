@@ -1,3 +1,10 @@
+## [1.20.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.19.2...v1.20.0) (2024-03-13)
+
+
+### ✨ Features ✨
+
+* logs for succesful passenger data purchase ([26b1908](https://github.com/AtomiCloud/nitroso.tin/commit/26b190870389431f9c5ddbf9a299c8318e01ef48))
+
 ## [1.19.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.19.1...v1.19.2) (2024-03-08)
 
 
