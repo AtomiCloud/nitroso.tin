@@ -1,3 +1,10 @@
+## [1.21.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.20.0...v1.21.0) (2024-03-17)
+
+
+### ✨ Features ✨
+
+* limit capabilites and add logs ([8791eb8](https://github.com/AtomiCloud/nitroso.tin/commit/8791eb884e7bc426b8595d6cffd6f9db54774caa))
+
 ## [1.20.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.19.2...v1.20.0) (2024-03-13)
 
 
