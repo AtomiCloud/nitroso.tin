@@ -65,7 +65,17 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 		Namespace: h.namespace,
 	}
 
+	t := true
+	f := false
+	var onek int64 = 1000
+
 	spec := v1.PodSpec{
+		SecurityContext: &v1.PodSecurityContext{
+			RunAsUser:    &onek,
+			RunAsGroup:   &onek,
+			RunAsNonRoot: &t,
+			FSGroup:      &onek,
+		},
 		Containers: []v1.Container{
 			{
 				Name:  "helium-pollee",
@@ -81,6 +91,18 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 					direction,
 					"-i",
 					"180", // 3 minutes
+				},
+				SecurityContext: &v1.SecurityContext{
+					AllowPrivilegeEscalation: &f,
+					ReadOnlyRootFilesystem:   &t,
+					RunAsNonRoot:             &t,
+					RunAsGroup:               &onek,
+					RunAsUser:                &onek,
+					Capabilities: &v1.Capabilities{
+						Drop: []v1.Capability{
+							"ALL",
+						},
+					},
 				},
 				Env: []v1.EnvVar{
 					{

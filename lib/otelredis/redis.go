@@ -80,6 +80,7 @@ func (r OtelRedis) QueuePop(ctx context.Context, tracer trace.Tracer, queue stri
 
 	popped, err := result.Result()
 	if err != nil {
+
 		return err
 	}
 
