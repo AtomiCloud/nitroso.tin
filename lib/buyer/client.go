@@ -23,6 +23,7 @@ import (
 type Client struct {
 	buyer            *Buyer
 	mainRedis        *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
 	otelConfigurator *telemetry.OtelConfigurator
 	logger           *zerolog.Logger
 	streamsCfg       config.StreamConfig
@@ -52,11 +53,12 @@ func createForm(values map[string]io.Reader) (s string, reader io.Reader, err er
 	return w.FormDataContentType(), &b, nil
 }
 
-func New(buyer *Buyer, mainRedis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger,
+func New(buyer *Buyer, mainRedis, streamRedis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger,
 	streamsCfg config.StreamConfig, buyerCfg config.BuyerConfig, psm string, zinc *zinc.Client, enrc encryptor.Encryptor[reserver.ReserveDto]) *Client {
 	return &Client{
 		buyer:            buyer,
 		mainRedis:        mainRedis,
+		streamRedis:      streamRedis,
 		otelConfigurator: otelConfigurator,
 		logger:           logger,
 		streamsCfg:       streamsCfg,
@@ -110,7 +112,7 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 	tracer := otel.Tracer(c.psm)
 
 	c.logger.Info().Ctx(ctx).Str("queue", c.streamsCfg.Reserver).Msg("Buyer waiting for reserver message...")
-	err = c.mainRedis.QueuePop(ctx, tracer, c.streamsCfg.Reserver, func(ctx context.Context, message json.RawMessage) error {
+	err = c.streamRedis.QueuePop(ctx, tracer, c.streamsCfg.Reserver, func(ctx context.Context, message json.RawMessage) error {
 		c.logger.Info().Ctx(ctx).Msg("Buyer received reserver emitted signal")
 		var output string
 		e := json.Unmarshal(message, &output)

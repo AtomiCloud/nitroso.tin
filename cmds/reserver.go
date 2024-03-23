@@ -42,7 +42,7 @@ func (state *State) Reserver(c *cli.Context) error {
 	loginSyncer := reserver.NewLoginSyncer(loginToReserve, &streamRedis, retriever, state.OtelConfigurator,
 		state.Logger, state.Psm, state.Ps, state.Config.Stream, state.Config.Reserver)
 
-	client := reserver.New(k, state.Logger, &mainRedis, rEncr, state.Config.Reserver, state.Config.Stream, appInfo,
+	client := reserver.New(k, state.Logger, &mainRedis, &streamRedis, rEncr, state.Config.Reserver, state.Config.Stream, appInfo,
 		state.OtelConfigurator, state.Psm, state.Location, loginToReserve, countToReserve, diffToReserve)
 
 	go func() {
