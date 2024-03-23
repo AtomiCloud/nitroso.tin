@@ -20,7 +20,7 @@ func (state *State) Buyer(c *cli.Context) error {
 	ctx := c.Context
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
 	encr := encryptor.NewSymEncryptor[reserver.ReserveDto](state.Config.Encryptor.Key, state.Logger)
 
 	endpoint := fmt.Sprintf("%s://%s:%s", buyerCfg.Scheme, buyerCfg.Host, buyerCfg.Port)
@@ -33,7 +33,7 @@ func (state *State) Buyer(c *cli.Context) error {
 		return er
 	}
 
-	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber)
+	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber, state.Config.Buyer.SleepBuffer)
 	client := buyer.New(&b, &mainRedis, state.OtelConfigurator, state.Logger, state.Config.Stream, state.Config.Buyer, state.Psm, zClient, encr)
 
 	err := client.Start(ctx)

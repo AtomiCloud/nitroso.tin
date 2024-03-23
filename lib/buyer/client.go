@@ -74,7 +74,6 @@ func (c *Client) Start(ctx context.Context) error {
 
 	for {
 		shouldExit, err := c.loop(ctx)
-		time.Sleep(5 * time.Second)
 		if err != nil {
 			if errorCounter >= maxCounter {
 				c.logger.Error().Err(err).Msg("Failed all backoff attempts, exiting...")

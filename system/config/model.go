@@ -28,6 +28,8 @@ type BuyerConfig struct {
 	BackoffLimit  int
 	ContactNumber string
 
+	SleepBuffer int
+
 	Scheme string
 	Host   string
 	Port   string

@@ -27,6 +27,7 @@ ktmb:
 buyer:
   backoffLimit: 3
   contactNumber: "+6581272251"
+  sleepBuffer: 3
   scheme: http
   host: localhost
   port: 9000

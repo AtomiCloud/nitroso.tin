@@ -16,7 +16,7 @@ func (state *State) Terminator(c *cli.Context) error {
 	ctx := c.Context
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
 
 	term := terminator.NewTerminator(k, state.Logger, enricherConfig)
 	client := terminator.New(&term, &mainRedis, state.OtelConfigurator, termConfig, state.Logger, state.Psm)

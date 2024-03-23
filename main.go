@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/cmds"
 	"github.com/AtomiCloud/nitroso-tin/lib/auth"
-	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
-	"github.com/AtomiCloud/nitroso-tin/lib/terminator"
+	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
 	"github.com/urfave/cli/v2"
@@ -108,23 +107,18 @@ func main() {
 				Action: state.Terminator,
 			},
 			{
-				Name: "test",
+				Name: "resend",
 				Action: func(context *cli.Context) error {
-					ktmbConfig := state.Config.Ktmb
-					enricherConfig := state.Config.Enricher
 
-					k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy)
-					term := terminator.NewTerminator(k, state.Logger, enricherConfig)
+					mainRedis := otelredis.New(state.Config.Cache["main"])
 
-					e := term.Terminate(terminator.BookingTermination{
-						BookingNo: "KST240255503142",
-						TicketNo:  "TST240247666907",
-					})
+					r := mainRedis.LPush(context.Context, "buyqueue", ``)
+					cmd, e := r.Result()
 					if e != nil {
-						state.Logger.Err(e).Msg("Failed to terminate")
+						state.Logger.Err(e).Msg("failed to push")
 						return e
 					}
-
+					state.Logger.Info().Int64("cmd", cmd).Msg("succeeded")
 					return nil
 				},
 			},
