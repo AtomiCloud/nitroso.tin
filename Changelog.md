@@ -1,3 +1,11 @@
+## [1.22.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.21.0...v1.22.0) (2024-03-23)
+
+
+### ✨ Features ✨
+
+* remove proxy from enricher & buyer and add delay in buyer ([2d5e0a1](https://github.com/AtomiCloud/nitroso.tin/commit/2d5e0a14d5eb08bf28f2b8e7baefe968034a14b3))
+* use stream redis instead of upstash ([20e66c3](https://github.com/AtomiCloud/nitroso.tin/commit/20e66c3cf261c340aefd4afe6305dd13e5a9e2d4))
+
 ## [1.21.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.20.0...v1.21.0) (2024-03-17)
 
 
