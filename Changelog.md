@@ -1,3 +1,10 @@
+## [1.22.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.22.0...v1.22.1) (2024-03-23)
+
+
+### 🐛 Bug Fixes 🐛
+
+* allow enricher to use proxy ([4319705](https://github.com/AtomiCloud/nitroso.tin/commit/43197059bd7c3ffe96d15d0a16cc7a982b0f85c7))
+
 ## [1.22.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.21.0...v1.22.0) (2024-03-23)
 
 
