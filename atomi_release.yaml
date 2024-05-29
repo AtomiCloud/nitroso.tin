@@ -22,9 +22,7 @@ specialScopes:
     release: false
 
 plugins:
-  - module: "@semantic-release/changelog"
-    config:
-      changelogFile: Changelog.md
+  - module: "conventional-changelog-conventionalcommits@7.0.2"
   - module: "@semantic-release/exec"
     config:
       prepareCmd: scripts/ci/publish.sh ${nextRelease.version}
