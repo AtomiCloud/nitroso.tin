@@ -1,3 +1,11 @@
+## [1.24.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.23.0...v1.24.0) (2024-05-29)
+
+
+### ✨ Features ✨
+
+* increase delay to 16 seconds per time slot ([c9fa650](https://github.com/AtomiCloud/nitroso.tin/commit/c9fa650fbcb4dcd7e5453e2ec08c421a0af16b20))
+* increase delay to 16 seconds per time slot ([3952dc5](https://github.com/AtomiCloud/nitroso.tin/commit/3952dc5e02eebcfa1ad40c50737558d771fcb1d7))
+
 ## [1.23.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.22.1...v1.23.0) (2024-05-29)
 
 
