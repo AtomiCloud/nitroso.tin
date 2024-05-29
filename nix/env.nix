@@ -50,6 +50,7 @@ with packages;
   ];
 
   releaser = [
+    npm
     sg
     helm
   ];

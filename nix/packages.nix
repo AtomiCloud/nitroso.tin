@@ -51,6 +51,7 @@ let
           docker
           k3d;
         helm = kubernetes-helm;
+        npm = nodePackages.npm;
       }
     );
   };
