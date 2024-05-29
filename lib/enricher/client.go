@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/rs/zerolog"
+	ti "time"
 )
 
 type Client struct {
@@ -73,6 +74,7 @@ func (c *Client) Find(userData, dir string, date string, time string) (FindRes, 
 		tData = jData
 	}
 
+	ti.Sleep(2 * ti.Second)
 	stations, err := c.ktmb.SearchStations(userData, fId, fData, tId, tData, d, 1)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to search station")
@@ -84,6 +86,7 @@ func (c *Client) Find(userData, dir string, date string, time string) (FindRes, 
 		return FindRes{}, fmt.Errorf("failed to search station: %v", stations.Messages)
 	}
 
+	ti.Sleep(2 * ti.Second)
 	trip, err := c.ktmb.Trip(userData, d, stations.Data.SearchData)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to get trips")

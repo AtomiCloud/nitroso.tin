@@ -148,18 +148,18 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 	slots := 0
 	for dir, dirCount := range counts {
 		for date, dateCount := range dirCount {
-			for time, _ := range dateCount {
-
-				go func(ch chan Find, eCh chan error, dir, date, time string) {
+			for t, _ := range dateCount {
+				time.Sleep(2 * time.Second)
+				go func(ch chan Find, eCh chan error, dir, date, t string) {
 
 					d := lib.ZincToHeliumDate(date)
 
-					find, e := p.client.Find(userData, dir, d, time)
+					find, e := p.client.Find(userData, dir, d, t)
 					if e != nil {
 						p.logger.Error().Ctx(ctx).Err(e).
 							Str("dir", dir).
 							Str("date", date).
-							Str("time", time).
+							Str("time", t).
 							Msg("Failed to get find")
 						eCh <- e
 						return
@@ -167,10 +167,10 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 					ch <- Find{
 						Direction: dir,
 						Date:      date,
-						Time:      time,
+						Time:      t,
 						Data:      find,
 					}
-				}(c, errC, dir, date, time)
+				}(c, errC, dir, date, t)
 				slots = slots + 1
 			}
 		}
