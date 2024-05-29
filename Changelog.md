@@ -1,3 +1,10 @@
+## [1.25.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.24.0...v1.25.0) (2024-05-29)
+
+
+### ✨ Features ✨
+
+* disable proxy usage ([e56cb7f](https://github.com/AtomiCloud/nitroso.tin/commit/e56cb7f303ecd879dbee5f127de581d9849bfcbd))
+
 ## [1.24.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.23.0...v1.24.0) (2024-05-29)
 
 
