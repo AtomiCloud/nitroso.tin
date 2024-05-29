@@ -1,3 +1,20 @@
+## [1.23.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.22.1...v1.23.0) (2024-05-29)
+
+
+### ✨ Features ✨
+
+* add delay between enricher polls ([60e1adc](https://github.com/AtomiCloud/nitroso.tin/commit/60e1adc89494467c55d2bdae38f50c7baa7c9bff))
+* pin commit-analyzer ([53517a4](https://github.com/AtomiCloud/nitroso.tin/commit/53517a43bac0861231e973aafdc4f3156cab1529))
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect atomi-release ([81aa1ec](https://github.com/AtomiCloud/nitroso.tin/commit/81aa1ecf53545c7b60ca03de98d8c9111a5a420b))
+* incorrect pin ([8c982bf](https://github.com/AtomiCloud/nitroso.tin/commit/8c982bf25cd4e78d44c8f004c81c187dd9a4a39b))
+* **attempt:** pin generator to 7.0.2 ([90dc94a](https://github.com/AtomiCloud/nitroso.tin/commit/90dc94a5239b5731cfdd356a706ecf0a8628e624))
+* pin release-notes-generator ([46b6642](https://github.com/AtomiCloud/nitroso.tin/commit/46b6642d0c541d96f74e1cb1ba700b1917a252e8))
+* pin to 7.0.2 ([b2a342c](https://github.com/AtomiCloud/nitroso.tin/commit/b2a342c61bab2a30927644d861d482441017df17))
+
 ## [1.22.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.22.0...v1.22.1) (2024-03-23)
 
 
