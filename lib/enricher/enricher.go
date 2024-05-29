@@ -149,7 +149,7 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 	for dir, dirCount := range counts {
 		for date, dateCount := range dirCount {
 			for t, _ := range dateCount {
-				time.Sleep(10 * time.Second)
+				time.Sleep(16 * time.Second)
 				go func(ch chan Find, eCh chan error, dir, date, t string) {
 
 					d := lib.ZincToHeliumDate(date)
