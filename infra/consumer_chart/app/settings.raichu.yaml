@@ -17,7 +17,7 @@ buyer:
   scheme: http
   host: zinc-api
   port: 80
-  sleepBuffer: 5
+  sleepBuffer: 7
 
 cdc:
   group: cdc
