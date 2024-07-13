@@ -1,3 +1,15 @@
+## [1.25.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.25.0...v1.25.1) (2024-07-13)
+
+
+### 🐛 Bug Fixes 🐛
+
+* increase sleep buffer ([da80247](https://github.com/AtomiCloud/nitroso.tin/commit/da802476f632730c01cf36fe57b08de59d5ed297))
+
+
+### 🔼 Dependency Upstreams 🔼
+
+* update semantic-release to 0.9.0 ([3af0a96](https://github.com/AtomiCloud/nitroso.tin/commit/3af0a96152c1280b1bb22cdb8a7158245236eb8c))
+
 ## [1.25.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.24.0...v1.25.0) (2024-05-29)
 
 
