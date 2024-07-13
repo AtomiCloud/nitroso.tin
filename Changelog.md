@@ -1,3 +1,10 @@
+## [1.26.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.25.1...v1.26.0) (2024-07-13)
+
+
+### ✨ Features ✨
+
+* reduce ttl to 3minutes to reduce cluster clutter ([b9a1b52](https://github.com/AtomiCloud/nitroso.tin/commit/b9a1b5228e1881602ec9a8547c1160123bad4bb9))
+
 ## [1.25.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.25.0...v1.25.1) (2024-07-13)
 
 
