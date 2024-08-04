@@ -1,3 +1,10 @@
+## [1.27.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.27.0...v1.27.1) (2024-08-04)
+
+
+### 🐛 Bug Fixes 🐛
+
+* reduce request ([18a8ce5](https://github.com/AtomiCloud/nitroso.tin/commit/18a8ce53913928e3cfa3b25096b352b74d32266b))
+
 ## [1.27.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.26.0...v1.27.0) (2024-08-04)
 
 
