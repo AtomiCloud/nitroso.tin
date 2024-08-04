@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"strings"
@@ -91,6 +92,16 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 					direction,
 					"-i",
 					"180", // 3 minutes
+				},
+				Resources: v1.ResourceRequirements{
+					Limits: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("1000"),
+						v1.ResourceMemory: resource.MustParse("1Gi"),
+					},
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("0"),
+						v1.ResourceMemory: resource.MustParse("0"),
+					},
 				},
 				SecurityContext: &v1.SecurityContext{
 					AllowPrivilegeEscalation: &f,
