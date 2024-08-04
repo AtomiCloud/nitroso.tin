@@ -1,3 +1,10 @@
+## [1.27.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.26.0...v1.27.0) (2024-08-04)
+
+
+### ✨ Features ✨
+
+* improve proxy-processing script ([d215dd2](https://github.com/AtomiCloud/nitroso.tin/commit/d215dd2e70bf639c0473331d64f9c91580428db9))
+
 ## [1.26.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.25.1...v1.26.0) (2024-07-13)
 
 
