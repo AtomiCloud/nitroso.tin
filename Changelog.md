@@ -1,3 +1,10 @@
+## [1.29.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.29.0...v1.29.1) (2024-08-08)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect downward api for poller ([07295bd](https://github.com/AtomiCloud/nitroso.tin/commit/07295bda132429f8a4dffdf1e8dfbdb5c5e5d648))
+
 ## [1.29.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.28.0...v1.29.0) (2024-08-08)
 
 
