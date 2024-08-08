@@ -1,3 +1,10 @@
+## [1.28.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.27.1...v1.28.0) (2024-08-08)
+
+
+### ✨ Features ✨
+
+* assign self as owner for jobs created ([c356910](https://github.com/AtomiCloud/nitroso.tin/commit/c35691091840155dc611e76d9e6fd5d8f89cbc87))
+
 ## [1.27.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.27.0...v1.27.1) (2024-08-04)
 
 
