@@ -1,3 +1,10 @@
+## [1.29.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.28.0...v1.29.0) (2024-08-08)
+
+
+### ✨ Features ✨
+
+* create a single multi-watch job insteal of multiple watch jobs ([940c60b](https://github.com/AtomiCloud/nitroso.tin/commit/940c60bd38e04fb9aaa62c7da130e8726fc60914))
+
 ## [1.28.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.27.1...v1.28.0) (2024-08-08)
 
 
