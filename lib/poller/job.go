@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"strings"
 )
@@ -23,9 +24,12 @@ type HeliumJobCreator struct {
 	configMapRef string
 	secretRef    string
 	logger       *zerolog.Logger
+	podName      string
+	podNamespace string
+	podUID       types.UID
 }
 
-func NewHeliumJobCreator(kubectl *kubernetes.Clientset, polleeConfig config.PolleeConfig, appConfig config.AppConfig, logger *zerolog.Logger) *HeliumJobCreator {
+func NewHeliumJobCreator(kubectl *kubernetes.Clientset, polleeConfig config.PolleeConfig, appConfig config.AppConfig, logger *zerolog.Logger, podName, podNamespace string, podUID types.UID) *HeliumJobCreator {
 	return &HeliumJobCreator{
 		kubectl:      kubectl,
 		namespace:    polleeConfig.Namespace,
@@ -35,6 +39,9 @@ func NewHeliumJobCreator(kubectl *kubernetes.Clientset, polleeConfig config.Poll
 		configMapRef: polleeConfig.ConfigRef,
 		secretRef:    polleeConfig.SecretRef,
 		logger:       logger,
+		podName:      podName,
+		podNamespace: podNamespace,
+		podUID:       podUID,
 	}
 }
 
@@ -64,12 +71,19 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, date, direction string)
 	meta := metav1.ObjectMeta{
 		Name:      name,
 		Namespace: h.namespace,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: "v1",
+				Kind:       "Pod",
+				Name:       h.podName,
+				UID:        h.podUID,
+			},
+		},
 	}
 
 	t := true
 	f := false
 	var onek int64 = 1000
-
 	spec := v1.PodSpec{
 		SecurityContext: &v1.PodSecurityContext{
 			RunAsUser:    &onek,
