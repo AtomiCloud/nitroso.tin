@@ -72,16 +72,23 @@ func (p *Poller) createPoller(ctx context.Context) error {
 		return err
 	}
 
+	jobs := make([]HeliumJob, 0)
+
 	for dir, dirCount := range counts {
 
 		for date := range dirCount {
-			p.logger.Info().Ctx(ctx).Msgf("dir: %s, date: %s", dir, date)
-			er := p.job.CreateJob(ctx, date, dir)
-			if er != nil {
-				p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create job")
-				return er
-			}
+			jobs = append(jobs, HeliumJob{
+				Date: date,
+				From: dir,
+			})
 		}
+	}
+
+	p.logger.Info().Any("jobs", jobs).Ctx(ctx).Msgf("Create %d jobs", len(jobs))
+	er := p.job.CreateMultiJob(ctx, jobs)
+	if er != nil {
+		p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create multi job")
+		return er
 	}
 	return nil
 }

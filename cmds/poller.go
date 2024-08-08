@@ -49,7 +49,7 @@ func (state *State) Poller(c *cli.Context) error {
 
 	countReader := count.New(state.Config.Buffer, &mainRedis, state.Logger, state.Ps, state.Location)
 
-	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger, podName, podNamespace, currentPod.UID)
+	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger, podName, currentPod.UID)
 	trigger := poller.NewTrigger(channel, state.Logger, &streamRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psm)
 
 	p := poller.NewPoller(channel, job, trigger, state.Logger, state.Psm, state.Ps, countReader)
