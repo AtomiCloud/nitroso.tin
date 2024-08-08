@@ -1,3 +1,10 @@
+## [1.29.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.29.1...v1.29.2) (2024-08-08)
+
+
+### 🐛 Bug Fixes 🐛
+
+* allow role to get pods ([48aec66](https://github.com/AtomiCloud/nitroso.tin/commit/48aec663f22de18440f558dcfbb08807fe2c87ee))
+
 ## [1.29.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.29.0...v1.29.1) (2024-08-08)
 
 
