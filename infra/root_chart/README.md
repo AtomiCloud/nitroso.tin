@@ -16,7 +16,7 @@ Root Chart to a single Service
 | file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
 | oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.9.3 |
 | oci://ghcr.io/atomicloud/nitroso.zinc | zinc(root-chart) | 1.18.0 |
-| oci://ghcr.io/atomicloud/sulfoxide.bromine | bromine(sulfoxide-bromine) | 1.4.0 |
+| oci://ghcr.io/atomicloud/sulfoxide.bromine | bromine(sulfoxide-bromine) | 1.6.0 |
 | oci://registry-1.docker.io/bitnamicharts | livecache(redis) | 18.6.1 |
 
 ## Values
@@ -25,16 +25,20 @@ Root Chart to a single Service
 |-----|------|---------|-------------|
 | bromine.annotations."argocd.argoproj.io/sync-wave" | string | `"1"` |  |
 | bromine.enable | bool | `false` |  |
-| bromine.rootSecret | object | `{"name":"nitroso-tin-doppler","ref":"NITROSO_TIN"}` | Secret of Secrets reference |
-| bromine.rootSecret.ref | string | `"NITROSO_TIN"` | DOPPLER Token Reference |
-| bromine.storeName | string | `"nitroso-tin"` | Store name to create |
-| bromine.target | string | `"nitroso-tin"` |  |
+| bromine.rootSecret | object | `{"name":"tin","ref":{"clientId":"NITROSO_ZINC_CLIENT_ID","clientSecret":"NITROSO_ZINC_CLIENT_SECRET"}}` | Secret of Secrets reference |
+| bromine.rootSecret.ref | object | `{"clientId":"NITROSO_ZINC_CLIENT_ID","clientSecret":"NITROSO_ZINC_CLIENT_SECRET"}` | Infisical Token Reference |
+| bromine.serviceTree.<<.landscape | string | `"lapras"` |  |
+| bromine.serviceTree.<<.layer | string | `"2"` |  |
+| bromine.serviceTree.<<.platform | string | `"nitroso"` |  |
+| bromine.serviceTree.<<.service | string | `"tin"` |  |
+| bromine.storeName | string | `"tin"` | Store name to create |
+| bromine.target | string | `"tin"` |  |
 | buyer.affinity | object | `{}` |  |
 | buyer.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
 | buyer.appSettings.app.module | string | `"buyer"` |  |
 | buyer.autoscaling | object | `{}` |  |
 | buyer.configMountPath | string | `"/app/config"` |  |
-| buyer.envFromSecret | string | `"nitroso-tin"` |  |
+| buyer.envFromSecret | string | `"tin"` |  |
 | buyer.image.pullPolicy | string | `"IfNotPresent"` |  |
 | buyer.image.repository | string | `"nitroso-tin-buyer"` |  |
 | buyer.image.tag | string | `""` |  |
@@ -60,7 +64,7 @@ Root Chart to a single Service
 | cdc.appSettings.app.module | string | `"cdc"` |  |
 | cdc.autoscaling | object | `{}` |  |
 | cdc.configMountPath | string | `"/app/config"` |  |
-| cdc.envFromSecret | string | `"nitroso-tin"` |  |
+| cdc.envFromSecret | string | `"tin"` |  |
 | cdc.image.pullPolicy | string | `"IfNotPresent"` |  |
 | cdc.image.repository | string | `"nitroso-tin-cdc"` |  |
 | cdc.image.tag | string | `""` |  |
@@ -87,7 +91,7 @@ Root Chart to a single Service
 | enricher.appSettings.app.module | string | `"enricher"` |  |
 | enricher.autoscaling | object | `{}` |  |
 | enricher.configMountPath | string | `"/app/config"` |  |
-| enricher.envFromSecret | string | `"nitroso-tin"` |  |
+| enricher.envFromSecret | string | `"tin"` |  |
 | enricher.image.pullPolicy | string | `"IfNotPresent"` |  |
 | enricher.image.repository | string | `"nitroso-tin-enricher"` |  |
 | enricher.image.tag | string | `""` |  |
@@ -116,7 +120,7 @@ Root Chart to a single Service
 | helium.fullnameOverride | string | `"helium-poller"` |  |
 | livecache.architecture | string | `"standalone"` |  |
 | livecache.auth.enabled | bool | `true` |  |
-| livecache.auth.existingSecret | string | `"nitroso-tin"` |  |
+| livecache.auth.existingSecret | string | `"tin"` |  |
 | livecache.auth.existingSecretPasswordKey | string | `"ATOMI_CACHE__LIVE__PASSWORD"` |  |
 | livecache.commonAnnotations."argocd.argoproj.io/sync-wave" | string | `"2"` |  |
 | livecache.commonAnnotations."atomi.cloud/module" | string | `"livecache"` |  |
@@ -144,7 +148,7 @@ Root Chart to a single Service
 | poller.appSettings.app.module | string | `"poller"` |  |
 | poller.autoscaling | object | `{}` |  |
 | poller.configMountPath | string | `"/app/config"` |  |
-| poller.envFromSecret | string | `"nitroso-tin"` |  |
+| poller.envFromSecret | string | `"tin"` |  |
 | poller.image.pullPolicy | string | `"IfNotPresent"` |  |
 | poller.image.repository | string | `"nitroso-tin-poller"` |  |
 | poller.image.tag | string | `""` |  |
@@ -173,7 +177,7 @@ Root Chart to a single Service
 | reserver.appSettings.app.module | string | `"reserver"` |  |
 | reserver.autoscaling | object | `{}` |  |
 | reserver.configMountPath | string | `"/app/config"` |  |
-| reserver.envFromSecret | string | `"nitroso-tin"` |  |
+| reserver.envFromSecret | string | `"tin"` |  |
 | reserver.env[0].name | string | `"ATOMI_RESERVER__GROUP"` |  |
 | reserver.env[0].valueFrom.fieldRef.fieldPath | string | `"metadata.name"` |  |
 | reserver.image.pullPolicy | string | `"IfNotPresent"` |  |
@@ -209,7 +213,7 @@ Root Chart to a single Service
 | terminator.appSettings.app.module | string | `"terminator"` |  |
 | terminator.autoscaling | object | `{}` |  |
 | terminator.configMountPath | string | `"/app/config"` |  |
-| terminator.envFromSecret | string | `"nitroso-tin"` |  |
+| terminator.envFromSecret | string | `"tin"` |  |
 | terminator.image.pullPolicy | string | `"IfNotPresent"` |  |
 | terminator.image.repository | string | `"nitroso-tin-terminator"` |  |
 | terminator.image.tag | string | `""` |  |

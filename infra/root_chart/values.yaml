@@ -1,7 +1,7 @@
 serviceTree: &serviceTree
   landscape: "lapras"
   platform: "nitroso"
-  service: "tin"
+  service: &service "tin"
   layer: "2"
 
 tags: &tags
@@ -10,19 +10,22 @@ tags: &tags
   atomi.cloud/layer: "2"
 
 bromine:
+  serviceTree:
+    <<: *serviceTree
   annotations:
     argocd.argoproj.io/sync-wave: "1"
   enable: false
   # -- Store name to create
-  storeName: nitroso-tin
+  storeName: *service
   # -- Secret of Secrets reference
   rootSecret:
-    # -- DOPPLER Token Reference
-    ref: "NITROSO_TIN"
+    name: *service
+    # -- Infisical Token Reference
+    ref:
+      clientId: NITROSO_ZINC_CLIENT_ID
+      clientSecret: NITROSO_ZINC_CLIENT_SECRET
 
-    name: nitroso-tin-doppler
-
-  target: &target "nitroso-tin"
+  target: &target tin
 
 terminator:
   stateful: false

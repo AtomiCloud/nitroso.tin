@@ -3,6 +3,8 @@ serviceTree:
 
 bromine:
   enable: true
+  serviceTree:
+    landscape: *landscape
 
 buyer:
   serviceTree:
