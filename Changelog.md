@@ -1,3 +1,10 @@
+## [1.30.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.30.1...v1.30.2) (2024-08-11)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **revert:** non-all search ([c4ed511](https://github.com/AtomiCloud/nitroso.tin/commit/c4ed511c987a767de6105969ce13d7585a939dbc))
+
 ## [1.30.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.30.0...v1.30.1) (2024-08-11)
 
 
