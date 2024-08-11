@@ -1,3 +1,10 @@
+## [1.31.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.30.2...v1.31.0) (2024-08-11)
+
+
+### ✨ Features ✨
+
+* pin to correct secret ref ([c0dc6a5](https://github.com/AtomiCloud/nitroso.tin/commit/c0dc6a5c1b635c37abcb73ed2ccfaa33fa6852c8))
+
 ## [1.30.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.30.1...v1.30.2) (2024-08-11)
 
 
