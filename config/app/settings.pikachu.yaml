@@ -31,7 +31,7 @@ poller:
     namespace: "nitroso"
     image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium"
     version: "1.9.2"
-    secretRef: "nitroso-helium"
+    secretRef: "helium"
     configRef: "helium-pollee-config"
 
 otel:
