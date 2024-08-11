@@ -1,3 +1,10 @@
+## [1.30.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.30.0...v1.30.1) (2024-08-11)
+
+
+### 🐛 Bug Fixes 🐛
+
+* manual key list ([9afa807](https://github.com/AtomiCloud/nitroso.tin/commit/9afa8072b2a3885d637f3f4f1fca33a2a85e42af))
+
 ## [1.30.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.29.2...v1.30.0) (2024-08-11)
 
 
