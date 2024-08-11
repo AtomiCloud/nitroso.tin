@@ -1,3 +1,10 @@
+## [1.30.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.29.2...v1.30.0) (2024-08-11)
+
+
+### ✨ Features ✨
+
+* upgrade to use infisical ([43c5958](https://github.com/AtomiCloud/nitroso.tin/commit/43c59584679d8a4a630488c288556dca9c8d01f0))
+
 ## [1.29.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.29.1...v1.29.2) (2024-08-08)
 
 
