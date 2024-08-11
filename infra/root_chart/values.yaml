@@ -4,17 +4,6 @@ serviceTree: &serviceTree
   service: &service "tin"
   layer: "2"
 
-keys:
-  - ATOMI_AUTH__DESCOPE__DESCOPEACCESSKEY
-  - ATOMI_CACHE__LIVE__PASSWORD
-  - ATOMI_CACHE__MAIN__ENDPOINTS__0
-  - ATOMI_CACHE__MAIN__PASSWORD
-  - ATOMI_CACHE__STREAM__PASSWORD
-  - ATOMI_ENCRYPTOR__KEY
-  - ATOMI_ENRICHER__PASSWORD
-  - ATOMI_KTMB__PROXY
-  - ATOMI_KTMB__REQUESTSIGNATURE
-
 tags: &tags
   atomi.cloud/platform: "nitroso"
   atomi.cloud/service: "tin"
