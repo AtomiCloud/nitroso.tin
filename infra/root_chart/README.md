@@ -118,6 +118,15 @@ Root Chart to a single Service
 | helium.bromine.target | string | `"nitroso-helium"` |  |
 | helium.enable | bool | `false` |  |
 | helium.fullnameOverride | string | `"helium-poller"` |  |
+| keys[0] | string | `"ATOMI_AUTH__DESCOPE__DESCOPEACCESSKEY"` |  |
+| keys[1] | string | `"ATOMI_CACHE__LIVE__PASSWORD"` |  |
+| keys[2] | string | `"ATOMI_CACHE__MAIN__ENDPOINTS__0"` |  |
+| keys[3] | string | `"ATOMI_CACHE__MAIN__PASSWORD"` |  |
+| keys[4] | string | `"ATOMI_CACHE__STREAM__PASSWORD"` |  |
+| keys[5] | string | `"ATOMI_ENCRYPTOR__KEY"` |  |
+| keys[6] | string | `"ATOMI_ENRICHER__PASSWORD"` |  |
+| keys[7] | string | `"ATOMI_KTMB__PROXY"` |  |
+| keys[8] | string | `"ATOMI_KTMB__REQUESTSIGNATURE"` |  |
 | livecache.architecture | string | `"standalone"` |  |
 | livecache.auth.enabled | bool | `true` |  |
 | livecache.auth.existingSecret | string | `"tin"` |  |
