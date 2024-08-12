@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/cmds"
 	"github.com/AtomiCloud/nitroso-tin/lib/auth"
+	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
+	"github.com/AtomiCloud/nitroso-tin/lib/enricher"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
@@ -119,6 +121,19 @@ func main() {
 						return e
 					}
 					state.Logger.Info().Int64("cmd", cmd).Msg("succeeded")
+					return nil
+				},
+			},
+			{
+				Name: "decrypt",
+				Action: func(context *cli.Context) error {
+					eKey := os.Getenv("ENCRYPTION_KEY")
+					encr := encryptor.NewSymEncryptor[enricher.FindStore](eKey, state.Logger)
+					find, e := encr.DecryptAny(context.Args().First())
+					if e != nil {
+						state.Logger.Err(e).Msg("failed to decrypt")
+					}
+					state.Logger.Info().Any("find", find).Msg("decrypted")
 					return nil
 				},
 			},

@@ -16,6 +16,20 @@ type Retriever struct {
 	enricher  config.EnricherConfig
 }
 
+func storeToPublic(store enricher.FindStore) map[string]map[string][]string {
+	public := make(map[string]map[string][]string)
+	for dir, dirStore := range store {
+		public[dir] = make(map[string][]string)
+		for date, dateStore := range dirStore {
+			public[dir][date] = make([]string, 0)
+			for tt := range dateStore {
+				public[dir][date] = append(public[dir][date], tt)
+			}
+		}
+	}
+	return public
+}
+
 func NewRetriever(mainRedis *otelredis.OtelRedis, e encryptor.Encryptor[enricher.FindStore], logger *zerolog.Logger, enricher config.EnricherConfig) *Retriever {
 	return &Retriever{
 		mainRedis: mainRedis,
@@ -51,24 +65,29 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 	}
 
 	userDataEnc, err := r.mainRedis.Get(ctx, r.enricher.UserDataKey).Result()
+	r.logger.Info().Msg("Successfully obtained userdata from redis")
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to get user data")
 		return nil, err
 	}
 
 	storeEnc, err := r.mainRedis.Get(ctx, r.enricher.StoreKey).Result()
+	r.logger.Info().Msg("Successfully obtained store from redis")
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to get store")
 		return nil, err
 	}
 
 	userData, err := r.encr.Decrypt(userDataEnc)
+	r.logger.Info().Msg("Successfully decrypted user data")
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to decrypt user data")
 		return nil, err
 	}
 
 	store, err := r.encr.DecryptAny(storeEnc)
+
+	r.logger.Info().Any("store", storeToPublic(store)).Msg("Successfully decrypted store")
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to decrypt store")
 		return nil, err

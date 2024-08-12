@@ -2,6 +2,7 @@
 with packages;
 {
   system = [
+    gcc
     coreutils
     sd
     bash
@@ -56,3 +57,4 @@ with packages;
   ];
 
 }
+

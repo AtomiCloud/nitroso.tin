@@ -22,6 +22,7 @@ let
       with pkgs-feb-23-24;
       {
         inherit
+          gcc
           tilt
           skopeo
           doppler
