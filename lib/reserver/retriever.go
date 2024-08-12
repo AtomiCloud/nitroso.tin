@@ -2,7 +2,6 @@ package reserver
 
 import (
 	"context"
-	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/enricher"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
@@ -74,7 +73,7 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 
 	store, err := r.encr.DecryptAny(storeEnc)
 
-	r.logger.Info().Any("store", lib.StoreToPublic(store)).Msg("Successfully decrypted store")
+	r.logger.Info().Any("store", enricher.StoreToPublic(store)).Msg("Successfully decrypted store")
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to decrypt store")
 		return nil, err
