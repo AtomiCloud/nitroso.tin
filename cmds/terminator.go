@@ -15,11 +15,11 @@ func (state *State) Terminator(c *cli.Context) error {
 	enricherConfig := state.Config.Enricher
 	ctx := c.Context
 
-	mainRedis := otelredis.New(state.Config.Cache["main"])
+	streamRedis := otelredis.New(state.Config.Cache["stream"])
 	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
 
 	term := terminator.NewTerminator(k, state.Logger, enricherConfig)
-	client := terminator.New(&term, &mainRedis, state.OtelConfigurator, termConfig, state.Logger, state.Psm)
+	client := terminator.New(&term, &streamRedis, state.OtelConfigurator, termConfig, state.Logger, state.Psm)
 
 	err := client.Start(ctx)
 	if err != nil {

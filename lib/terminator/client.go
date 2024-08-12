@@ -14,7 +14,7 @@ import (
 
 type Client struct {
 	terminator       *Terminator
-	mainRedis        *otelredis.OtelRedis
+	redis            *otelredis.OtelRedis
 	otelConfigurator *telemetry.OtelConfigurator
 	config           config.TerminatorConfig
 	logger           *zerolog.Logger
@@ -23,13 +23,13 @@ type Client struct {
 
 var baseDelay = 1 * time.Second
 
-func New(terminator *Terminator, mainRedis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator,
+func New(terminator *Terminator, redis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator,
 	config config.TerminatorConfig,
 	logger *zerolog.Logger,
 	psm string) *Client {
 	return &Client{
 		terminator:       terminator,
-		mainRedis:        mainRedis,
+		redis:            redis,
 		otelConfigurator: otelConfigurator,
 		config:           config,
 		logger:           logger,
@@ -79,8 +79,8 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 
 	tracer := otel.Tracer(c.psm)
 
-	c.logger.Info().Ctx(ctx).Str("qeueue", c.config.QueueName).Msg("Terminator waiting for zinc message...")
-	err = c.mainRedis.QueuePop(ctx, tracer, c.config.QueueName, func(ctx context.Context, message json.RawMessage) error {
+	c.logger.Info().Ctx(ctx).Str("queue", c.config.QueueName).Msg("Terminator waiting for zinc message...")
+	err = c.redis.QueuePop(ctx, tracer, c.config.QueueName, func(ctx context.Context, message json.RawMessage) error {
 		c.logger.Info().Ctx(ctx).Msg("Terminator received zinc emitted termination")
 		var termMessage BookingTermination
 		e := json.Unmarshal(message, &termMessage)
