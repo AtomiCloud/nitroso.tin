@@ -209,6 +209,7 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to encrypt store")
 		return err
 	}
+	p.logger.Info().Any("store", lib.StoreToPublic(store)).Msg("Encrypted store")
 
 	udr, err := p.mainRedis.Set(ctx, p.enricher.UserDataKey, ud, 0).Result()
 	if err != nil {
