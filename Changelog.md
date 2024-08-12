@@ -1,3 +1,10 @@
+## [1.31.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.31.0...v1.31.1) (2024-08-12)
+
+
+### 🐛 Bug Fixes 🐛
+
+* increase deferred buy time up to 5 minutes ([c1449b1](https://github.com/AtomiCloud/nitroso.tin/commit/c1449b135665672d185e0aa20c13f188d05e598d))
+
 ## [1.31.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.30.2...v1.31.0) (2024-08-11)
 
 
