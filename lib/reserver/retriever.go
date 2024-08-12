@@ -2,6 +2,7 @@ package reserver
 
 import (
 	"context"
+	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/enricher"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
@@ -14,20 +15,6 @@ type Retriever struct {
 	encr      encryptor.Encryptor[enricher.FindStore]
 	logger    *zerolog.Logger
 	enricher  config.EnricherConfig
-}
-
-func storeToPublic(store enricher.FindStore) map[string]map[string][]string {
-	public := make(map[string]map[string][]string)
-	for dir, dirStore := range store {
-		public[dir] = make(map[string][]string)
-		for date, dateStore := range dirStore {
-			public[dir][date] = make([]string, 0)
-			for tt := range dateStore {
-				public[dir][date] = append(public[dir][date], tt)
-			}
-		}
-	}
-	return public
 }
 
 func NewRetriever(mainRedis *otelredis.OtelRedis, e encryptor.Encryptor[enricher.FindStore], logger *zerolog.Logger, enricher config.EnricherConfig) *Retriever {
@@ -87,7 +74,7 @@ func (r *Retriever) GetLoginData(ctx context.Context) (*LoginStore, error) {
 
 	store, err := r.encr.DecryptAny(storeEnc)
 
-	r.logger.Info().Any("store", storeToPublic(store)).Msg("Successfully decrypted store")
+	r.logger.Info().Any("store", lib.StoreToPublic(store)).Msg("Successfully decrypted store")
 	if err != nil {
 		r.logger.Error().Err(err).Msg("Failed to decrypt store")
 		return nil, err
