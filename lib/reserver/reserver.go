@@ -102,7 +102,7 @@ func (c *Client) Start(ctx context.Context) error {
 			filtered := make([]DeferredBuy, 0)
 			for _, b := range deferred {
 				c.logger.Info().Any("deferred", b).Msg("in login process")
-				if now.Sub(b.Instant) < time.Millisecond*3000 {
+				if now.Sub(b.Instant) < time.Minute*5 {
 					filtered = c.reserveProcess(ctx, loginCache, now, b.Direction, b.Date, b.Time, filtered)
 				}
 			}
