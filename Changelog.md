@@ -1,3 +1,10 @@
+## [1.33.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.0...v1.33.1) (2024-08-12)
+
+
+### 🐛 Bug Fixes 🐛
+
+* use stream redis for terminator ([8b43060](https://github.com/AtomiCloud/nitroso.tin/commit/8b430608385f3a5c72b508b1faf8ddd02f8d6cd9))
+
 ## [1.33.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.32.0...v1.33.0) (2024-08-12)
 
 
