@@ -1,3 +1,10 @@
+## [1.32.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.31.1...v1.32.0) (2024-08-12)
+
+
+### ✨ Features ✨
+
+* log decryption process ([93f6749](https://github.com/AtomiCloud/nitroso.tin/commit/93f674995da417c5b29c74ce2875230095419383))
+
 ## [1.31.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.31.0...v1.31.1) (2024-08-12)
 
 
