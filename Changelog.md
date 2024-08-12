@@ -1,3 +1,15 @@
+## [1.33.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.32.0...v1.33.0) (2024-08-12)
+
+
+### ✨ Features ✨
+
+* log encrypted store published ([76a8180](https://github.com/AtomiCloud/nitroso.tin/commit/76a81806b2413f355e9e563411ab1f884675aa0d))
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect store reference ([6b659ef](https://github.com/AtomiCloud/nitroso.tin/commit/6b659ef12b8a351ede5356041950d5586a6370b5))
+
 ## [1.32.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.31.1...v1.32.0) (2024-08-12)
 
 
