@@ -8,7 +8,8 @@
     # registry
     nixpkgs.url = "nixpkgs/d816b5ab44187a2dd84806630ce77a733724f95f";
     nixpkgs-2305.url = "nixpkgs/nixos-23.05";
-    nixpkgs-feb-23-24.url = "nixpkgs/0e74ca98a74bc7270d28838369593635a5db3260";
+    nixpkgs-240223.url = "nixpkgs/0e74ca98a74bc7270d28838369593635a5db3260";
+    nixpkgs-240925.url = "nixpkgs/568bfef547c14ca438c56a0bece08b8bb2b71a9c";
     atomipkgs.url = "github:kirinnee/test-nix-repo/v27.0.0";
   };
   outputs =
@@ -23,7 +24,8 @@
     , atomipkgs
     , nixpkgs
     , nixpkgs-2305
-    , nixpkgs-feb-23-24
+    , nixpkgs-240223
+    , nixpkgs-240925
 
     } @inputs:
     flake-utils.lib.eachDefaultSystem
@@ -31,7 +33,8 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         pkgs-2305 = nixpkgs-2305.legacyPackages.${system};
-        pkgs-feb-23-24 = nixpkgs-feb-23-24.legacyPackages.${system};
+        pkgs-240223 = nixpkgs-240223.legacyPackages.${system};
+        pkgs-240925 = nixpkgs-240925.legacyPackages.${system};
         atomi = atomipkgs.packages.${system};
         pre-commit-lib = pre-commit-hooks.lib.${system};
       in
@@ -44,7 +47,7 @@
             inherit treefmt-nix pkgs;
           };
           packages = import ./nix/packages.nix {
-            inherit pkgs atomi pkgs-2305 pkgs-feb-23-24;
+            inherit pkgs atomi pkgs-2305 pkgs-240223 pkgs-240925;
           };
           env = import ./nix/env.nix {
             inherit pkgs packages;

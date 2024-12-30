@@ -16,5 +16,5 @@ ports:
 registries:
   create:
     name: tauros.registry.lvh.me
-    host: "0.0.0.0"
-    hostPort: "20015"
+    host: '0.0.0.0'
+    hostPort: '20015'

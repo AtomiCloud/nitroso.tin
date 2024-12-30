@@ -1,19 +1,19 @@
 serviceTree: &serviceTree
-  landscape: "lapras"
-  platform: "nitroso"
-  service: &service "tin"
-  layer: "2"
+  landscape: 'lapras'
+  platform: 'nitroso'
+  service: &service 'tin'
+  layer: '2'
 
 tags: &tags
-  atomi.cloud/platform: "nitroso"
-  atomi.cloud/service: "tin"
-  atomi.cloud/layer: "2"
+  atomi.cloud/platform: 'nitroso'
+  atomi.cloud/service: 'tin'
+  atomi.cloud/layer: '2'
 
 bromine:
   serviceTree:
     <<: *serviceTree
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: '1'
   enable: false
   # -- Store name to create
   storeName: *service
@@ -22,22 +22,22 @@ bromine:
     name: *service
     # -- Infisical Token Reference
     ref:
-      clientId: NITROSO_ZINC_CLIENT_ID
-      clientSecret: NITROSO_ZINC_CLIENT_SECRET
+      clientId: NITROSO_TIN_CLIENT_ID
+      clientSecret: NITROSO_TIN_CLIENT_SECRET
 
   target: &target tin
 
 terminator:
   stateful: false
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: '4'
 
   envFromSecret: *target
 
   jobRbac:
     create: false
 
-  nameOverride: "tin-terminator"
+  nameOverride: 'tin-terminator'
 
   serviceTree:
     <<: *serviceTree
@@ -57,7 +57,7 @@ terminator:
     repository: nitroso-tin-terminator
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: ''
 
   serviceAccount:
     create: false
@@ -83,14 +83,14 @@ terminator:
 cdc:
   stateful: false
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: '4'
 
   envFromSecret: *target
 
   jobRbac:
     create: false
 
-  nameOverride: "tin-cdc"
+  nameOverride: 'tin-cdc'
 
   serviceTree:
     <<: *serviceTree
@@ -110,7 +110,7 @@ cdc:
     repository: nitroso-tin-cdc
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: ''
 
   serviceAccount:
     create: false
@@ -136,16 +136,16 @@ cdc:
 poller:
   stateful: false
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: '4'
 
   envFromSecret: *target
 
   jobRbac:
     create: true
     annotations:
-      argocd.argoproj.io/sync-wave: "4"
+      argocd.argoproj.io/sync-wave: '4'
 
-  nameOverride: "tin-poller"
+  nameOverride: 'tin-poller'
 
   serviceTree:
     <<: *serviceTree
@@ -165,12 +165,12 @@ poller:
     repository: nitroso-tin-poller
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: ''
 
   serviceAccount:
     create: true
     annotations:
-      argocd.argoproj.io/sync-wave: "4"
+      argocd.argoproj.io/sync-wave: '4'
 
   podAnnotations: {}
 
@@ -193,14 +193,14 @@ poller:
 enricher:
   stateful: false
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: '4'
 
   envFromSecret: *target
 
   jobRbac:
     create: false
 
-  nameOverride: "tin-enricher"
+  nameOverride: 'tin-enricher'
 
   serviceTree:
     <<: *serviceTree
@@ -220,7 +220,7 @@ enricher:
     repository: nitroso-tin-enricher
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: ''
 
   serviceAccount:
     create: false
@@ -251,14 +251,14 @@ reserver:
         fieldRef:
           fieldPath: metadata.name
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: '4'
 
   envFromSecret: *target
 
   jobRbac:
     create: false
 
-  nameOverride: "tin-reserver"
+  nameOverride: 'tin-reserver'
 
   serviceTree:
     <<: *serviceTree
@@ -278,7 +278,7 @@ reserver:
     repository: nitroso-tin-reserver
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: ''
 
   serviceAccount:
     create: false
@@ -303,14 +303,14 @@ reserver:
 
 buyer:
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: '4'
 
   envFromSecret: *target
 
   jobRbac:
     create: false
 
-  nameOverride: "tin-buyer"
+  nameOverride: 'tin-buyer'
 
   serviceTree:
     <<: *serviceTree
@@ -330,7 +330,7 @@ buyer:
     repository: nitroso-tin-buyer
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: ''
 
   serviceAccount:
     create: false
@@ -364,9 +364,9 @@ zinc:
 
 helium:
   enable: false
-  fullnameOverride: "helium-poller"
+  fullnameOverride: 'helium-poller'
   bromine:
-    target: "nitroso-helium"
+    target: 'nitroso-helium'
     enable: true
     rootSecret:
       name: helium-doppler-secret
@@ -377,21 +377,21 @@ livecache:
   commonAnnotations:
     <<: *tags
     atomi.cloud/module: livecache
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: '2'
   commonLabels:
     <<: *tags
     atomi.cloud/module: livecache
   podAnnotations:
     <<: *tags
     atomi.cloud/module: livecache
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: '2'
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: '256Mi'
+      cpu: '100m'
     limits:
-      memory: "512Mi"
-      cpu: "250m"
+      memory: '512Mi'
+      cpu: '250m'
 
   architecture: standalone
   auth:

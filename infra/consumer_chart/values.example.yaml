@@ -34,16 +34,16 @@ command:
 image:
   repository: golang-chart
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: ''
 
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 serviceAccount:
   create: false
   annotations: {}
-  name: ""
+  name: ''
 
 podAnnotations: {}
 

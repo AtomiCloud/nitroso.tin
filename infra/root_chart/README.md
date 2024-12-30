@@ -25,8 +25,8 @@ Root Chart to a single Service
 |-----|------|---------|-------------|
 | bromine.annotations."argocd.argoproj.io/sync-wave" | string | `"1"` |  |
 | bromine.enable | bool | `false` |  |
-| bromine.rootSecret | object | `{"name":"tin","ref":{"clientId":"NITROSO_ZINC_CLIENT_ID","clientSecret":"NITROSO_ZINC_CLIENT_SECRET"}}` | Secret of Secrets reference |
-| bromine.rootSecret.ref | object | `{"clientId":"NITROSO_ZINC_CLIENT_ID","clientSecret":"NITROSO_ZINC_CLIENT_SECRET"}` | Infisical Token Reference |
+| bromine.rootSecret | object | `{"name":"tin","ref":{"clientId":"NITROSO_TIN_CLIENT_ID","clientSecret":"NITROSO_TIN_CLIENT_SECRET"}}` | Secret of Secrets reference |
+| bromine.rootSecret.ref | object | `{"clientId":"NITROSO_TIN_CLIENT_ID","clientSecret":"NITROSO_TIN_CLIENT_SECRET"}` | Infisical Token Reference |
 | bromine.serviceTree.<<.landscape | string | `"lapras"` |  |
 | bromine.serviceTree.<<.layer | string | `"2"` |  |
 | bromine.serviceTree.<<.platform | string | `"nitroso"` |  |

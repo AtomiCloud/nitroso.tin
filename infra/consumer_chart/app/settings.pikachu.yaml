@@ -2,16 +2,16 @@ cache:
   MAIN:
     ssl: true
   LIVE:
-    password: ""
+    password: ''
   STREAM:
-    password: ""
+    password: ''
 app:
   landscape: pikachu
 
 auth:
   descope:
     descopeId: P2Z1CwarRwCS3WymAQ2js94dnmbo
-    descopeAccessKey: ""
+    descopeAccessKey: ''
 
 buyer:
   scheme: http
@@ -28,11 +28,11 @@ cdc:
 poller:
   backoffLimit: 3
   pollee:
-    namespace: "nitroso"
-    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium"
-    version: "1.9.2"
-    secretRef: "helium"
-    configRef: "helium-pollee-config"
+    namespace: 'nitroso'
+    image: 'ghcr.io/atomicloud/nitroso.helium/nitroso-helium'
+    version: '1.9.2'
+    secretRef: 'helium'
+    configRef: 'helium-pollee-config'
 
 otel:
   log:

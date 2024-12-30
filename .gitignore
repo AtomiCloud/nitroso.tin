@@ -15,4 +15,5 @@ debug.yaml
 tmp
 swagger.*
 proxy.txt
+*.proxy.txt
 proxy.tmp

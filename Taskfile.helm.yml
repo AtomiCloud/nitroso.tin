@@ -1,34 +1,34 @@
-version: "3"
+version: '3'
 
 includes:
   lapras:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".lapras"
+      LANDSCAPE: '.lapras'
   tauros:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".tauros"
+      LANDSCAPE: '.tauros'
   pinsir:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".pinsir"
+      LANDSCAPE: '.pinsir'
   absol:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".absol"
+      LANDSCAPE: '.absol'
   raichu:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".raichu"
+      LANDSCAPE: '.raichu'
   pichu:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".pichu"
+      LANDSCAPE: '.pichu'
   pikachu:
     taskfile: tasks/Taskfile.helm.yml
     vars:
-      LANDSCAPE: ".pikachu"
+      LANDSCAPE: '.pikachu'
 
 tasks:
   latest:

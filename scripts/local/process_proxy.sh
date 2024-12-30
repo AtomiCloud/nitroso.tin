@@ -3,7 +3,8 @@
 # URL of the endpoint
 endpoint_url="$1"
 
-rm proxy.txt || true
+rm helium.proxy.txt || true
+rm tin.proxy.txt || true
 rm proxy.tmp || true
 
 curl -s "$endpoint_url" | while IFS= read -r line; do
@@ -37,5 +38,5 @@ b=$(
 )
 
 # Print the variables if you want to check
-printf "helium: %s\n" "${a}" >>proxy.txt
-printf "tin: %s\n" "${b}" >>proxy.txt
+printf "%s" "${a}" >helium.proxy.txt
+printf "%s" "${b}" >tin.proxy.txt

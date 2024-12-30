@@ -1,16 +1,16 @@
 cache:
   MAIN:
-    password: "supersecret"
+    password: 'supersecret'
     ssl: false
     endpoints:
       0: zinc-maincache:6379
   STREAM:
-    password: ""
+    password: ''
     ssl: false
     endpoints:
       0: zinc-streamcache-master:6379
   LIVE:
-    password: ""
+    password: ''
     ssl: false
     endpoints:
       0: tin-livecache-master:6379
@@ -20,7 +20,7 @@ app:
 auth:
   descope:
     descopeId: P2Ya46UVwFV8nTwNGZWpxRtyL7Jj
-    descopeAccessKey: ""
+    descopeAccessKey: ''
 
 enricher:
   email: kirinnee97@gmail.com
@@ -40,11 +40,11 @@ cdc:
 poller:
   backoffLimit: 3
   pollee:
-    namespace: "nitroso"
-    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium"
-    version: "1.6.0"
-    secretRef: "nitroso-helium"
-    configRef: "helium-poller-config"
+    namespace: 'nitroso'
+    image: 'ghcr.io/atomicloud/nitroso.helium/nitroso-helium'
+    version: '1.6.0'
+    secretRef: 'nitroso-helium'
+    configRef: 'helium-poller-config'
 
 otel:
   log:

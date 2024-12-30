@@ -2,16 +2,16 @@ cache:
   MAIN:
     ssl: true
   LIVE:
-    password: ""
+    password: ''
   STREAM:
-    password: ""
+    password: ''
 app:
   landscape: pichu
 
 auth:
   descope:
     descopeId: P2Ya3WPmBmUBwJzhWoVB5uNeK7gg
-    descopeAccessKey: ""
+    descopeAccessKey: ''
 
 enricher:
   email: xxluna001@gmail.com
@@ -31,11 +31,11 @@ cdc:
 poller:
   backoffLimit: 3
   pollee:
-    namespace: "nitroso"
-    image: "ghcr.io/atomicloud/nitroso.helium/nitroso-helium"
-    version: "1.9.2"
-    secretRef: "helium"
-    configRef: "helium-pollee-config"
+    namespace: 'nitroso'
+    image: 'ghcr.io/atomicloud/nitroso.helium/nitroso-helium'
+    version: '1.9.2'
+    secretRef: 'helium'
+    configRef: 'helium-pollee-config'
 
 otel:
   log:

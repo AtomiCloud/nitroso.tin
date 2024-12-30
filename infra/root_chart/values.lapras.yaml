@@ -12,7 +12,7 @@ buyer:
 
   imagePullSecrets: []
 
-  fullnameOverride: "tin-buyer"
+  fullnameOverride: 'tin-buyer'
 
   replicaCount: 1
 
@@ -24,7 +24,7 @@ terminator:
 
   imagePullSecrets: []
 
-  fullnameOverride: "tin-terminator"
+  fullnameOverride: 'tin-terminator'
 
   replicaCount: 1
 
@@ -36,7 +36,7 @@ cdc:
 
   imagePullSecrets: []
 
-  fullnameOverride: "tin-cdc"
+  fullnameOverride: 'tin-cdc'
 
   replicaCount: 1
 
@@ -48,7 +48,7 @@ poller:
 
   imagePullSecrets: []
 
-  fullnameOverride: "tin-poller"
+  fullnameOverride: 'tin-poller'
 
   replicaCount: 1
 
@@ -60,7 +60,7 @@ enricher:
 
   imagePullSecrets: []
 
-  fullnameOverride: "tin-enricher"
+  fullnameOverride: 'tin-enricher'
 
   replicaCount: 1
 
@@ -72,7 +72,7 @@ reserver:
 
   imagePullSecrets: []
 
-  fullnameOverride: "tin-reserver"
+  fullnameOverride: 'tin-reserver'
 
   replicaCount: 1
 
@@ -89,7 +89,7 @@ zinc:
     enabled: true
     replicaCount: 1
     configMountPath: /app/Config
-    fullnameOverride: "zinc-api"
+    fullnameOverride: 'zinc-api'
     appSettings:
       Database:
         MAIN:
@@ -114,23 +114,23 @@ zinc:
     enabled: false
   maincache:
     enable: true
-    fullnameOverride: "zinc-maincache"
+    fullnameOverride: 'zinc-maincache'
     resources:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: '128Mi'
+        cpu: '100m'
       limits:
-        memory: "512Mi"
-        cpu: "250m"
+        memory: '512Mi'
+        cpu: '250m'
   streamcache:
     enable: true
-    fullnameOverride: "zinc-streamcache"
+    fullnameOverride: 'zinc-streamcache'
   maindb:
     enable: true
-    fullnameOverride: "zinc-maindb"
+    fullnameOverride: 'zinc-maindb'
   mainstorage:
     enable: true
-    fullnameOverride: "zinc-mainstorage"
+    fullnameOverride: 'zinc-mainstorage'
 
 helium:
   enable: true
@@ -143,7 +143,7 @@ helium:
           0: tin-livecache-master:6379
 
 livecache:
-  fullnameOverride: "tin-livecache"
+  fullnameOverride: 'tin-livecache'
   commonAnnotations:
     atomi.cloud/landscape: *landscape
   commonLabels:

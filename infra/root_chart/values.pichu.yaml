@@ -3,7 +3,7 @@ serviceTree:
 
 bromine:
   enable: true
-  target: &target "tin"
+  target: &target 'tin'
   serviceTree:
     landscape: *landscape
 # -- YAML Anchor for PodSecurityContext
@@ -27,8 +27,8 @@ securityContext: &securityContext
 cdc:
   enabled: true
 
-  fullnameOverride: "tin-cdc"
-  command: ["/app/nitroso-tin", "cdc"]
+  fullnameOverride: 'tin-cdc'
+  command: ['/app/nitroso-tin', 'cdc']
 
   envFromSecret: *target
   serviceTree:
@@ -42,17 +42,17 @@ cdc:
   configMountPath: /app/config
   resources:
     requests:
-      memory: "25Mi"
-      cpu: "5m"
+      memory: '25Mi'
+      cpu: '5m'
     limits:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: '256Mi'
+      cpu: '250m'
 
 terminator:
   enabled: true
 
-  fullnameOverride: "tin-terminator"
-  command: ["/app/nitroso-tin", "terminator"]
+  fullnameOverride: 'tin-terminator'
+  command: ['/app/nitroso-tin', 'terminator']
 
   envFromSecret: *target
   serviceTree:
@@ -66,17 +66,17 @@ terminator:
   configMountPath: /app/config
   resources:
     requests:
-      memory: "25Mi"
-      cpu: "5m"
+      memory: '25Mi'
+      cpu: '5m'
     limits:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: '256Mi'
+      cpu: '250m'
 
 enricher:
   enabled: true
 
-  fullnameOverride: "tin-enricher"
-  command: ["/app/nitroso-tin", "enricher"]
+  fullnameOverride: 'tin-enricher'
+  command: ['/app/nitroso-tin', 'enricher']
 
   envFromSecret: *target
   serviceTree:
@@ -90,17 +90,17 @@ enricher:
   configMountPath: /app/config
   resources:
     requests:
-      memory: "25Mi"
-      cpu: "5m"
+      memory: '25Mi'
+      cpu: '5m'
     limits:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: '256Mi'
+      cpu: '250m'
 
 poller:
   enabled: true
 
-  fullnameOverride: "tin-poller"
-  command: ["/app/nitroso-tin", "poller"]
+  fullnameOverride: 'tin-poller'
+  command: ['/app/nitroso-tin', 'poller']
 
   envFromSecret: *target
   serviceTree:
@@ -115,17 +115,17 @@ poller:
 
   resources:
     requests:
-      memory: "25Mi"
-      cpu: "5m"
+      memory: '25Mi'
+      cpu: '5m'
     limits:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: '256Mi'
+      cpu: '250m'
 
 reserver:
   enabled: true
 
-  fullnameOverride: "tin-reserver"
-  command: ["/app/nitroso-tin", "reserver"]
+  fullnameOverride: 'tin-reserver'
+  command: ['/app/nitroso-tin', 'reserver']
 
   envFromSecret: *target
   serviceTree:
@@ -139,16 +139,16 @@ reserver:
   configMountPath: /app/config
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "125m"
+      memory: '128Mi'
+      cpu: '125m'
     limits:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: '256Mi'
+      cpu: '250m'
 
 buyer:
   enabled: true
-  fullnameOverride: "tin-buyer"
-  command: ["/app/nitroso-tin", "buyer"]
+  fullnameOverride: 'tin-buyer'
+  command: ['/app/nitroso-tin', 'buyer']
 
   envFromSecret: *target
   serviceTree:
@@ -164,11 +164,11 @@ buyer:
 
   resources:
     requests:
-      memory: "25Mi"
-      cpu: "25m"
+      memory: '25Mi'
+      cpu: '25m'
     limits:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: '256Mi'
+      cpu: '250m'
 
 zinc:
   enable: false

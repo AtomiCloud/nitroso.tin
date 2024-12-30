@@ -1,19 +1,19 @@
 cache:
   MAIN:
-    password: ""
+    password: ''
     ssl: false
     endpoints:
-      0: "zinc-maincache:6379"
+      0: 'zinc-maincache:6379'
   LIVE:
-    password: ""
+    password: ''
     ssl: false
     endpoints:
-      0: "tin-livecache-master:6379"
+      0: 'tin-livecache-master:6379'
   STREAM:
-    password: ""
+    password: ''
     ssl: false
     endpoints:
-      0: "zinc-streamcache-master:6379"
+      0: 'zinc-streamcache-master:6379'
 
 # the amount of time before the pollers and reserver stops
 buffers:
@@ -22,11 +22,11 @@ buffers:
 ktmb:
   apiUrl: https://online-api.ktmb.com.my
   appUrl: https://shuttleonline-api.ktmb.com.my
-  requestSignature: ""
-  proxy: ""
+  requestSignature: ''
+  proxy: ''
 buyer:
   backoffLimit: 3
-  contactNumber: "+6581272251"
+  contactNumber: '+6581272251'
   sleepBuffer: 3
   scheme: http
   host: localhost
@@ -34,7 +34,7 @@ buyer:
 
 terminator:
   backoffLimit: 3
-  queueName: "terminator"
+  queueName: 'terminator'
 
 app:
   landscape: lapras
@@ -50,7 +50,7 @@ stream:
   reserver: reserver
 
 encryptor:
-  key: ""
+  key: ''
 
 reserver:
   group: reserver
@@ -65,7 +65,7 @@ enricher:
   backoffLimit: 3
 
   email: kirinnee97@gmail.com
-  password: ""
+  password: ''
 
   userDataKey: ktmb:userData
   storeKey: ktmb:store
@@ -82,11 +82,11 @@ poller:
   group: poller
   backoffLimit: 3
   pollee:
-    namespace: "nitroso"
-    image: ""
-    version: ""
-    secretRef: ""
-    configRef: ""
+    namespace: 'nitroso'
+    image: ''
+    version: ''
+    secretRef: ''
+    configRef: ''
 
 otel:
   metric:

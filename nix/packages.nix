@@ -1,11 +1,10 @@
-{ pkgs, atomi, pkgs-2305, pkgs-feb-23-24 }:
+{ pkgs, atomi, pkgs-2305, pkgs-240223, pkgs-240925 }:
 let
   all = {
     atomipkgs = (
       with atomi;
       {
         inherit
-          infisical
           mirrord
           pls
           sg;
@@ -18,8 +17,15 @@ let
           hadolint;
       }
     );
-    feb-23-24 = (
-      with pkgs-feb-23-24;
+    nix-240925 = (
+      with pkgs-240925;
+      {
+        inherit
+          infisical;
+      }
+    );
+    nix-240223 = (
+      with pkgs-240223;
       {
         inherit
           gcc
@@ -59,5 +65,6 @@ let
 in
 with all;
 nix-2305 //
-feb-23-24 //
+nix-240223 //
+nix-240925 //
 atomipkgs

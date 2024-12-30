@@ -14,7 +14,7 @@ configMountPath: /app/config
 image:
   repository: golang-chart
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: ''
 
 env:
   - name: POD_NAME
@@ -23,8 +23,8 @@ env:
         fieldPath: metadata.name
 
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 jobRbac:
   create: false
@@ -33,7 +33,7 @@ jobRbac:
 serviceAccount:
   create: false
   annotations: {}
-  name: ""
+  name: ''
 
 podAnnotations: {}
 

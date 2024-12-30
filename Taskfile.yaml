@@ -1,4 +1,4 @@
-version: "3"
+version: '3'
 
 vars:
   PLATFORM: nitroso
@@ -15,30 +15,30 @@ includes:
 
 tasks:
   setup:
-    desc: "Setup the repository"
+    desc: 'Setup the repository'
     env:
-      PLATFORM: "{{.PLATFORM}}"
-      SERVICE: "{{.SERVICE}}"
+      PLATFORM: '{{.PLATFORM}}'
+      SERVICE: '{{.SERVICE}}'
     cmds:
       - ./scripts/local/secrets.sh
       - go mod tidy
   build:
-    desc: "Build the binary"
+    desc: 'Build the binary'
     cmds:
       - go build -o bin/{{.PLATFORM}}-{{.SERVICE}} .
 
   run:
-    desc: "Runs the application with secrets"
+    desc: 'Runs the application with secrets'
     cmds:
       - ./scripts/local/run.sh ./config/dev.yaml go run . -- {{.CLI_ARGS}}
 
   dev:
-    desc: "Dev the application with infrastructure"
+    desc: 'Dev the application with infrastructure'
     cmds:
       - ./scripts/local/dev.sh ./config/dev.yaml go run . -- {{.CLI_ARGS}}
 
   dev:watch:
-    desc: "Dev the application with infrastructure in development mode"
+    desc: 'Dev the application with infrastructure in development mode'
     cmds:
       - ./scripts/local/dev.sh ./config/dev.yaml air -- {{.CLI_ARGS}}
 
@@ -57,6 +57,10 @@ tasks:
     desc: Process proxy from webshare
     cmds:
       - ./scripts/local/process_proxy.sh {{.CLI_ARGS}}
+  update-proxy:
+    desc: Update proxy from webshare
+    cmds:
+      - ./scripts/local/update_proxy.sh
   sdk:gen:
     desc: Generate the SDK
     cmds:
