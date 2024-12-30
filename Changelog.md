@@ -1,3 +1,12 @@
+## [1.33.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.1...v1.33.2) (2024-12-30)
+
+
+### 🐛 Bug Fixes 🐛
+
+* incorrect prettier configuration ([846fd33](https://github.com/AtomiCloud/nitroso.tin/commit/846fd337e0a97f87695e72de1e34562399d3fdd5))
+* incorrect secret pointing ([4fa572a](https://github.com/AtomiCloud/nitroso.tin/commit/4fa572accf526464c7cfe8716b67f0ff66e57066))
+* incorrect semantic releaser configuration ([c7b79dc](https://github.com/AtomiCloud/nitroso.tin/commit/c7b79dc7be1d4b867f77c984ff1bd037430b55a5))
+
 ## [1.33.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.0...v1.33.1) (2024-08-12)
 
 
