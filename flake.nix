@@ -10,7 +10,7 @@
     nixpkgs-2305.url = "nixpkgs/nixos-23.05";
     nixpkgs-240223.url = "nixpkgs/0e74ca98a74bc7270d28838369593635a5db3260";
     nixpkgs-240925.url = "nixpkgs/568bfef547c14ca438c56a0bece08b8bb2b71a9c";
-    atomipkgs.url = "github:kirinnee/test-nix-repo/v27.0.0";
+    atomipkgs.url = "github:kirinnee/test-nix-repo/v28.0.0";
   };
   outputs =
     { self

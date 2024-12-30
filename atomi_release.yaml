@@ -23,18 +23,22 @@ specialScopes:
 
 plugins:
   - module: '@semantic-release/changelog'
+    version: 6.0.3
     config:
       changelogFile: Changelog.md
   - module: '@semantic-release/exec'
+    version: 6.0.3
     config:
       prepareCmd: scripts/ci/publish.sh ${nextRelease.version}
   - module: '@semantic-release/git'
+    version: 10.0.1
     config:
       message: "release: ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       assets:
         - Changelog.md
         - CommitConventions.md
   - module: '@semantic-release/github'
+    version: 10.3.5
 
 # Angular Conventional Commit Example: https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#-commit-message-guidelines
 types:
