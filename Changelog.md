@@ -1,3 +1,10 @@
+## [1.33.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.2...v1.33.3) (2025-01-01)
+
+
+### 🐛 Bug Fixes 🐛
+
+* simplify docker build script for nscloud ([7fd187b](https://github.com/AtomiCloud/nitroso.tin/commit/7fd187b0dfd738f26e2a2d4542fc5e7876eea03d))
+
 ## [1.33.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.1...v1.33.2) (2024-12-30)
 
 
