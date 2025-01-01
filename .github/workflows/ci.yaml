@@ -76,12 +76,6 @@ jobs:
           DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
           DOCKER_USER: ${{ env.DOCKER_USER }}
 
-          S3_KEY_ID: ${{ env.DOCKER_CACHE_KEY_ID }}
-          S3_KEY_SECRET: ${{ env.DOCKER_CACHE_KEY_SECRET }}
-          S3_URL: ${{ env.DOCKER_CACHE_URL }}
-          S3_BUCKET: ${{ env.DOCKER_CACHE_BUCKET }}
-          S3_REGION: ${{ env.DOCKER_CACHE_REGION }}
-
           LATEST_BRANCH: ${{ env.DOCKER_LATEST_BRANCH}}
 
   release:
