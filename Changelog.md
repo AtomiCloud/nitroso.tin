@@ -1,3 +1,11 @@
+## [1.33.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.3...v1.33.4) (2025-01-08)
+
+
+### 🐛 Bug Fixes 🐛
+
+* attempt to use new cache ([8d5c078](https://github.com/AtomiCloud/nitroso.tin/commit/8d5c07898e4e25133440c74a4c724cbc9391c4d2))
+* empty ([41f47f8](https://github.com/AtomiCloud/nitroso.tin/commit/41f47f8357ecab328b07e2f70363221a39c9e5d7))
+
 ## [1.33.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.2...v1.33.3) (2025-01-01)
 
 
