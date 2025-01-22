@@ -2,10 +2,12 @@ package session
 
 import (
 	"context"
+	"errors"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/rs/zerolog"
+	"strings"
 )
 
 type Session struct {
@@ -67,7 +69,7 @@ func (s *Session) Login(ctx context.Context, email, password string) (string, er
 	}
 	if !login.Status {
 		s.logger.Error().Strs("errors", login.Messages).Msg("Failed to login")
-		return "", err
+		return "", errors.New(strings.Join(login.Messages, ", "))
 	}
 	l.Info().Msg("Successfully logged in. Encrypting login session token...")
 	token := login.Data.UserData
