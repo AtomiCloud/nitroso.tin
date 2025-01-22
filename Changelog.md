@@ -1,3 +1,10 @@
+## [1.34.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.34.0...v1.34.1) (2025-01-22)
+
+
+### 🐛 Bug Fixes 🐛
+
+* login error not propogating upwards ([fff845d](https://github.com/AtomiCloud/nitroso.tin/commit/fff845d4788a1e433c5ad81f24e4d6898b94c256))
+
 ## [1.34.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.4...v1.34.0) (2025-01-22)
 
 
