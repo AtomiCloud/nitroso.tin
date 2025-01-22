@@ -2,7 +2,6 @@ package enricher
 
 import (
 	"context"
-	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
@@ -129,16 +128,11 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 	}
 
 	p.logger.Info().Ctx(ctx).Any("counts", counts).Msgf("Obtain counts")
-	login, err := p.client.ktmb.Login(p.enricher.Email, p.enricher.Password)
+	userData, err := p.client.session.Login(ctx, p.enricher.Email, p.enricher.Password)
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to login")
 		return err
 	}
-	if !login.Status {
-		p.logger.Error().Ctx(ctx).Strs("errors", login.Messages).Msg("Failed to login")
-		return fmt.Errorf("failed to login: %v", login.Messages)
-	}
-	userData := login.Data.UserData
 
 	var store = make(FindStore)
 

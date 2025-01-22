@@ -3,20 +3,24 @@ package terminator
 import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
+	"github.com/AtomiCloud/nitroso-tin/lib/session"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/rs/zerolog"
+	"golang.org/x/net/context"
 )
 
 type Terminator struct {
 	ktmb         ktmb.Ktmb
+	session      *session.Session
 	logger       *zerolog.Logger
 	enrichConfig config.EnricherConfig
 }
 
-func NewTerminator(ktmb ktmb.Ktmb, logger *zerolog.Logger, enrichConfig config.EnricherConfig) Terminator {
+func NewTerminator(ktmb ktmb.Ktmb, s *session.Session, logger *zerolog.Logger, enrichConfig config.EnricherConfig) Terminator {
 	return Terminator{
 		ktmb:         ktmb,
 		logger:       logger,
+		session:      s,
 		enrichConfig: enrichConfig,
 	}
 }
@@ -56,7 +60,7 @@ func (t *Terminator) find(userData, bookingNo, ticketNo string, page int64) (str
 func (t *Terminator) Terminate(termination BookingTermination) error {
 
 	t.logger.Info().Msg("Logging in")
-	cred, err := t.ktmb.Login(t.enrichConfig.Email, t.enrichConfig.Password)
+	cred, err := t.session.Login(context.Background(), t.enrichConfig.Email, t.enrichConfig.Password)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("Failed to login")
 		return err
@@ -64,14 +68,14 @@ func (t *Terminator) Terminate(termination BookingTermination) error {
 	t.logger.Info().Msg("Logging succeeded")
 
 	t.logger.Info().Msg("Getting ticket information")
-	bookingData, ticketData, err := t.find(cred.Data.UserData, termination.BookingNo, termination.TicketNo, 1)
+	bookingData, ticketData, err := t.find(cred, termination.BookingNo, termination.TicketNo, 1)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("Failed to get ticket information")
 		return err
 	}
 
 	t.logger.Info().Msg("Obtain Refund Policy")
-	refundPolicy, err := t.ktmb.GetRefundPolicy(cred.Data.UserData, bookingData, ticketData)
+	refundPolicy, err := t.ktmb.GetRefundPolicy(cred, bookingData, ticketData)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("Failed to get refund policy")
 		return err
@@ -83,7 +87,7 @@ func (t *Terminator) Terminate(termination BookingTermination) error {
 	}
 	t.logger.Info().Msg("Refunding Tickets")
 
-	r, err := t.ktmb.RefundTicket(cred.Data.UserData, t.enrichConfig.Password, refundPolicy.Data.BookingData, refundPolicy.Data.Trips[0].Tickets[0].TicketData)
+	r, err := t.ktmb.RefundTicket(cred, t.enrichConfig.Password, refundPolicy.Data.BookingData, refundPolicy.Data.Trips[0].Tickets[0].TicketData)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("Failed to refund tickets")
 		return err

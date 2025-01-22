@@ -6,6 +6,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/enricher"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
+	"github.com/AtomiCloud/nitroso-tin/lib/session"
 	"github.com/rs/xid"
 	"github.com/urfave/cli/v2"
 )
@@ -21,9 +22,12 @@ func (state *State) Enricher(c *cli.Context) error {
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
 	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
-	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 
-	client := enricher.New(k, state.Logger)
+	encr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
+	ktmbEncr := encryptor.NewSymEncryptor[ktmb.LoginRes](state.Config.Encryptor.Key, state.Logger)
+	session := session.New(&k, &mainRedis, state.Logger, state.Config.Ktmb.LoginKey, ktmbEncr)
+
+	client := enricher.New(k, &session, state.Logger)
 
 	trigger := enricher.NewTrigger(ch, state.Logger, &streamRedis, state.Config.Stream, state.Config.Enricher, state.OtelConfigurator, state.Psm, state.Location)
 

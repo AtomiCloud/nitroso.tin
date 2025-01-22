@@ -24,6 +24,7 @@ ktmb:
   appUrl: https://shuttleonline-api.ktmb.com.my
   requestSignature: ''
   proxy: ''
+  loginKey: 'login-session'
 buyer:
   backoffLimit: 3
   contactNumber: '+6581272251'

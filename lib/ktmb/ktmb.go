@@ -1,6 +1,8 @@
 package ktmb
 
-import "github.com/rs/zerolog"
+import (
+	"github.com/rs/zerolog"
+)
 
 type Ktmb struct {
 	ApiUrl    string

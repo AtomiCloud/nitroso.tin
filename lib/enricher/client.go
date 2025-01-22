@@ -3,13 +3,15 @@ package enricher
 import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
+	"github.com/AtomiCloud/nitroso-tin/lib/session"
 	"github.com/rs/zerolog"
 	ti "time"
 )
 
 type Client struct {
-	ktmb   ktmb.Ktmb
-	logger *zerolog.Logger
+	ktmb    ktmb.Ktmb
+	session *session.Session
+	logger  *zerolog.Logger
 }
 
 type FindRes struct {
@@ -17,10 +19,11 @@ type FindRes struct {
 	TripData   string
 }
 
-func New(ktmb ktmb.Ktmb, logger *zerolog.Logger) Client {
+func New(ktmb ktmb.Ktmb, session *session.Session, logger *zerolog.Logger) Client {
 	return Client{
-		ktmb:   ktmb,
-		logger: logger,
+		ktmb:    ktmb,
+		session: session,
+		logger:  logger,
 	}
 }
 

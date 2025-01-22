@@ -46,6 +46,7 @@ type KtmbConfig struct {
 	ApiUrl           string
 	AppUrl           string
 	RequestSignature string
+	LoginKey         string
 	Proxy            *string
 }
 
