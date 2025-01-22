@@ -1,3 +1,15 @@
+## [1.34.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.4...v1.34.0) (2025-01-22)
+
+
+### ✨ Features ✨
+
+* force login key to share distributed key ([c8f3064](https://github.com/AtomiCloud/nitroso.tin/commit/c8f3064d0998800b497ccbd5a061bc36fd48dbd0))
+
+
+### 🔼 Dependency Upstreams 🔼
+
+* **nix:** update atomi version ([1a2b43c](https://github.com/AtomiCloud/nitroso.tin/commit/1a2b43cf859a9c668ccfc64bb28aea6778e5b761))
+
 ## [1.33.4](https://github.com/AtomiCloud/nitroso.tin/compare/v1.33.3...v1.33.4) (2025-01-08)
 
 
