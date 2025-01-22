@@ -25,6 +25,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.22.0
 	go.opentelemetry.io/otel/trace v1.22.0
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
+	golang.org/x/net v0.20.0
 	k8s.io/api v0.29.1
 	k8s.io/apimachinery v0.29.1
 	k8s.io/client-go v0.29.1
@@ -136,7 +137,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
