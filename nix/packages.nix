@@ -1,4 +1,4 @@
-{ pkgs, atomi, pkgs-2305, pkgs-240223, pkgs-240925 }:
+{ pkgs, atomi, pkgs-2305, pkgs-2411, pkgs-240223, pkgs-240925 }:
 let
   all = {
     atomipkgs = (
@@ -17,12 +17,16 @@ let
           hadolint;
       }
     );
-    nix-240925 = (
-      with pkgs-240925;
+    nix-2411 = (
+      with pkgs-2411;
       {
         inherit
           infisical;
       }
+    );
+    nix-240925 = (
+      with pkgs-240925;
+      { }
     );
     nix-240223 = (
       with pkgs-240223;
@@ -67,4 +71,5 @@ with all;
 nix-2305 //
 nix-240223 //
 nix-240925 //
+nix-2411 //
 atomipkgs
