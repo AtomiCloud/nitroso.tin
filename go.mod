@@ -10,7 +10,7 @@ require (
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/robfig/cron v1.2.0
 	github.com/rs/xid v1.5.0
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.32.0
 	github.com/spf13/viper v1.18.2
 	github.com/urfave/cli/v2 v2.27.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.47.0
