@@ -73,7 +73,7 @@ echo "✅ Created doppler secret!"
 # create doppler cluster secret store
 echo "🛠 Creating doppler cluster secret store..."
 kubectl --context "k3d-$input" -n external-secrets apply -f - <<EOF
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: doppler

@@ -22,12 +22,12 @@ dependencies:
   version: 18.6.1
 - name: sulfoxide-bromine
   repository: oci://ghcr.io/atomicloud/sulfoxide.bromine
-  version: 1.6.0
+  version: 1.8.0
 - name: root-chart
   repository: oci://ghcr.io/atomicloud/nitroso.zinc
   version: 1.18.0
 - name: root-chart
   repository: oci://ghcr.io/atomicloud/nitroso.helium
   version: 1.9.3
-digest: sha256:9ba1f9867cddb41c7e90c959d4b092e6da510dcfd9aac2b56649e31c0cf7e788
-generated: "2024-08-11T20:29:36.244422+08:00"
+digest: sha256:3c5518def6675222b5860ffea7525047f814638e99c1988dc6e1f0033387d0a3
+generated: "2025-08-03T23:26:04.659326+08:00"
