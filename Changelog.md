@@ -1,3 +1,15 @@
+## [1.35.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.34.1...v1.35.0) (2025-08-03)
+
+
+### ✨ Features ✨
+
+* **eso:** use v1 instead of v1beta ([8f4514c](https://github.com/AtomiCloud/nitroso.tin/commit/8f4514c1a65a0ad8a9f2fe5dd8777ae398d2af49))
+
+
+### 🔼 Dependency Upstreams 🔼
+
+* ugprade nix flakes ([5a984cc](https://github.com/AtomiCloud/nitroso.tin/commit/5a984cc48d70a365a806650eb468d43445a75c5f))
+
 ## [1.34.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.34.0...v1.34.1) (2025-01-22)
 
 
