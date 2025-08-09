@@ -1,3 +1,10 @@
+## [1.36.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.35.0...v1.36.0) (2025-08-09)
+
+
+### ✨ Features ✨
+
+* allow better error printing for reserver ([e9190d1](https://github.com/AtomiCloud/nitroso.tin/commit/e9190d12103be744bb845a1e225929f7148b4ab0))
+
 ## [1.35.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.34.1...v1.35.0) (2025-08-03)
 
 
