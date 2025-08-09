@@ -160,9 +160,21 @@ func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, header
 		return y, err
 	}
 	defer res.Body.Close()
-	err = json.NewDecoder(res.Body).Decode(&y)
+
+	resp, err := io.ReadAll(res.Body)
 	if err != nil {
-		k.logger.Error().Err(err).Msg("Failed to decode response")
+		k.logger.Error().Err(err).Msg("Failed to read response body")
+		return y, err
+	}
+
+	if res.StatusCode > 399 {
+		k.logger.Error().Str("body", string(resp)).Int("status", res.StatusCode).Msg("HTTP request failed")
+		return y, fmt.Errorf("status code %d, body %s", res.StatusCode, string(resp))
+	}
+
+	err = json.Unmarshal(resp, &y)
+	if err != nil {
+		k.logger.Error().Err(err).Str("body", string(resp)).Msg("Failed to decode response")
 		return y, err
 	}
 	return y, nil
@@ -206,10 +218,17 @@ func (k HttpClient[T, Y]) BinarySendWith(method string, path string, payload T, 
 		return nil, err
 	}
 	defer res.Body.Close()
+
 	bin, err := io.ReadAll(res.Body)
 	if err != nil {
-		k.logger.Error().Err(err).Msg("Failed to decode response")
+		k.logger.Error().Err(err).Msg("Failed to read response body")
 		return nil, err
 	}
+
+	if res.StatusCode > 399 {
+		k.logger.Error().Str("body", string(bin)).Int("status", res.StatusCode).Msg("HTTP request failed")
+		return nil, fmt.Errorf("status code %d, body %s", res.StatusCode, string(bin))
+	}
+
 	return bin, nil
 }
