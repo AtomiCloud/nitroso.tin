@@ -83,5 +83,5 @@ EOF
   trap cleanup EXIT
   export LANDSCAPE="$landscape"
   # shellcheck disable=SC2086
-  doppler run -p "$platform-$service" -c "$landscape" -- mirrord exec --context "k3d-$landscape" --target "$target" --fs-mode local -e -n "$platform" -- $dev
+  infisical run --env="$landscape" -- mirrord exec --context "k3d-$landscape" --target "$target" --fs-mode local -e -n "$platform" -- $dev
 fi

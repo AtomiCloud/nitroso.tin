@@ -8,9 +8,7 @@ set -eou pipefail
 [ "$file" = '' ] && file="./config/dev.yaml"
 
 landscape="$(yq -r '.landscape' "$file")"
-platform="$(yq -r '.platform' "$file")"
-service="$(yq -r '.service' "$file")"
 
 export LANDSCAPE="$landscape"
 # shellcheck disable=SC2086
-doppler run -p "$platform-$service" -c "$landscape" -- $dev
+infisical run --env="$landscape" -- $dev

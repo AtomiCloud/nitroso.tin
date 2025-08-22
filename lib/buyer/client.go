@@ -35,7 +35,7 @@ type Client struct {
 
 var baseDelay = 1 * time.Second
 
-func createForm(values map[string]io.Reader) (s string, reader io.Reader, err error) {
+func CreateForm(values map[string]io.Reader) (s string, reader io.Reader, err error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	for key, r := range values {
@@ -211,7 +211,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	}
 
 	reader := bytes.NewReader(buy)
-	contentType, rr, err := createForm(map[string]io.Reader{
+	contentType, rr, err := CreateForm(map[string]io.Reader{
 		"file": reader,
 	})
 	if err != nil {
