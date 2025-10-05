@@ -28,13 +28,13 @@ IFS=';' read -r -a entries <<<"$input_string"
 # Join the first 200 entries into a variable `a`
 a=$(
   IFS=';'
-  echo "${entries[*]:0:300}"
+  echo "${entries[*]:0:150}"
 )
 
 # Join the remaining 300 entries into a variable `b`
 b=$(
   IFS=';'
-  echo "${entries[*]:300:700}"
+  echo "${entries[*]:150:500}"
 )
 
 # Print the variables if you want to check

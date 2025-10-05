@@ -373,7 +373,8 @@ helium:
 
 livecache:
   nameOverride: tin-livecache
-
+  image:
+    repository: bitnamilegacy/redis
   commonAnnotations:
     <<: *tags
     atomi.cloud/module: livecache

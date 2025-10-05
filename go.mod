@@ -6,6 +6,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.16.2
 	github.com/descope/go-sdk v1.6.1
 	github.com/getkin/kin-openapi v0.123.0
+	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/robfig/cron v1.2.0
@@ -72,7 +73,6 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20231222211730-1d6d20845b47 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

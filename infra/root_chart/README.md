@@ -131,6 +131,7 @@ Root Chart to a single Service
 | livecache.commonLabels.<<."atomi.cloud/layer" | string | `"2"` |  |
 | livecache.commonLabels.<<."atomi.cloud/platform" | string | `"nitroso"` |  |
 | livecache.commonLabels.<<."atomi.cloud/service" | string | `"tin"` |  |
+| livecache.image.repository | string | `"bitnamilegacy/redis"` |  |
 | livecache.master.persistence.enabled | bool | `false` |  |
 | livecache.nameOverride | string | `"tin-livecache"` |  |
 | livecache.podAnnotations."argocd.argoproj.io/sync-wave" | string | `"2"` |  |
