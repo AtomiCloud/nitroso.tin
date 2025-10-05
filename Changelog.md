@@ -1,3 +1,11 @@
+## [1.36.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.36.0...v1.36.1) (2025-10-05)
+
+
+### 🐛 Bug Fixes 🐛
+
+* allow manual override ([a80894a](https://github.com/AtomiCloud/nitroso.tin/commit/a80894a5af870e566a16b8df54bb56fb09d0f231))
+* bitnami legacy ([a0c6dce](https://github.com/AtomiCloud/nitroso.tin/commit/a0c6dceefcc1af44fb529f982dca80a4a59615ca))
+
 ## [1.36.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.35.0...v1.36.0) (2025-08-09)
 
 
