@@ -88,6 +88,9 @@ poller:
   backoffLimit: 3
   # max streams (date-direction targets) per helium pod; 0 = no sharding (one pod)
   shardSize: 15
+  # cap on total streams per run: sort targets by date, keep the first N
+  # (42 = ~3 weeks x 2 directions); 0 = no cap
+  maxStreams: 42
   pollee:
     namespace: 'nitroso'
     image: ''
