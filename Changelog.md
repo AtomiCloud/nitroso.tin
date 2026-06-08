@@ -1,3 +1,11 @@
+## [1.37.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.36.1...v1.37.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* set helium poll delay to 25ms and shard to 15 streams/pod ([b741dd4](https://github.com/AtomiCloud/nitroso.tin/commit/b741dd45198a7113f696a4d6cf7fee7af52a4e50))
+* userData pool loginer + helium multi-watch and sharding ([2546cba](https://github.com/AtomiCloud/nitroso.tin/commit/2546cba6c30d4c29f9dbc7730f5d398548b7ec4f))
+
 ## [1.36.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.36.0...v1.36.1) (2025-10-05)
 
 
