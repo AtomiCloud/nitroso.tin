@@ -128,7 +128,7 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 		c.logger.Info().Any("reserveDto", reserveDto).Ctx(ctx).Msg("Reserver emitted signal decrypted")
 		er := c.buy(ctx, reserveDto.Direction, reserveDto.Date, reserveDto.Time, reserveDto.UserData, reserveDto.BookingData)
 		if er != nil {
-			c.logger.Error().Err(er).Msg("Failed to buy")
+			c.logger.Error().Err(er).Str("date", reserveDto.Date).Str("time", reserveDto.Time).Str("dir", reserveDto.Direction).Msg("Failed to buy")
 			return er
 		}
 		return nil
@@ -204,9 +204,9 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	}
 
 	c.logger.Info().Any("passenger", p).Msg("Passenger")
-	buy, bookingNo, ticketNo, err := c.buyer.Buy(userData, bookingData, p)
+	buy, bookingNo, ticketNo, err := c.buyer.Buy(userData, bookingData, p, direction, date, t)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("failed to buy")
+		c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("failed to buy")
 		return err
 	}
 

@@ -23,7 +23,7 @@ func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBu
 	}
 }
 
-func (c *Buyer) Buy(userData, bookingData string, p Passenger) ([]byte, string, string, error) {
+func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, t string) ([]byte, string, string, error) {
 
 	sd := time.Duration(c.sleepBuffer) * time.Second
 	c.logger.Info().Msg("Initialize booking...")
@@ -69,13 +69,13 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger) ([]byte, string, 
 		},
 	})
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to set passenger")
+		c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to set passenger")
 		return nil, "", "", err
 	}
 
 	if !passenger.Status {
 		e := fmt.Errorf("failed to set passenger: %+v", passenger.Messages)
-		c.logger.Error().Err(e).Strs("errors", passenger.Messages).Msg("Failed to set passenger")
+		c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to set passenger")
 		return nil, "", "", e
 	}
 
