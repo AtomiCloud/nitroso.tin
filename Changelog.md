@@ -1,3 +1,11 @@
+## [1.42.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.41.1...v1.42.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* add date/time/direction to reserve, buy, set-passenger failures ([c0bc40d](https://github.com/AtomiCloud/nitroso.tin/commit/c0bc40d09452fe0e918fe44a76317343fa2e718c))
+* poll helium with a single mobile stream at 10ms delay ([32ee0b4](https://github.com/AtomiCloud/nitroso.tin/commit/32ee0b4458aa484341c7691fe781026bb5c559cc))
+
 ## [1.41.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.41.0...v1.41.1) (2026-06-08)
 
 
