@@ -1,6 +1,8 @@
 package ktmb
 
 import (
+	"net/http"
+
 	"github.com/rs/zerolog"
 )
 
@@ -9,7 +11,7 @@ type Ktmb struct {
 	AppUrl    string
 	Signature string
 	logger    *zerolog.Logger
-	proxy     *string
+	client    *http.Client
 }
 
 func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, proxy *string) Ktmb {
@@ -29,7 +31,7 @@ func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, pr
 		AppUrl:    appUrl,
 		Signature: ktmbSignature,
 		logger:    logger,
-		proxy:     p,
+		client:    newHTTPClient(p),
 	}
 }
 
@@ -49,7 +51,7 @@ func (k *Ktmb) NewApi() HttpConfig {
 			"requestSignature": k.Signature,
 		},
 		logger: k.logger,
-		proxy:  k.proxy,
+		client: k.client,
 	}
 }
 
@@ -61,7 +63,7 @@ func (k *Ktmb) NewApp() HttpConfig {
 			"requestSignature": k.Signature,
 		},
 		logger: k.logger,
-		proxy:  k.proxy,
+		client: k.client,
 	}
 }
 
