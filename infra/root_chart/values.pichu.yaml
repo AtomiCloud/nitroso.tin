@@ -134,7 +134,7 @@ poller:
   imagePullSecrets: []
   securityContext: *securityContext
   podSecurityContext: *podSecurityContext
-  replicaCount: 3
+  replicaCount: 2
   configMountPath: /app/config
 
   resources:
