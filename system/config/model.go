@@ -65,6 +65,17 @@ type KtmbConfig struct {
 	RequestSignature string
 	LoginKey         string
 	Proxy            *string
+
+	// WarmPoolSize is the number of KTMB connections kept warm per host (and the
+	// per-host idle pool size). 0 disables the warmer + DNS cache entirely
+	// (plain pooled client). Set this only where latency matters (the reserver).
+	WarmPoolSize int
+	// WarmIntervalMs is how often the warmer re-pings to keep connections hot
+	// (default 30000 when WarmPoolSize > 0).
+	WarmIntervalMs int
+	// DnsRefreshMs is how often the background resolver re-resolves KTMB hosts
+	// (default 60000 when WarmPoolSize > 0).
+	DnsRefreshMs int
 }
 
 // Auth Config

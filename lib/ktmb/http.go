@@ -79,15 +79,21 @@ func randomPublicIP() string {
 // on every call. When a proxy list is configured, a random proxy is picked per
 // request via the transport's Proxy hook, so connections stay pooled per
 // (proxy, host) while still spreading load across proxies.
-func newHTTPClient(proxy *string) *http.Client {
+func newHTTPClient(proxy *string, dc *dnsCache, maxIdlePerHost int) *http.Client {
+	if maxIdlePerHost < 100 {
+		maxIdlePerHost = 100
+	}
 	transport := &http.Transport{
-		MaxIdleConns:          200,
-		MaxIdleConnsPerHost:   100,
+		MaxIdleConns:          maxIdlePerHost * 2,
+		MaxIdleConnsPerHost:   maxIdlePerHost,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 30 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		ForceAttemptHTTP2:     true,
+	}
+	if dc != nil {
+		transport.DialContext = dc.dialContext // dial pre-resolved, cached IPs
 	}
 	if proxy != nil {
 		proxies := strings.Split(*proxy, ";")

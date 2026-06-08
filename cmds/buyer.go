@@ -21,7 +21,7 @@ func (state *State) Buyer(c *cli.Context) error {
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil, ktmb.WarmConfig{PoolSize: ktmbConfig.WarmPoolSize, IntervalMs: ktmbConfig.WarmIntervalMs, DnsRefreshMs: ktmbConfig.DnsRefreshMs})
 	encr := encryptor.NewSymEncryptor[reserver.ReserveDto](state.Config.Encryptor.Key, state.Logger)
 
 	endpoint := fmt.Sprintf("%s://%s:%s", buyerCfg.Scheme, buyerCfg.Host, buyerCfg.Port)

@@ -39,7 +39,7 @@ func (state *State) Loginer(c *cli.Context) error {
 		return errors.New("no pool logins configured")
 	}
 
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil, ktmb.WarmConfig{PoolSize: ktmbConfig.WarmPoolSize, IntervalMs: ktmbConfig.WarmIntervalMs, DnsRefreshMs: ktmbConfig.DnsRefreshMs})
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	enc := encryptor.NewSymEncryptor[string](state.Config.Encryptor.Key, state.Logger)
 
