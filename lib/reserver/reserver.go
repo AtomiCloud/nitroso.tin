@@ -281,12 +281,12 @@ func (c *Client) reserve(ctx context.Context, direction, date, t, userData, sear
 
 	reserve, err := c.ktmb.Reserve(userData, c.appInfo, searchData, tripData)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to reserve")
+		c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to reserve")
 		return err
 	}
 	if !reserve.Status {
 		e := fmt.Errorf("failed to reserve")
-		c.logger.Error().Err(e).Strs("errors", reserve.Messages).Msg("Failed to reserve")
+		c.logger.Error().Err(e).Strs("errors", reserve.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to reserve")
 		return e
 	}
 
