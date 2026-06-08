@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/AtomiCloud/nitroso-tin/lib/count"
 	"github.com/rs/zerolog"
+	"sort"
 	"time"
 )
 
@@ -15,10 +16,11 @@ type Poller struct {
 	psm         string
 	ps          string
 	countReader *count.Client
+	maxStreams  int
 }
 
 func NewPoller(channel chan string, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psm, ps string,
-	countReader *count.Client) *Poller {
+	countReader *count.Client, maxStreams int) *Poller {
 	return &Poller{
 		channel:     channel,
 		trigger:     trigger,
@@ -27,6 +29,7 @@ func NewPoller(channel chan string, job *HeliumJobCreator, trigger *Trigger, log
 		countReader: countReader,
 		psm:         psm,
 		ps:          ps,
+		maxStreams:  maxStreams,
 	}
 }
 
@@ -84,6 +87,11 @@ func (p *Poller) createPoller(ctx context.Context) error {
 		}
 	}
 
+	// Cap total streams to avoid overloading the system: sort targets by date
+	// (earliest first) and keep the first maxStreams. When there are fewer than
+	// the cap, all are kept (even if they extend past ~3 weeks).
+	jobs = p.capStreams(ctx, jobs)
+
 	p.logger.Info().Any("jobs", jobs).Ctx(ctx).Msgf("Create %d jobs", len(jobs))
 	er := p.job.CreateMultiJob(ctx, jobs)
 	if er != nil {
@@ -91,4 +99,35 @@ func (p *Poller) createPoller(ctx context.Context) error {
 		return er
 	}
 	return nil
+}
+
+// capStreams sorts targets by date ascending (then direction) and keeps the
+// first maxStreams. maxStreams <= 0 means no cap.
+func (p *Poller) capStreams(ctx context.Context, jobs []HeliumJob) []HeliumJob {
+	sort.SliceStable(jobs, func(i, j int) bool {
+		ti, tj := parsePollDate(jobs[i].Date), parsePollDate(jobs[j].Date)
+		if ti.Equal(tj) {
+			return jobs[i].From < jobs[j].From
+		}
+		return ti.Before(tj)
+	})
+
+	if p.maxStreams > 0 && len(jobs) > p.maxStreams {
+		p.logger.Info().Ctx(ctx).
+			Int("total", len(jobs)).
+			Int("cap", p.maxStreams).
+			Msg("Capping streams to earliest dates")
+		jobs = jobs[:p.maxStreams]
+	}
+	return jobs
+}
+
+// parsePollDate parses a "dd-mm-yyyy" target date for chronological sorting.
+// Unparseable dates sort first (zero time) so they are not silently dropped.
+func parsePollDate(d string) time.Time {
+	t, err := time.Parse("02-01-2006", d)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }

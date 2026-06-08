@@ -114,6 +114,11 @@ type PollerConfig struct {
 	// <= 0 means no sharding (all targets in a single pod).
 	ShardSize int
 
+	// MaxStreams caps the total streams (date-direction targets) polled per run:
+	// targets are sorted by date ascending and the first MaxStreams are kept
+	// (e.g. 42 = ~3 weeks across both directions). <= 0 means no cap.
+	MaxStreams int
+
 	Pollee PolleeConfig
 }
 
