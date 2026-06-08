@@ -25,6 +25,11 @@ ktmb:
   requestSignature: ''
   proxy: ''
   loginKey: 'login-session'
+  # warm connection pool + DNS cache; 0 = off (plain pooled client). Enable per
+  # module (e.g. reserver) where latency matters.
+  warmPoolSize: 0
+  warmIntervalMs: 30000
+  dnsRefreshMs: 60000
 buyer:
   backoffLimit: 3
   contactNumber: '+6581272251'
@@ -56,8 +61,8 @@ encryptor:
 reserver:
   group: reserver
   backoffLimit: 3
-  normalConcurrency: 25
-  maintenanceConcurrency: 15
+  normalConcurrency: 50
+  maintenanceConcurrency: 50
   normalAttempts: 3
   maintenanceAttempts: 15
 

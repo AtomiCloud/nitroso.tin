@@ -22,7 +22,7 @@ func (state *State) Terminator(c *cli.Context) error {
 
 	encr := encryptor.NewSymEncryptor[ktmb.LoginRes](state.Config.Encryptor.Key, state.Logger)
 
-	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil)
+	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, nil, ktmb.WarmConfig{PoolSize: ktmbConfig.WarmPoolSize, IntervalMs: ktmbConfig.WarmIntervalMs, DnsRefreshMs: ktmbConfig.DnsRefreshMs})
 	s := session.New(&k, &mainRedis, state.Logger, state.Config.Ktmb.LoginKey, encr)
 
 	term := terminator.NewTerminator(k, &s, state.Logger, enricherConfig)

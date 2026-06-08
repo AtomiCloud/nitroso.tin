@@ -1,6 +1,7 @@
 package ktmb
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/rs/zerolog"
@@ -14,7 +15,7 @@ type Ktmb struct {
 	client    *http.Client
 }
 
-func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, proxy *string) Ktmb {
+func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, proxy *string, warm WarmConfig) Ktmb {
 
 	var p *string
 	if proxy != nil {
@@ -26,12 +27,23 @@ func New(apiUrl, appUrl string, ktmbSignature string, logger *zerolog.Logger, pr
 		p = nil
 	}
 
+	// DNS cache + warmer only when a warm pool is requested (e.g. the reserver);
+	// otherwise behave as a plain pooled client.
+	var dc *dnsCache
+	if warm.PoolSize > 0 {
+		dc = newDNSCache(logger)
+	}
+	client := newHTTPClient(p, dc, warm.PoolSize)
+	if warm.PoolSize > 0 {
+		startWarmPool(context.Background(), client, dc, apiUrl, appUrl, warm, logger)
+	}
+
 	return Ktmb{
 		ApiUrl:    apiUrl,
 		AppUrl:    appUrl,
 		Signature: ktmbSignature,
 		logger:    logger,
-		client:    newHTTPClient(p),
+		client:    client,
 	}
 }
 

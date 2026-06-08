@@ -152,6 +152,11 @@ reserver:
   fullnameOverride: 'tin-reserver'
   command: ['/app/nitroso-tin', 'reserver']
 
+  # warm pool matches the 50 reserver concurrency, so a full burst fires warm
+  appSettings:
+    ktmb:
+      warmPoolSize: 50
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
