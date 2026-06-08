@@ -71,6 +71,9 @@ enricher:
   userDataKey: ktmb:userData
   storeKey: ktmb:store
 
+  # ms between launching each per-slot enrichment (1 with IP rotation; was 16000)
+  delay: 1
+
 cdc:
   group: cdc
   scheme: http

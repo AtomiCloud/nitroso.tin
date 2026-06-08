@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"sync"
 	"time"
 )
 
@@ -134,65 +135,101 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		return err
 	}
 
-	var store = make(FindStore)
+	// 1. Pull what we already have so the first pass only fetches missing slots.
+	cached := p.pullCache(ctx)
 
-	c := make(chan Find)
-	errC := make(chan error)
-
-	slots := 0
+	// Partition current demand: slots missing from cache (fetch first), slots we
+	// already have (seed from cache now, refresh second). Stale slots no longer
+	// in demand are dropped from the new store.
+	store := make(FindStore)
+	missing := make([]Find, 0)
+	existing := make([]Find, 0)
 	for dir, dirCount := range counts {
 		for date, dateCount := range dirCount {
-			for t, _ := range dateCount {
-				time.Sleep(16 * time.Second)
-				go func(ch chan Find, eCh chan error, dir, date, t string) {
-
-					d := lib.ZincToHeliumDate(date)
-
-					find, e := p.client.Find(userData, dir, d, t)
-					if e != nil {
-						p.logger.Error().Ctx(ctx).Err(e).
-							Str("dir", dir).
-							Str("date", date).
-							Str("time", t).
-							Msg("Failed to get find")
-						eCh <- e
-						return
-					}
-					ch <- Find{
-						Direction: dir,
-						Date:      date,
-						Time:      t,
-						Data:      find,
-					}
-				}(c, errC, dir, date, t)
-				slots = slots + 1
+			for t := range dateCount {
+				if fr, ok := getSlot(cached, dir, date, t); ok && fr.TripData != "" {
+					setSlot(store, dir, date, t, fr)
+					existing = append(existing, Find{Direction: dir, Date: date, Time: t})
+				} else {
+					missing = append(missing, Find{Direction: dir, Date: date, Time: t})
+				}
 			}
 		}
 	}
+	p.logger.Info().Ctx(ctx).Int("missing", len(missing)).Int("existing", len(existing)).
+		Msg("Partitioned demand against cache")
 
-	errs := make([]error, 0)
+	// Never wipe a good store on a transient empty-count read.
+	if len(missing) == 0 && len(existing) == 0 {
+		p.logger.Info().Ctx(ctx).Msg("No demand slots; leaving store unchanged")
+		return nil
+	}
 
-	for i := 0; i < slots; i++ {
-		select {
-		case find := <-c:
-			if _, ok := store[find.Direction]; !ok {
-				store[find.Direction] = map[string]map[string]FindRes{}
-			}
-			if _, ok := store[find.Direction][find.Date]; !ok {
-				store[find.Direction][find.Date] = map[string]FindRes{}
-			}
-			store[find.Direction][find.Date][find.Time] = find.Data
-		case e := <-errC:
-			p.logger.Error().Ctx(ctx).Err(e).Msg("Failed to get find")
-			errs = append(errs, e)
+	// 2. Top up the new/missing trips, then write so the reserver can act on the
+	//    fresh demand immediately.
+	p.fetchInto(ctx, store, userData, missing)
+	if err := p.write(ctx, tracer, userData, store); err != nil {
+		return err
+	}
+	p.logger.Info().Ctx(ctx).Int("slots", countSlots(store)).Msg("Wrote store (after top-up)")
+
+	// 3. Rotate (refresh) the slots we already had, then write again.
+	if len(existing) > 0 {
+		p.fetchInto(ctx, store, userData, existing)
+		if err := p.write(ctx, tracer, userData, store); err != nil {
+			return err
 		}
+		p.logger.Info().Ctx(ctx).Int("slots", countSlots(store)).Msg("Wrote store (after rotate)")
 	}
 
-	if len(errs) > 0 {
-		p.logger.Error().Ctx(ctx).Err(errs[0]).Msg("Failed to get find")
-		return errs[0]
-	}
+	return nil
+}
 
+// pullCache reads and decrypts the existing store. On miss or decrypt error it
+// returns an empty store so enrichment proceeds from scratch.
+func (p *Enricher) pullCache(ctx context.Context) FindStore {
+	enc, err := p.mainRedis.Get(ctx, p.enricher.StoreKey).Result()
+	if err != nil {
+		p.logger.Info().Ctx(ctx).Msg("No cached store; starting fresh")
+		return make(FindStore)
+	}
+	store, err := p.encryptor.DecryptAny(enc)
+	if err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to decrypt cached store; starting fresh")
+		return make(FindStore)
+	}
+	return store
+}
+
+// fetchInto concurrently enriches the given slots into store. It is tolerant: a
+// slot whose Find fails is logged and skipped, never aborting the run. A
+// configurable delay (ms) paces request launches.
+func (p *Enricher) fetchInto(ctx context.Context, store FindStore, userData string, slots []Find) {
+	delay := time.Duration(p.enricher.Delay) * time.Millisecond
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	for _, s := range slots {
+		time.Sleep(delay)
+		wg.Add(1)
+		go func(s Find) {
+			defer wg.Done()
+			d := lib.ZincToHeliumDate(s.Date)
+			find, e := p.client.Find(userData, s.Direction, d, s.Time)
+			if e != nil {
+				p.logger.Error().Ctx(ctx).Err(e).Str("dir", s.Direction).Str("date", s.Date).
+					Str("time", s.Time).Msg("Failed to get find (skipping slot)")
+				return
+			}
+			mu.Lock()
+			setSlot(store, s.Direction, s.Date, s.Time, find)
+			mu.Unlock()
+		}(s)
+	}
+	wg.Wait()
+}
+
+// write encrypts and persists userData + store, then signals the reserver.
+func (p *Enricher) write(ctx context.Context, tracer trace.Tracer, userData string, store FindStore) error {
 	ud, err := p.encryptor.Encrypt(userData)
 	if err != nil {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to encrypt userData")
@@ -203,29 +240,45 @@ func (p *Enricher) enrich(ctx context.Context, tracer trace.Tracer) error {
 		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to encrypt store")
 		return err
 	}
-	p.logger.Info().Any("store", StoreToPublic(store)).Msg("Encrypted store")
-
-	udr, err := p.mainRedis.Set(ctx, p.enricher.UserDataKey, ud, 0).Result()
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", udr).Msg("Failed to set userData")
+	if _, err := p.mainRedis.Set(ctx, p.enricher.UserDataKey, ud, 0).Result(); err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to set userData")
 		return err
 	}
-	p.logger.Info().Ctx(ctx).Msgf("Set userData: %s", udr)
-
-	sr, err := p.mainRedis.Set(ctx, p.enricher.StoreKey, storeEn, 0).Result()
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", sr).Msg("Failed to set store")
+	if _, err := p.mainRedis.Set(ctx, p.enricher.StoreKey, storeEn, 0).Result(); err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to set store")
 		return err
 	}
-	p.logger.Info().Ctx(ctx).Msgf("Set store: %s", sr)
-
-	// we should emit for reserver to sync up
-	p.logger.Info().Ctx(ctx).Msg("Emitting for reserver to sync up")
-
-	add, err := p.streamRedis.StreamAdd(ctx, tracer, p.stream.Enrich, "ping")
-	if err != nil {
-		p.logger.Error().Ctx(ctx).Err(err).Str("rediscmd", add.String()).Msg("Failed to add to stream")
+	if _, err := p.streamRedis.StreamAdd(ctx, tracer, p.stream.Enrich, "ping"); err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to emit enrich signal")
 		return err
 	}
 	return nil
+}
+
+func getSlot(s FindStore, dir, date, t string) (FindRes, bool) {
+	if s[dir] == nil || s[dir][date] == nil {
+		return FindRes{}, false
+	}
+	fr, ok := s[dir][date][t]
+	return fr, ok
+}
+
+func setSlot(s FindStore, dir, date, t string, fr FindRes) {
+	if s[dir] == nil {
+		s[dir] = map[string]map[string]FindRes{}
+	}
+	if s[dir][date] == nil {
+		s[dir][date] = map[string]FindRes{}
+	}
+	s[dir][date][t] = fr
+}
+
+func countSlots(s FindStore) int {
+	n := 0
+	for _, dd := range s {
+		for _, tt := range dd {
+			n += len(tt)
+		}
+	}
+	return n
 }

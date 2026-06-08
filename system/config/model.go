@@ -102,6 +102,11 @@ type EnricherConfig struct {
 
 	UserDataKey string
 	StoreKey    string
+
+	// Delay is the pause (in milliseconds) between launching each per-slot
+	// enrichment request. With X-Real-IP rotation defeating the rate limiter
+	// this can be ~1ms; it was 16000 (16s) before rotation existed.
+	Delay int
 }
 
 // Poller
