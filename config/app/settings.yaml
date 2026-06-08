@@ -61,8 +61,8 @@ encryptor:
 reserver:
   group: reserver
   backoffLimit: 3
-  normalConcurrency: 25
-  maintenanceConcurrency: 15
+  normalConcurrency: 100
+  maintenanceConcurrency: 100
   normalAttempts: 3
   maintenanceAttempts: 15
 

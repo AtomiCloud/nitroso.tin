@@ -152,6 +152,12 @@ reserver:
   fullnameOverride: 'tin-reserver'
   command: ['/app/nitroso-tin', 'reserver']
 
+  # warm pool (conservative: 50, below the 100 concurrency, so a full burst is
+  # partly cold but the persistent-connection footprint stays small)
+  appSettings:
+    ktmb:
+      warmPoolSize: 50
+
   envFromSecret: *target
   serviceTree:
     landscape: *landscape
