@@ -1,3 +1,10 @@
+## [1.41.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.40.0...v1.41.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* helium web stateless and 120s poll duration ([a1b25bb](https://github.com/AtomiCloud/nitroso.tin/commit/a1b25bb090751802db38a8e39b5835b30e28de28))
+
 ## [1.40.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.39.0...v1.40.0) (2026-06-08)
 
 
