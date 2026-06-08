@@ -131,8 +131,8 @@ func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob) e
 	// settings (-s): fixed fleet of two streams per target — one web, one
 	// mobile. Both poll direct (no proxy), IP-spoofed, with no inter-poll delay.
 	settings := []HeliumSetting{
-		{Mode: "web", Type: "held", Delay: 0, Proxy: false, SpoofIp: true},
-		{Mode: "mobile", Type: "held", Delay: 0, Proxy: false, SpoofIp: true, Token: token},
+		{Mode: "web", Type: "held", Delay: 25, Proxy: false, SpoofIp: true},
+		{Mode: "mobile", Type: "held", Delay: 25, Proxy: false, SpoofIp: true, Token: token},
 	}
 	settingsData, err := json.Marshal(settings)
 	if err != nil {
