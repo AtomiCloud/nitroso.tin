@@ -1,3 +1,10 @@
+## [1.41.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.41.0...v1.41.1) (2026-06-08)
+
+
+### 🐛 Bug Fixes 🐛
+
+* make enricher resilient and incremental ([71d6d11](https://github.com/AtomiCloud/nitroso.tin/commit/71d6d11e9e13932be18a8c0c41a9a509729571e1))
+
 ## [1.41.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.40.0...v1.41.0) (2026-06-08)
 
 
