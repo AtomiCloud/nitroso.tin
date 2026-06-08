@@ -1,3 +1,12 @@
+## [1.43.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.42.0...v1.43.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* reserver concurrency 100 + warm pool 50 ([98df34d](https://github.com/AtomiCloud/nitroso.tin/commit/98df34dffb28d2ec59066d94e7fbd8a67b4048c8))
+* reserver concurrency 50 (matches warm pool 50) ([88e2980](https://github.com/AtomiCloud/nitroso.tin/commit/88e2980fc76b58fefe65a379b2c94814894e890c))
+* warm KTMB connection pool + cached DNS for the reserver ([ffa38c1](https://github.com/AtomiCloud/nitroso.tin/commit/ffa38c1c83562cdd420f32bbdba669f7be7d3d4e))
+
 ## [1.42.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.41.1...v1.42.0) (2026-06-08)
 
 
