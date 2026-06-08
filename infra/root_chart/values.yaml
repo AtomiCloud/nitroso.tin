@@ -243,6 +243,59 @@ enricher:
 
   topologySpreadConstraints: {}
 
+loginer:
+  stateful: false
+  annotations:
+    argocd.argoproj.io/sync-wave: '4'
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: 'tin-loginer'
+
+  serviceTree:
+    <<: *serviceTree
+    module: loginer
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings:
+    app:
+      module: loginer
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-loginer
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ''
+
+  serviceAccount:
+    create: false
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
 reserver:
   stateful: true
   env:

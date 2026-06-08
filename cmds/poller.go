@@ -2,8 +2,10 @@ package cmds
 
 import (
 	"github.com/AtomiCloud/nitroso-tin/lib/count"
+	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/lib/poller"
+	"github.com/AtomiCloud/nitroso-tin/lib/pool"
 	"github.com/rs/xid"
 	"github.com/urfave/cli/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +51,12 @@ func (state *State) Poller(c *cli.Context) error {
 
 	countReader := count.New(state.Config.Buffer, &mainRedis, state.Logger, state.Ps, state.Location)
 
-	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger, podName, currentPod.UID)
+	// Read-only view of the userData pool: the job creator picks a random token
+	// per job for helium's mobile stream. ktmb client + creds are unused by Pick.
+	poolEncr := encryptor.NewSymEncryptor[string](state.Config.Encryptor.Key, state.Logger)
+	tokenPool := pool.New(nil, &mainRedis, state.Logger, state.Config.Pool.Key, poolEncr, nil)
+
+	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger, podName, currentPod.UID, &tokenPool, state.Config.Poller.ShardSize)
 	trigger := poller.NewTrigger(channel, state.Logger, &streamRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psm)
 
 	p := poller.NewPoller(channel, job, trigger, state.Logger, state.Psm, state.Ps, countReader)

@@ -36,6 +36,41 @@ func NewHttp[T any, Y any](c HttpConfig) HttpClient[T, Y] {
 	return k
 }
 
+// applyRealIP generates a random public IPv4 address and sets it as the
+// X-Real-IP header on every request.
+func (k HttpClient[T, Y]) applyRealIP(req *http.Request) {
+	req.Header.Set("X-Real-IP", randomPublicIP())
+}
+
+// randomPublicIP returns a random, routable IPv4 address. It avoids private,
+// loopback, link-local, multicast and other reserved ranges so the generated
+// address looks like a plausible public client IP.
+func randomPublicIP() string {
+	for {
+		a := rand.Intn(256)
+		b := rand.Intn(256)
+		c := rand.Intn(256)
+		d := rand.Intn(256)
+
+		switch {
+		case a == 0: // "this" network
+		case a == 10: // 10.0.0.0/8 private
+		case a == 127: // loopback
+		case a == 100 && b >= 64 && b <= 127: // 100.64.0.0/10 CGNAT
+		case a == 169 && b == 254: // link-local
+		case a == 172 && b >= 16 && b <= 31: // 172.16.0.0/12 private
+		case a == 192 && b == 168: // 192.168.0.0/16 private
+		case a == 192 && b == 0 && c == 2: // TEST-NET-1
+		case a == 198 && (b == 18 || b == 19): // benchmarking
+		case a == 198 && b == 51 && c == 100: // TEST-NET-2
+		case a == 203 && b == 0 && c == 113: // TEST-NET-3
+		case a >= 224: // multicast + reserved
+		default:
+			return fmt.Sprintf("%d.%d.%d.%d", a, b, c, d)
+		}
+	}
+}
+
 func (k HttpClient[T, Y]) client() (*http.Client, error) {
 	if k.proxy == nil {
 		return &http.Client{}, nil
@@ -80,6 +115,8 @@ func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string
 	for hk, hv := range k.Header {
 		req.Header.Add(hk, hv)
 	}
+
+	k.applyRealIP(req)
 
 	client, err := k.client()
 	if err != nil {
@@ -148,6 +185,8 @@ func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, header
 		req.Header.Add(hk, hv)
 	}
 
+	k.applyRealIP(req)
+
 	client, err := k.client()
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to create client")
@@ -205,6 +244,8 @@ func (k HttpClient[T, Y]) BinarySendWith(method string, path string, payload T, 
 	for hk, hv := range k.Header {
 		req.Header.Add(hk, hv)
 	}
+
+	k.applyRealIP(req)
 
 	client, err := k.client()
 	if err != nil {

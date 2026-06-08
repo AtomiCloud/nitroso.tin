@@ -79,9 +79,15 @@ cdc:
   parallelism: 8
   backoffLimit: 3
 
+pool:
+  logins: '' # JSON: [{"email":"..","password":".."}] (set via ATOMI_POOL__LOGINS secret)
+  key: 'ktmb:pool' # Redis HASH: field=email, value=encrypted userData
+
 poller:
   group: poller
   backoffLimit: 3
+  # max streams (date-direction targets) per helium pod; 0 = no sharding (one pod)
+  shardSize: 15
   pollee:
     namespace: 'nitroso'
     image: ''

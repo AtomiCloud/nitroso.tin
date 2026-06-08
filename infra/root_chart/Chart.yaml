@@ -38,6 +38,13 @@ dependencies:
   - name: golang-chart
     version: 0.1.0
     repository: file://../consumer_chart
+    condition: loginer.enabled
+    alias: loginer
+    tags:
+      - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
     condition: reserver.enabled
     alias: reserver
     tags:
