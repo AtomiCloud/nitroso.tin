@@ -45,6 +45,17 @@ def start(landscape, platform, service, port, live):
         ]
     )
 
+    loginer_image_name = platform + "-" + service + "-loginer"
+    docker_build(
+        loginer_image_name,
+        '.',
+        dockerfile = './infra/dev.Dockerfile',
+        entrypoint='air -- loginer',
+        live_update=[
+            sync('.', '/app'),
+        ]
+    )
+
     reserver_image_name = platform + "-" + service + "-reserver"
     docker_build(
         reserver_image_name,

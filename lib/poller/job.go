@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/AtomiCloud/nitroso-tin/lib/pool"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
@@ -27,14 +28,30 @@ type HeliumJobCreator struct {
 	logger       *zerolog.Logger
 	podName      string
 	podUID       types.UID
+	pool         *pool.Pool
+	shardSize    int
 }
 
+// HeliumJob is one polling target: a (date, direction) pair. The marshalled
+// array becomes multi-watch's -d (targets) argument.
 type HeliumJob struct {
 	Date string `json:"date"`
 	From string `json:"from"`
 }
 
-func NewHeliumJobCreator(kubectl *kubernetes.Clientset, polleeConfig config.PolleeConfig, appConfig config.AppConfig, logger *zerolog.Logger, podName string, podUID types.UID) *HeliumJobCreator {
+// HeliumSetting is one polling stream config. The marshalled array becomes
+// multi-watch's -s (settings) argument; helium runs the cross product of
+// targets × settings. JSON tags must stay aligned with helium's StreamSpec.
+type HeliumSetting struct {
+	Mode    string `json:"mode"`            // "web" | "mobile"
+	Type    string `json:"type"`            // "stateless" | "held"
+	Delay   int    `json:"delay"`           // inter-poll sleep, milliseconds
+	Proxy   bool   `json:"proxy"`           // false = direct (no proxy)
+	SpoofIp bool   `json:"spoofIp"`         // true = send a spoofed X-Real-IP
+	Token   string `json:"token,omitempty"` // mobile only: KTMB userData session
+}
+
+func NewHeliumJobCreator(kubectl *kubernetes.Clientset, polleeConfig config.PolleeConfig, appConfig config.AppConfig, logger *zerolog.Logger, podName string, podUID types.UID, p *pool.Pool, shardSize int) *HeliumJobCreator {
 	return &HeliumJobCreator{
 		kubectl:      kubectl,
 		namespace:    polleeConfig.Namespace,
@@ -46,16 +63,80 @@ func NewHeliumJobCreator(kubectl *kubernetes.Clientset, polleeConfig config.Poll
 		logger:       logger,
 		podName:      podName,
 		podUID:       podUID,
+		pool:         p,
+		shardSize:    shardSize,
 	}
 }
 
+// shardTargets splits targets into chunks of at most size. size <= 0 (or a
+// single chunk that already fits) returns one chunk with all targets.
+func shardTargets(targets []HeliumJob, size int) [][]HeliumJob {
+	if size <= 0 || len(targets) <= size {
+		return [][]HeliumJob{targets}
+	}
+	var shards [][]HeliumJob
+	for i := 0; i < len(targets); i += size {
+		end := i + size
+		if end > len(targets) {
+			end = len(targets)
+		}
+		shards = append(shards, targets[i:end])
+	}
+	return shards
+}
+
+// CreateMultiJob shards the targets into pods of at most shardSize streams each
+// (1 stream = 1 date-direction target) and creates one helium job per shard.
 func (h HeliumJobCreator) CreateMultiJob(ctx context.Context, job []HeliumJob) error {
+	if len(job) == 0 {
+		h.logger.Info().Ctx(ctx).Msg("No targets to poll, skipping helium job creation")
+		return nil
+	}
+
+	shards := shardTargets(job, h.shardSize)
+	h.logger.Info().Ctx(ctx).
+		Int("targets", len(job)).
+		Int("shardSize", h.shardSize).
+		Int("pods", len(shards)).
+		Msg("Sharding helium targets into pods")
+
+	for i, shard := range shards {
+		if err := h.createMultiPod(ctx, shard); err != nil {
+			h.logger.Error().Ctx(ctx).Err(err).Int("shard", i).Msg("Failed to create helium pod shard")
+			return err
+		}
+	}
+	return nil
+}
+
+func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob) error {
 
 	jobClient := h.kubectl.BatchV1().Jobs(h.namespace)
 
+	// targets (-d): all (date, direction) pairs this pod should poll.
 	data, err := json.Marshal(job)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("Failed to marshal helium job ")
+		return err
+	}
+
+	// Resolve one random KTMB userData from the session pool, once per job.
+	// It fans out across every target via the single mobile stream below.
+	token, err := h.pool.Pick(ctx)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to pick userData from pool for helium mobile stream")
+		return err
+	}
+
+	// settings (-s): fixed fleet of two streams per target — one web, one
+	// mobile. Both poll direct (no proxy), IP-spoofed, with no inter-poll delay.
+	settings := []HeliumSetting{
+		{Mode: "web", Type: "held", Delay: 0, Proxy: false, SpoofIp: true},
+		{Mode: "mobile", Type: "held", Delay: 0, Proxy: false, SpoofIp: true, Token: token},
+	}
+	settingsData, err := json.Marshal(settings)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to marshal helium settings")
 		return err
 	}
 
@@ -109,6 +190,8 @@ func (h HeliumJobCreator) CreateMultiJob(ctx context.Context, job []HeliumJob) e
 					"multi-watch",
 					"-d",
 					string(data),
+					"-s",
+					string(settingsData),
 					"-i",
 					"180", // 3 minutes
 				},

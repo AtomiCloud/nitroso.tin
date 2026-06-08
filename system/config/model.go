@@ -15,6 +15,23 @@ type RootConfig struct {
 	Buyer      BuyerConfig
 	Terminator TerminatorConfig
 	Buffer     BufferConfig
+	Pool       PoolConfig
+}
+
+// Credential is a single KTMB account login.
+type Credential struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// Pool Config (multi-account userData pool for helium pollee jobs).
+// Separate from the reserver/enricher single-session loginer.
+type PoolConfig struct {
+	// Logins is a JSON array of {email,password}; supplied as one secret via
+	// ATOMI_POOL__LOGINS (Viper cannot auto-bind a list-of-structs from env).
+	Logins string
+	// Key is the Redis HASH (field=email, value=encrypted userData) holding the pool.
+	Key string
 }
 
 // Buffer Config
@@ -91,6 +108,11 @@ type EnricherConfig struct {
 type PollerConfig struct {
 	Group        string
 	BackoffLimit int
+
+	// ShardSize is the max number of streams (date-direction targets) per helium
+	// pod. Targets are chunked into groups of this size, one pod per chunk.
+	// <= 0 means no sharding (all targets in a single pod).
+	ShardSize int
 
 	Pollee PolleeConfig
 }

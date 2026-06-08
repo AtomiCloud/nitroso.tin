@@ -3,6 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"time"
+
 	"github.com/AtomiCloud/nitroso-tin/cmds"
 	"github.com/AtomiCloud/nitroso-tin/lib/auth"
 	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
@@ -15,10 +20,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"io"
-	"log"
-	"os"
-	"time"
 )
 
 func main() {
@@ -103,6 +104,10 @@ func main() {
 				Action: state.Enricher,
 			},
 			{
+				Name:   "loginer",
+				Action: state.Loginer,
+			},
+			{
 				Name:   "reserver",
 				Action: state.Reserver,
 			},
@@ -163,7 +168,19 @@ func main() {
 						state.Logger.Error().Err(er).Msg("Failed to complete booking")
 						return er
 					}
-					state.Logger.Info().Any("completed", completed).Msg("Completed")
+					defer completed.Body.Close()
+
+					body, er := io.ReadAll(completed.Body)
+					if er != nil {
+						state.Logger.Error().Err(er).Msg("Failed to read response body")
+						return er
+					}
+
+					responseString := string(body)
+					state.Logger.Info().
+						Int("status", completed.StatusCode).
+						Str("response", responseString).
+						Msg("Completed")
 					return nil
 				},
 			},

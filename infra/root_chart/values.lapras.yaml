@@ -66,6 +66,18 @@ enricher:
 
   configMountPath: /app/config
 
+loginer:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: 'tin-loginer'
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 reserver:
   serviceTree:
     landscape: *landscape

@@ -12,6 +12,7 @@ Root Chart to a single Service
 | file://../consumer_chart | poller(golang-chart) | 0.1.0 |
 | file://../consumer_chart | terminator(golang-chart) | 0.1.0 |
 | file://../consumer_chart | enricher(golang-chart) | 0.1.0 |
+| file://../consumer_chart | loginer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
 | file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
 | oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.9.3 |
@@ -144,6 +145,33 @@ Root Chart to a single Service
 | livecache.resources.limits.memory | string | `"512Mi"` |  |
 | livecache.resources.requests.cpu | string | `"100m"` |  |
 | livecache.resources.requests.memory | string | `"256Mi"` |  |
+| loginer.affinity | object | `{}` |  |
+| loginer.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| loginer.appSettings.app.module | string | `"loginer"` |  |
+| loginer.autoscaling | object | `{}` |  |
+| loginer.configMountPath | string | `"/app/config"` |  |
+| loginer.envFromSecret | string | `"tin"` |  |
+| loginer.image.pullPolicy | string | `"IfNotPresent"` |  |
+| loginer.image.repository | string | `"nitroso-tin-loginer"` |  |
+| loginer.image.tag | string | `""` |  |
+| loginer.imagePullSecrets | list | `[]` |  |
+| loginer.jobRbac.create | bool | `false` |  |
+| loginer.nameOverride | string | `"tin-loginer"` |  |
+| loginer.nodeSelector | object | `{}` |  |
+| loginer.podAnnotations | object | `{}` |  |
+| loginer.podSecurityContext | object | `{}` |  |
+| loginer.replicaCount | int | `1` |  |
+| loginer.resources | object | `{}` |  |
+| loginer.securityContext | object | `{}` |  |
+| loginer.serviceAccount.create | bool | `false` |  |
+| loginer.serviceTree.<<.landscape | string | `"lapras"` |  |
+| loginer.serviceTree.<<.layer | string | `"2"` |  |
+| loginer.serviceTree.<<.platform | string | `"nitroso"` |  |
+| loginer.serviceTree.<<.service | string | `"tin"` |  |
+| loginer.serviceTree.module | string | `"loginer"` |  |
+| loginer.stateful | bool | `false` |  |
+| loginer.tolerations | list | `[]` |  |
+| loginer.topologySpreadConstraints | object | `{}` |  |
 | poller.affinity | object | `{}` |  |
 | poller.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
 | poller.appSettings.app.module | string | `"poller"` |  |

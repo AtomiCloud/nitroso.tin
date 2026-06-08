@@ -97,6 +97,30 @@ enricher:
       memory: '256Mi'
       cpu: '250m'
 
+loginer:
+  enabled: true
+
+  fullnameOverride: 'tin-loginer'
+  command: ['/app/nitroso-tin', 'loginer']
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 1
+  configMountPath: /app/config
+  resources:
+    requests:
+      memory: '25Mi'
+      cpu: '5m'
+    limits:
+      memory: '256Mi'
+      cpu: '250m'
+
 poller:
   enabled: true
 

@@ -79,6 +79,22 @@ func (k *Ktmb) Login(email string, password string) (GenericRes[LoginRes], error
 	return r, nil
 }
 
+// Logout releases the KTMB session tied to userData.
+// POST online-api.ktmb.com.my/v1/account/Logout → {"status":true,"messages":[]}.
+// Always call after a manual poll/booking flow to free the single-session lock
+// (KTMB allows only one active session per account).
+func (k *Ktmb) Logout(userData string) (GenericRes[*interface{}], error) {
+	client := NewHttp[string, GenericRes[*interface{}]](k.NewApi())
+	r, err := client.Send("POST", "v1/account/Logout", map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to logout")
+		return GenericRes[*interface{}]{}, err
+	}
+	return r, nil
+}
+
 func (k *Ktmb) StationsAll(userData string) (GenericRes[StationsAllRes], error) {
 	client := NewHttp[string, GenericRes[StationsAllRes]](k.NewApp())
 	r, err := client.Send("POST", "/v1/shuttletrip/Station", apiHost, map[string]string{

@@ -25,16 +25,16 @@ input_string=$(cat ./proxy.tmp)
 # Set the Internal Field Separator to ';'
 IFS=';' read -r -a entries <<<"$input_string"
 
-# Join the first 200 entries into a variable `a`
+# Join the first 300 entries into a variable `a`
 a=$(
   IFS=';'
-  echo "${entries[*]:0:150}"
+  echo "${entries[*]:0:300}"
 )
 
-# Join the remaining 300 entries into a variable `b`
+# Join the remaining 700 entries into a variable `b`
 b=$(
   IFS=';'
-  echo "${entries[*]:150:500}"
+  echo "${entries[*]:301:1000}"
 )
 
 # Print the variables if you want to check
