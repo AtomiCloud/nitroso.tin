@@ -1,3 +1,16 @@
+## [1.38.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.37.0...v1.38.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* cap poller to first 42 streams by date ([7b4072d](https://github.com/AtomiCloud/nitroso.tin/commit/7b4072d6efbe8814e3e993988146b3fa2812a7f5))
+
+
+### 🐛 Bug Fixes 🐛
+
+* cap helium job CPU limit at 1000m (1 core) ([dceb1c4](https://github.com/AtomiCloud/nitroso.tin/commit/dceb1c4c20ba12ef4b4fefedae4bcf76a8cf70e7))
+* set helium job requests to 1/1Gi for Guaranteed QoS ([11dd8da](https://github.com/AtomiCloud/nitroso.tin/commit/11dd8da3f09cd4cd06ae40ffaf2fdd044d2e242d))
+
 ## [1.37.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.36.1...v1.37.0) (2026-06-08)
 
 
