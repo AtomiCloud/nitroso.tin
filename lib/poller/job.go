@@ -201,8 +201,8 @@ func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob) e
 						v1.ResourceMemory: resource.MustParse("1Gi"),
 					},
 					Requests: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("0"),
-						v1.ResourceMemory: resource.MustParse("0"),
+						v1.ResourceCPU:    resource.MustParse("1000m"),
+						v1.ResourceMemory: resource.MustParse("1Gi"),
 					},
 				},
 				SecurityContext: &v1.SecurityContext{
@@ -354,8 +354,8 @@ func (h HeliumJobCreator) CreateJob(ctx context.Context, job HeliumJob) error {
 						v1.ResourceMemory: resource.MustParse("1Gi"),
 					},
 					Requests: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("0"),
-						v1.ResourceMemory: resource.MustParse("0"),
+						v1.ResourceCPU:    resource.MustParse("1000m"),
+						v1.ResourceMemory: resource.MustParse("1Gi"),
 					},
 				},
 				SecurityContext: &v1.SecurityContext{
