@@ -1,3 +1,10 @@
+## [1.39.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.38.0...v1.39.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* trigger release ([cf78dbe](https://github.com/AtomiCloud/nitroso.tin/commit/cf78dbe7e18c9fa8197b72695080342e70bbe7e8))
+
 ## [1.38.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.37.0...v1.38.0) (2026-06-08)
 
 
