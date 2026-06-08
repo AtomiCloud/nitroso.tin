@@ -1,3 +1,15 @@
+## [1.40.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.39.0...v1.40.0) (2026-06-08)
+
+
+### ✨ Features ✨
+
+* route helium web streams through the proxy pool ([206ab2d](https://github.com/AtomiCloud/nitroso.tin/commit/206ab2deac283a0f9e76b279ce22426b820b48e4))
+
+
+### 🚀 Performance Improvement 🚀
+
+* reuse a single pooled HTTP client for KTMB calls ([ec1ce14](https://github.com/AtomiCloud/nitroso.tin/commit/ec1ce140866f265bca48194520e34f3303b4bea3))
+
 ## [1.39.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.38.0...v1.39.0) (2026-06-08)
 
 
