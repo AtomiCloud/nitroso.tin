@@ -10,20 +10,21 @@ import (
 	"net/http"
 	u "net/url"
 	"strings"
+	"time"
 )
 
 type HttpConfig struct {
 	Url    string
 	Header map[string]string
 	logger *zerolog.Logger
-	proxy  *string
+	client *http.Client
 }
 
 type HttpClient[T any, Y any] struct {
 	Url    string
 	Header map[string]string
 	logger *zerolog.Logger
-	proxy  *string
+	client *http.Client
 }
 
 func NewHttp[T any, Y any](c HttpConfig) HttpClient[T, Y] {
@@ -31,7 +32,7 @@ func NewHttp[T any, Y any](c HttpConfig) HttpClient[T, Y] {
 		Url:    c.Url,
 		Header: c.Header,
 		logger: c.logger,
-		proxy:  c.proxy,
+		client: c.client,
 	}
 	return k
 }
@@ -71,26 +72,30 @@ func randomPublicIP() string {
 	}
 }
 
-func (k HttpClient[T, Y]) client() (*http.Client, error) {
-	if k.proxy == nil {
-		return &http.Client{}, nil
+// newHTTPClient builds a single reusable HTTP client with connection pooling
+// (keep-alive) tuned for the reserver's concurrent load. It is created once per
+// Ktmb and shared across every request and goroutine (http.Client/Transport are
+// safe for concurrent use), so TCP+TLS handshakes are amortized instead of paid
+// on every call. When a proxy list is configured, a random proxy is picked per
+// request via the transport's Proxy hook, so connections stay pooled per
+// (proxy, host) while still spreading load across proxies.
+func newHTTPClient(proxy *string) *http.Client {
+	transport := &http.Transport{
+		MaxIdleConns:          200,
+		MaxIdleConnsPerHost:   100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
 	}
-
-	proxies := strings.Split(*k.proxy, ";")
-	randomIndex := rand.Intn(len(proxies))
-	p := proxies[randomIndex]
-
-	pUrl, err := u.Parse(p)
-	if err != nil {
-		k.logger.Error().Err(err).Msg("Failed to parse URL")
-		return nil, err
+	if proxy != nil {
+		proxies := strings.Split(*proxy, ";")
+		transport.Proxy = func(*http.Request) (*u.URL, error) {
+			return u.Parse(strings.TrimSpace(proxies[rand.Intn(len(proxies))]))
+		}
 	}
-	proxy := http.ProxyURL(pUrl)
-	return &http.Client{
-		Transport: &http.Transport{
-			Proxy: proxy,
-		},
-	}, nil
+	return &http.Client{Transport: transport}
 }
 
 func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string]string) (Y, error) {
@@ -118,13 +123,7 @@ func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string
 
 	k.applyRealIP(req)
 
-	client, err := k.client()
-	if err != nil {
-		k.logger.Error().Err(err).Msg("Failed to create client")
-		return y, err
-	}
-
-	res, err := client.Do(req)
+	res, err := k.client.Do(req)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to send request")
 		return y, err
@@ -187,13 +186,7 @@ func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, header
 
 	k.applyRealIP(req)
 
-	client, err := k.client()
-	if err != nil {
-		k.logger.Error().Err(err).Msg("Failed to create client")
-		return y, err
-	}
-
-	res, err := client.Do(req)
+	res, err := k.client.Do(req)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to send request")
 		return y, err
@@ -247,13 +240,7 @@ func (k HttpClient[T, Y]) BinarySendWith(method string, path string, payload T, 
 
 	k.applyRealIP(req)
 
-	client, err := k.client()
-	if err != nil {
-		k.logger.Error().Err(err).Msg("Failed to create client")
-		return nil, err
-	}
-
-	res, err := client.Do(req)
+	res, err := k.client.Do(req)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to send request")
 		return nil, err
