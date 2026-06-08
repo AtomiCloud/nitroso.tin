@@ -151,8 +151,7 @@ reserver:
   fullnameOverride: 'tin-reserver'
   command: ['/app/nitroso-tin', 'reserver']
 
-  # warm pool (conservative: 50, below the 100 concurrency, so a full burst is
-  # partly cold but the persistent-connection footprint stays small)
+  # warm pool matches the 50 reserver concurrency, so a full burst fires warm
   appSettings:
     ktmb:
       warmPoolSize: 50
