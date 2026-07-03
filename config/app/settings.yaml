@@ -48,7 +48,8 @@ terminator:
 
 recoverer:
   queueName: 'recover'
-  cron: '@every 1h'
+  drainCron: '@every 15m'
+  sweepCron: '@every 1h'
   maxAttempts: 5
 
 app:

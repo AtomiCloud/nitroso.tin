@@ -83,24 +83,34 @@ func (c *Client) Start(ctx context.Context) error {
 		}
 	}()
 
-	ch := make(chan string, 1)
+	// buffered for both tick types so a coincident drain+sweep at the top of the
+	// hour neither blocks nor drops the sweep
+	ch := make(chan string, 2)
 
 	cr := cron.New()
-	err = cr.AddFunc(c.config.Cron, func() {
+	if err = cr.AddFunc(c.config.DrainCron, func() {
 		select {
-		case ch <- "cron":
+		case ch <- "drain":
 		default:
 		}
-	})
-	if err != nil {
-		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.Cron).Msg("Failed to schedule recoverer cron")
+	}); err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.DrainCron).Msg("Failed to schedule recoverer drain cron")
+		return err
+	}
+	if err = cr.AddFunc(c.config.SweepCron, func() {
+		select {
+		case ch <- "sweep":
+		default:
+		}
+	}); err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.SweepCron).Msg("Failed to schedule recoverer sweep cron")
 		return err
 	}
 	cr.Start()
 	defer cr.Stop()
 
-	// drain once on startup so a redeploy doesn't wait a full period
-	ch <- "startup"
+	// run a full drain+sweep once on startup so a redeploy doesn't wait a period
+	ch <- "sweep"
 
 	for {
 		select {
@@ -108,21 +118,23 @@ func (c *Client) Start(ctx context.Context) error {
 			return ctx.Err()
 		case trigger := <-ch:
 			c.logger.Info().Ctx(ctx).Str("trigger", trigger).Msg("Recoverer cycle starting")
+			// both ticks drain (fast path); only the sweep tick reconciles zinc.
 			handled, drainErr := c.Drain(ctx)
 			if drainErr != nil {
 				c.logger.Error().Ctx(ctx).Err(drainErr).Msg("Recoverer drain failed")
 			}
-			// safety net: the queue is a fast-path hint (destructive RPop), so a
-			// lost item would strand a booking in Recovering forever. Reconcile
-			// against zinc, the durable source of truth, every cycle — but skip
-			// bookings the drain already touched this cycle: their queue item
-			// carries the buyer's deterministic ticket identifiers, which the
-			// zinc-reconstructed item lacks, and a requeued item is retried next
-			// cycle rather than re-processed with weaker info now.
-			if sweepErr := c.Sweep(ctx, handled); sweepErr != nil {
-				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Recoverer sweep failed")
+			if trigger == "sweep" {
+				// safety net: the queue is a fast-path hint (destructive RPop), so
+				// a lost item would strand a booking in Recovering forever.
+				// Reconcile against zinc, the durable source of truth — skipping
+				// bookings this drain just handled (their queue item carries the
+				// buyer's deterministic ticket identifiers, which the zinc
+				// reconstruction lacks) and those still on the queue.
+				if sweepErr := c.Sweep(ctx, handled); sweepErr != nil {
+					c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Recoverer sweep failed")
+				}
 			}
-			c.logger.Info().Ctx(ctx).Msg("Recoverer cycle complete")
+			c.logger.Info().Ctx(ctx).Str("trigger", trigger).Msg("Recoverer cycle complete")
 		}
 	}
 }

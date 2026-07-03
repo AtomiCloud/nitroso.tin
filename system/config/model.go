@@ -73,8 +73,12 @@ type TerminatorConfig struct {
 // Recoverer Config
 type RecovererConfig struct {
 	QueueName string
-	// Cron is the drain schedule (robfig/cron syntax, e.g. '@every 1h')
-	Cron string
+	// DrainCron is how often the recover queue is drained (robfig/cron syntax,
+	// e.g. '@every 15m') — the fast path for freshly-parked bookings.
+	DrainCron string
+	// SweepCron is how often zinc is reconciled for Recovering bookings whose
+	// queue item was lost (e.g. '@every 1h'); each sweep also drains first.
+	SweepCron string
 	// MaxAttempts is how many drain cycles an item may fail before it is
 	// parked as RequireManualIntervention
 	MaxAttempts int

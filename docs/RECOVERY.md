@@ -106,8 +106,9 @@ verbatim to pin the real text):
 
 ## 5. Recovery decision tree (tin `lib/recoverer`)
 
-Runs as a **single-replica** `Deployment`, `robfig/cron` `@every 1h`. Each cycle: `Drain` the
-queue, then `Sweep` zinc for reconciliation. Per booking (`ProcessItem`):
+Runs as a **single-replica** `Deployment`, `robfig/cron`: `Drain` the queue every 15m
+(`drainCron`, the fast path), and `Sweep` zinc for reconciliation hourly (`sweepCron`; each
+sweep drains first). Per booking (`ProcessItem`):
 
 1. Fetch from zinc. Not found → drop. Terminal/parked status → drop.
 2. **Legacy corruption**: `BookingNo` set but status ≠ `Completed` → `manual-intervention`
