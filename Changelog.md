@@ -1,3 +1,26 @@
+## [1.44.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.43.0...v1.44.0) (2026-07-03)
+
+
+### 📜 Documentation 📜
+
+* **recovery:** add argon frontend change surface to spec ([afe5a3c](https://github.com/AtomiCloud/nitroso.tin/commit/afe5a3c5556275b2ae7e7bc07b45a6c0ab4f6f83))
+* **recovery:** add duplicate-passport recovery spec ([c5afa92](https://github.com/AtomiCloud/nitroso.tin/commit/c5afa92f6ff15907c030cb763e9fb90ad6cc286d))
+* **recoverer:** document single-replica invariant ([df25dc4](https://github.com/AtomiCloud/nitroso.tin/commit/df25dc4ec8e26e33436a2fde99878e58aba33131))
+
+
+### ✨ Features ✨
+
+* **recoverer:** drain every 15m, sweep hourly ([1b6b493](https://github.com/AtomiCloud/nitroso.tin/commit/1b6b493643e05593e14191c4ed6d3ff0e0560cfb))
+* **recoverer:** duplicate-passport recovery pipeline ([7fe25c2](https://github.com/AtomiCloud/nitroso.tin/commit/7fe25c29e36618fcd03f4e39017783a8a0e5b68d))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **recoverer:** CI go-toolchain regression + round-2 money-safety ([4d58ffe](https://github.com/AtomiCloud/nitroso.tin/commit/4d58ffee2d037563d9012ad876824fb0fd68320d))
+* **recoverer:** close sweep concurrency hole + deterministic re-scan complete ([3aa38ea](https://github.com/AtomiCloud/nitroso.tin/commit/3aa38eaa7592f3b6c99a1c79a5d6d6d3921590e2))
+* **recoverer:** harden money-safety after review ([8c7bcb9](https://github.com/AtomiCloud/nitroso.tin/commit/8c7bcb96adc2ae1ef2ca04b4a30cd66037aee732))
+* **recoverer:** harden scanner, buyer, and queue durability (multi-review pass) ([91a763e](https://github.com/AtomiCloud/nitroso.tin/commit/91a763e05fbdb9cca622e461afcac0437a1fc6d2))
+
 ## [1.43.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.42.0...v1.43.0) (2026-06-08)
 
 
