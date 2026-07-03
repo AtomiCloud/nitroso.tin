@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/AtomiCloud/nitroso-tin/lib"
@@ -19,10 +20,21 @@ import (
 
 const zincDateTimeLayout = "02-01-2006 15:04:05"
 
+// terminalStatuses are booking states the recoverer must never act on: either
+// already resolved or already parked for a human.
+var terminalStatuses = map[string]bool{
+	"Completed":                 true,
+	"Cancelled":                 true,
+	"Refunded":                  true,
+	"Duplicate":                 true,
+	"Terminated":                true,
+	"RequireManualIntervention": true,
+}
+
 // ProcessItem classifies and resolves one parked booking. An error return
 // means "retry later" (the caller re-queues); nil means resolved or dropped.
 func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
-	l := c.logger.With().Str("bookingId", dto.BookingId).Str("date", dto.Date).Str("time", dto.Time).Str("dir", dto.Direction).Logger()
+	l := c.logger.With().Ctx(ctx).Str("bookingId", dto.BookingId).Str("date", dto.Date).Str("time", dto.Time).Str("dir", dto.Direction).Logger()
 
 	booking, status, err := c.getBooking(ctx, dto.BookingId)
 	if err != nil {
@@ -37,8 +49,10 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	if booking.Principal.Status != nil {
 		bookStatus = *booking.Principal.Status
 	}
-	if bookStatus != "Recovering" {
-		l.Warn().Str("status", bookStatus).Msg("Booking is not in Recovering status, dropping recover item")
+
+	// already resolved elsewhere, or already parked for a human — nothing to do
+	if terminalStatuses[bookStatus] {
+		l.Info().Str("status", bookStatus).Msg("Booking already resolved or parked, dropping recover item")
 		return nil
 	}
 
@@ -48,6 +62,22 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	if booking.Principal.BookingNo != nil && *booking.Principal.BookingNo != "" {
 		l.Error().Str("bookingNo", *booking.Principal.BookingNo).
 			Msg("Booking has a captured ticket but non-completed status (legacy corruption), parking for manual intervention")
+		return c.markManualIntervention(ctx, dto.BookingId)
+	}
+
+	// the buyer queues the recover record first and transitions best-effort, so
+	// a booking may still be in Buying — drive the transition ourselves
+	if bookStatus == "Buying" {
+		if err := c.markRecovering(ctx, dto.BookingId); err != nil {
+			l.Error().Err(err).Msg("Failed to transition booking to recovering")
+			return err
+		}
+		bookStatus = "Recovering"
+	}
+
+	if bookStatus != "Recovering" {
+		// e.g. Pending — unexpected for a queued recover item; a human decides
+		l.Warn().Str("status", bookStatus).Msg("Unexpected status for recover item, parking for manual intervention")
 		return c.markManualIntervention(ctx, dto.BookingId)
 	}
 
@@ -76,7 +106,8 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 
 	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
 	if err != nil {
-		l.Error().Err(err).Msg("Failed to scan KTMB ticket list")
+		// an inconclusive scan must never fall through to a refund
+		l.Error().Err(err).Msg("KTMB ticket scan inconclusive, will retry")
 		return err
 	}
 
@@ -100,10 +131,10 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	// conflict was transient. A re-buy attempt distinguishes them — KTMB
 	// rejects with the same duplicate error if the passenger is booked anywhere
 	l.Info().Msg("Ticket not on our KTMB account, probing with a re-buy")
-	return c.rebuy(ctx, dto, l)
+	return c.rebuy(ctx, dto, userData, target, l)
 }
 
-func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, l zerolog.Logger) error {
+func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, userData string, target time.Time, l zerolog.Logger) error {
 	store, err := c.retriever.GetLoginData(ctx)
 	if err != nil {
 		return err
@@ -139,11 +170,22 @@ func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, l zerolog.Logger
 		var purchasedErr *buyer.PurchasedError
 		switch {
 		case errors.As(err, &conflictErr):
-			// confirmed: the passenger holds this ticket via another channel
-			l.Warn().Err(err).Msg("Re-buy probe confirmed conflict, marking duplicate")
+			// the probe confirms the passenger is booked somewhere. Release the
+			// probe reservation, then re-scan to decide WHOSE ticket it is —
+			// never refund on a contradictory/inconclusive scan.
 			if _, e := c.buyer.Release(store.UserData, bookingData); e != nil {
 				l.Error().Err(e).Msg("Failed to release probe reservation")
 			}
+			found, ferr := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
+			if ferr != nil {
+				l.Error().Err(ferr).Msg("Re-buy conflicted but re-scan inconclusive, will retry")
+				return ferr
+			}
+			if found != nil {
+				l.Info().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan located our uncaptured ticket, force completing")
+				return c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo)
+			}
+			l.Warn().Err(err).Msg("Re-buy confirmed conflict and ticket is not on our account, marking duplicate")
 			return c.markDuplicate(ctx, dto.BookingId)
 		case errors.As(err, &purchasedErr):
 			// bought but ticket retrieval failed — requeue deterministically
@@ -160,8 +202,17 @@ func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, l zerolog.Logger
 		}
 	}
 
+	// Buy succeeded — real money spent. Stash the identifiers so recovery is
+	// deterministic even if the complete call fails now (never re-buy).
+	dto.BookingNo = bookingNo
+	dto.TicketNo = ticketNo
 	l.Info().Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Re-buy succeeded, completing booking")
-	return c.completeBooking(ctx, dto.BookingId, bookingNo, ticketNo, pdf)
+	if err := c.completeBooking(ctx, dto.BookingId, bookingNo, ticketNo, pdf); err != nil {
+		l.Error().Err(err).Msg("Re-buy succeeded but complete failed, requeueing with ticket identifiers")
+		c.requeue(ctx, dto)
+		return nil
+	}
+	return nil
 }
 
 // forceComplete downloads the ticket PDF from KTMB and reports it to zinc
@@ -172,7 +223,7 @@ func (c *Client) forceComplete(ctx context.Context, bookingId, bookingNo, ticket
 	}
 	pdf, err := c.ktmb.PrintTicket(userData, bookingNo, ticketNo)
 	if err != nil {
-		c.logger.Error().Err(err).Str("bookingNo", bookingNo).Msg("Failed to print ticket for force complete")
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingNo", bookingNo).Msg("Failed to print ticket for force complete")
 		return err
 	}
 	return c.completeBooking(ctx, bookingId, bookingNo, ticketNo, pdf)
@@ -201,7 +252,7 @@ func (c *Client) completeBooking(ctx context.Context, bookingId, bookingNo, tick
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed to complete booking: status %d: %s", resp.StatusCode, string(body))
 	}
-	c.logger.Info().Str("bookingId", bookingId).Str("bookingNo", bookingNo).Msg("Booking completed in zinc")
+	c.logger.Info().Ctx(ctx).Str("bookingId", bookingId).Str("bookingNo", bookingNo).Msg("Booking completed in zinc")
 	return nil
 }
 
@@ -240,6 +291,74 @@ func (c *Client) isClaimed(ctx context.Context, dto lib.RecoverDto, ktmbBookingN
 	return false, nil
 }
 
+// listRecovering fetches every booking currently in Recovering status,
+// paginating defensively (there should only ever be a handful).
+func (c *Client) listRecovering(ctx context.Context) ([]zinc.BookingPrincipalRes, error) {
+	recovering := "Recovering"
+	limit := int32(100)
+	var all []zinc.BookingPrincipalRes
+	for skip := int32(0); ; skip += limit {
+		s := skip
+		resp, err := c.zinc.GetApiVVersionBooking(ctx, "1.0", &zinc.GetApiVVersionBookingParams{
+			Status: &recovering,
+			Limit:  &limit,
+			Skip:   &s,
+		})
+		if err != nil {
+			return nil, err
+		}
+		content, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to list recovering bookings: status %d: %s", resp.StatusCode, string(content))
+		}
+		if readErr != nil {
+			return nil, readErr
+		}
+		var page []zinc.BookingPrincipalRes
+		if err := json.Unmarshal(content, &page); err != nil {
+			return nil, err
+		}
+		all = append(all, page...)
+		if int32(len(page)) < limit {
+			break
+		}
+	}
+	return all, nil
+}
+
+// reconstructDto rebuilds a recover item from a zinc booking (the sweep path).
+// It cannot know a captured-but-unreported ticket's KTMB numbers — zinc has
+// none for such bookings — so BookingNo/TicketNo are left empty and the scan
+// re-derives them.
+func reconstructDto(b zinc.BookingPrincipalRes) lib.RecoverDto {
+	deref := func(s *string) string {
+		if s == nil {
+			return ""
+		}
+		return *s
+	}
+	return lib.RecoverDto{
+		BookingId:      b.Id.String(),
+		Direction:      deref(b.Direction),
+		Date:           deref(b.Date),
+		Time:           deref(b.Time),
+		FullName:       deref(b.Passenger.FullName),
+		Gender:         deref(b.Passenger.Gender),
+		PassportExpiry: safeHeliumExpiry(deref(b.Passenger.PassportExpiry)),
+		PassportNumber: deref(b.Passenger.PassportNumber),
+	}
+}
+
+// safeHeliumExpiry converts a zinc yyyy-mm-dd expiry to the KTMB
+// dd-mm-yyyyT00:00:00 form, tolerating an empty/malformed value.
+func safeHeliumExpiry(zincExpiry string) string {
+	if len(strings.Split(zincExpiry, "-")) != 3 {
+		return ""
+	}
+	return fmt.Sprintf("%sT00:00:00", lib.ZincToHeliumDate(zincExpiry))
+}
+
 func (c *Client) getBooking(ctx context.Context, bookingId string) (*zinc.BookingRes, int, error) {
 	id, err := uuid.Parse(bookingId)
 	if err != nil {
@@ -268,6 +387,10 @@ func (c *Client) getBooking(ctx context.Context, bookingId string) (*zinc.Bookin
 	return &booking, resp.StatusCode, nil
 }
 
+func (c *Client) markRecovering(ctx context.Context, bookingId string) error {
+	return c.postStatus(ctx, bookingId, "recovering", c.zinc.PostApiVVersionBookingRecoveringId)
+}
+
 func (c *Client) markDuplicate(ctx context.Context, bookingId string) error {
 	return c.postStatus(ctx, bookingId, "duplicate", c.zinc.PostApiVVersionBookingDuplicateId)
 }
@@ -291,6 +414,6 @@ func (c *Client) postStatus(ctx context.Context, bookingId, name string,
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed to mark booking as %s: status %d: %s", name, resp.StatusCode, string(body))
 	}
-	c.logger.Info().Str("bookingId", bookingId).Str("transition", name).Msg("Booking transitioned in zinc")
+	c.logger.Info().Ctx(ctx).Str("bookingId", bookingId).Str("transition", name).Msg("Booking transitioned in zinc")
 	return nil
 }

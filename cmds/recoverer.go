@@ -25,7 +25,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-func (state *State) buildRecoverer() (*recoverer.Client, error) {
+func (state *State) buildRecoverer() (*recoverer.Client, *zinc.Client, error) {
 	ktmbConfig := state.Config.Ktmb
 	buyerCfg := state.Config.Buyer
 
@@ -38,7 +38,7 @@ func (state *State) buildRecoverer() (*recoverer.Client, error) {
 		zinc.WithRequestEditorFn(state.Credential.RequestEditor()))
 	if err != nil {
 		state.Logger.Error().Err(err).Msg("Failed to create zinc client")
-		return nil, err
+		return nil, nil, err
 	}
 
 	loginEncr := encryptor.NewSymEncryptor[ktmb.LoginRes](state.Config.Encryptor.Key, state.Logger)
@@ -52,15 +52,16 @@ func (state *State) buildRecoverer() (*recoverer.Client, error) {
 
 	appInfo := "{\"DeviceName\":\"Google\",\"OperatingSystemName\":\"Android\",\"OperatingSystemVersion\":\"13\",\"AppVersion\":\"1.4.1\"}"
 
-	return recoverer.New(k, &b, &s, retriever, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
-		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, appInfo, state.Location), nil
+	client := recoverer.New(k, &b, &s, retriever, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
+		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, appInfo, state.Location)
+	return client, zClient, nil
 }
 
 // Recoverer runs the hourly drain daemon
 func (state *State) Recoverer(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Recoverer")
 
-	client, err := state.buildRecoverer()
+	client, _, err := state.buildRecoverer()
 	if err != nil {
 		return err
 	}
@@ -87,16 +88,7 @@ func (state *State) Recover(c *cli.Context) error {
 		return fmt.Errorf("usage: recover <passport> <date dd-MM-yyyy> <time HH:mm:ss> <direction JToW|WToJ>")
 	}
 
-	client, err := state.buildRecoverer()
-	if err != nil {
-		return err
-	}
-
-	buyerCfg := state.Config.Buyer
-	endpoint := fmt.Sprintf("%s://%s:%s", buyerCfg.Scheme, buyerCfg.Host, buyerCfg.Port)
-	zClient, err := zinc.NewClient(endpoint,
-		zinc.WithHTTPClient(otelhttp.DefaultClient),
-		zinc.WithRequestEditorFn(state.Credential.RequestEditor()))
+	client, zClient, err := state.buildRecoverer()
 	if err != nil {
 		return err
 	}
@@ -148,18 +140,22 @@ func (state *State) Recover(c *cli.Context) error {
 		}
 
 		if status == "Pending" {
-			if err := postTransition(c, zClient, b.Id, "buying", zClient.PostApiVVersionBookingBuyingId); err != nil {
+			if err := postTransition(c, b.Id, "buying", zClient.PostApiVVersionBookingBuyingId); err != nil {
 				return err
 			}
 			status = "Buying"
 		}
 		if status == "Buying" {
-			if err := postTransition(c, zClient, b.Id, "recovering", zClient.PostApiVVersionBookingRecoveringId); err != nil {
+			if err := postTransition(c, b.Id, "recovering", zClient.PostApiVVersionBookingRecoveringId); err != nil {
 				return err
 			}
 		}
 
 		expiry := deref(b.Passenger.PassportExpiry)
+		heliumExpiry := ""
+		if len(strings.Split(expiry, "-")) == 3 {
+			heliumExpiry = fmt.Sprintf("%sT00:00:00", lib.ZincToHeliumDate(expiry))
+		}
 		dto := lib.RecoverDto{
 			BookingId:      b.Id.String(),
 			Direction:      direction,
@@ -167,7 +163,7 @@ func (state *State) Recover(c *cli.Context) error {
 			Time:           t,
 			FullName:       deref(b.Passenger.FullName),
 			Gender:         deref(b.Passenger.Gender),
-			PassportExpiry: fmt.Sprintf("%sT00:00:00", lib.ZincToHeliumDate(expiry)),
+			PassportExpiry: heliumExpiry,
 			PassportNumber: deref(b.Passenger.PassportNumber),
 		}
 
@@ -181,7 +177,7 @@ func (state *State) Recover(c *cli.Context) error {
 	return nil
 }
 
-func postTransition(c *cli.Context, _ *zinc.Client, id uuid.UUID, name string,
+func postTransition(c *cli.Context, id uuid.UUID, name string,
 	post func(ctx context.Context, version string, id uuid.UUID, reqEditors ...zinc.RequestEditorFn) (*http.Response, error)) error {
 	resp, err := post(c.Context, "1.0", id)
 	if err != nil {

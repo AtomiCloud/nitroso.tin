@@ -3,7 +3,7 @@ package buyer
 import "testing"
 
 func TestMatchesConflict(t *testing.T) {
-	patterns := []string{"duplicate"}
+	patterns := []string{"duplicate passport"}
 
 	cases := []struct {
 		name     string
@@ -11,10 +11,11 @@ func TestMatchesConflict(t *testing.T) {
 		want     bool
 	}{
 		{"duplicate passport message", []string{"Duplicate passport no. found in the same trip."}, true},
-		{"case insensitive", []string{"DUPLICATE PASSPORT"}, true},
+		{"case insensitive", []string{"DUPLICATE PASSPORT NO."}, true},
 		{"unrelated error", []string{"Session expired"}, false},
+		{"unrelated duplicate error does not match tightened pattern", []string{"duplicate request submitted"}, false},
 		{"empty messages", []string{}, false},
-		{"one of many matches", []string{"Something else", "duplicate entry"}, true},
+		{"one of many matches", []string{"Something else", "duplicate passport found"}, true},
 	}
 
 	for _, tc := range cases {

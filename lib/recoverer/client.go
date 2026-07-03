@@ -66,7 +66,7 @@ func New(k ktmb.Ktmb, b *buyer.Buyer, s *session.Session, retriever *reserver.Re
 func (c *Client) Start(ctx context.Context) error {
 	shutdown, err := c.otelConfigurator.Configure(ctx)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to configure telemetry")
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to configure telemetry")
 		return err
 	}
 	defer func() {
@@ -86,7 +86,7 @@ func (c *Client) Start(ctx context.Context) error {
 		}
 	})
 	if err != nil {
-		c.logger.Error().Err(err).Str("cron", c.config.Cron).Msg("Failed to schedule recoverer cron")
+		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.Cron).Msg("Failed to schedule recoverer cron")
 		return err
 	}
 	cr.Start()
@@ -100,13 +100,17 @@ func (c *Client) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case trigger := <-ch:
-			c.logger.Info().Str("trigger", trigger).Msg("Recoverer drain starting")
-			drainErr := c.Drain(ctx)
-			if drainErr != nil {
-				c.logger.Error().Err(drainErr).Msg("Recoverer drain failed")
-			} else {
-				c.logger.Info().Msg("Recoverer drain complete")
+			c.logger.Info().Ctx(ctx).Str("trigger", trigger).Msg("Recoverer cycle starting")
+			if drainErr := c.Drain(ctx); drainErr != nil {
+				c.logger.Error().Ctx(ctx).Err(drainErr).Msg("Recoverer drain failed")
 			}
+			// safety net: the queue is a fast-path hint (destructive RPop), so a
+			// lost item would strand a booking in Recovering forever. Reconcile
+			// against zinc, the durable source of truth, every cycle.
+			if sweepErr := c.Sweep(ctx); sweepErr != nil {
+				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Recoverer sweep failed")
+			}
+			c.logger.Info().Ctx(ctx).Msg("Recoverer cycle complete")
 		}
 	}
 }
@@ -120,37 +124,64 @@ func (c *Client) Drain(ctx context.Context) error {
 	// re-processed within the same drain
 	length, err := c.mainRedis.LLen(ctx, c.config.QueueName).Result()
 	if err != nil {
-		c.logger.Error().Err(err).Str("queue", c.config.QueueName).Msg("Failed to read recover queue length")
+		c.logger.Error().Ctx(ctx).Err(err).Str("queue", c.config.QueueName).Msg("Failed to read recover queue length")
 		return err
 	}
-	c.logger.Info().Int64("length", length).Str("queue", c.config.QueueName).Msg("Draining recover queue")
+	c.logger.Info().Ctx(ctx).Int64("length", length).Str("queue", c.config.QueueName).Msg("Draining recover queue")
 
 	for i := int64(0); i < length; i++ {
 		found, popErr := c.mainRedis.QueuePopNoWait(ctx, tracer, c.config.QueueName, func(ctx context.Context, message json.RawMessage) error {
 			var enc string
 			if e := json.Unmarshal(message, &enc); e != nil {
-				c.logger.Error().Err(e).Msg("Failed to unmarshal recover queue message")
-				return nil // malformed: drop, nothing to requeue
+				c.logger.Error().Ctx(ctx).Err(e).Msg("Failed to unmarshal recover queue message")
+				return nil // malformed: drop — the sweep re-derives from zinc
 			}
 			dto, e := c.encr.DecryptAny(enc)
 			if e != nil {
-				c.logger.Error().Err(e).Msg("Failed to decrypt recover queue message")
-				return nil // undecryptable: drop
+				c.logger.Error().Ctx(ctx).Err(e).Msg("Failed to decrypt recover queue message")
+				return nil // undecryptable: drop — the sweep re-derives from zinc
 			}
-			c.logger.Info().Str("bookingId", dto.BookingId).Int("attempts", dto.Attempts).Msg("Processing recover item")
+			c.logger.Info().Ctx(ctx).Str("bookingId", dto.BookingId).Int("attempts", dto.Attempts).Msg("Processing recover item")
 			pErr := c.ProcessItem(ctx, dto)
 			if pErr != nil {
-				c.logger.Error().Err(pErr).Str("bookingId", dto.BookingId).Msg("Failed to process recover item, requeueing")
+				c.logger.Error().Ctx(ctx).Err(pErr).Str("bookingId", dto.BookingId).Msg("Failed to process recover item, requeueing")
 				c.requeue(ctx, dto)
 			}
 			return nil
 		})
 		if popErr != nil {
-			c.logger.Error().Err(popErr).Msg("Failed to pop recover queue")
+			c.logger.Error().Ctx(ctx).Err(popErr).Msg("Failed to pop recover queue")
 			return popErr
 		}
 		if !found {
 			break
+		}
+	}
+	return nil
+}
+
+// Sweep reconciles against zinc: every booking still in Recovering is
+// re-derived and re-processed, so a booking whose queue item was lost (crash
+// mid-drain, requeue push failure, malformed message) is never stranded.
+// zinc — not the queue — is the durable source of truth for booking state.
+func (c *Client) Sweep(ctx context.Context) error {
+	bookings, err := c.listRecovering(ctx)
+	if err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to list recovering bookings for sweep")
+		return err
+	}
+	if len(bookings) == 0 {
+		return nil
+	}
+	c.logger.Info().Ctx(ctx).Int("count", len(bookings)).Msg("Sweeping recovering bookings")
+	for _, b := range bookings {
+		dto := reconstructDto(b)
+		if dto.BookingId == "" {
+			continue
+		}
+		if err := c.ProcessItem(ctx, dto); err != nil {
+			// left in Recovering; the next sweep retries it
+			c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Sweep failed to process recovering booking")
 		}
 	}
 	return nil
@@ -161,11 +192,11 @@ func (c *Client) Drain(ctx context.Context) error {
 func (c *Client) requeue(ctx context.Context, dto lib.RecoverDto) {
 	dto.Attempts++
 	if dto.Attempts >= c.config.MaxAttempts {
-		c.logger.Error().Str("bookingId", dto.BookingId).Int("attempts", dto.Attempts).
+		c.logger.Error().Ctx(ctx).Str("bookingId", dto.BookingId).Int("attempts", dto.Attempts).
 			Msg("Recover item exceeded max attempts, parking for manual intervention")
 		if err := c.markManualIntervention(ctx, dto.BookingId); err != nil {
 			// keep it on the queue rather than lose it
-			c.logger.Error().Err(err).Str("bookingId", dto.BookingId).Msg("Failed to park exhausted item, re-queueing anyway")
+			c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Failed to park exhausted item, re-queueing anyway")
 		} else {
 			return
 		}
@@ -173,12 +204,12 @@ func (c *Client) requeue(ctx context.Context, dto lib.RecoverDto) {
 
 	enc, err := c.encr.EncryptAny(dto)
 	if err != nil {
-		c.logger.Error().Err(err).Str("bookingId", dto.BookingId).Msg("Failed to encrypt recover dto for requeue")
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Failed to encrypt recover dto for requeue")
 		return
 	}
 	tracer := otel.Tracer(c.psm)
 	_, err = c.mainRedis.QueuePush(ctx, tracer, c.config.QueueName, enc)
 	if err != nil {
-		c.logger.Error().Err(err).Str("bookingId", dto.BookingId).Msg("Failed to requeue recover dto")
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Failed to requeue recover dto")
 	}
 }

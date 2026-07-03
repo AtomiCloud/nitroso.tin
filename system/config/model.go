@@ -68,8 +68,7 @@ type TerminatorConfig struct {
 
 // Recoverer Config
 type RecovererConfig struct {
-	BackoffLimit int
-	QueueName    string
+	QueueName string
 	// Cron is the drain schedule (robfig/cron syntax, e.g. '@every 1h')
 	Cron string
 	// MaxAttempts is how many drain cycles an item may fail before it is

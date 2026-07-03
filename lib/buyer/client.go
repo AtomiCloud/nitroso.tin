@@ -16,6 +16,7 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"io"
 	"math"
 	"mime/multipart"
@@ -219,15 +220,15 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		case errors.As(err, &conflictErr):
 			// this passenger already holds a ticket for this slot — park the
 			// booking for the recoverer and free the KTMB reservation
-			c.logger.Warn().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Duplicate-passenger conflict, parking booking for recovery")
+			c.logger.Warn().Ctx(ctx).Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Duplicate-passenger conflict, parking booking for recovery")
 			return c.park(ctx, data.Id, direction, date, t, p, "", "", userData, bookingData, true)
 		case errors.As(err, &purchasedErr):
 			// the KTMB purchase went through — never release; park with the ticket
 			// identifiers so the recoverer can force-complete deterministically
-			c.logger.Warn().Err(err).Str("bookingNo", purchasedErr.BookingNo).Str("ticketNo", purchasedErr.TicketNo).Msg("Purchase captured but ticket retrieval failed, parking booking for recovery")
+			c.logger.Warn().Ctx(ctx).Err(err).Str("bookingNo", purchasedErr.BookingNo).Str("ticketNo", purchasedErr.TicketNo).Msg("Purchase captured but ticket retrieval failed, parking booking for recovery")
 			return c.park(ctx, data.Id, direction, date, t, p, purchasedErr.BookingNo, purchasedErr.TicketNo, userData, bookingData, false)
 		default:
-			c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("failed to buy")
+			c.logger.Error().Ctx(ctx).Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("failed to buy")
 			return err
 		}
 	}
@@ -236,7 +237,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	if err != nil {
 		// the ticket is bought and paid for; losing this item would strand it —
 		// park with the ticket identifiers instead of failing the queue handler
-		c.logger.Error().Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Failed to report completed ticket to zinc, parking booking for recovery")
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Failed to report completed ticket to zinc, parking booking for recovery")
 		return c.park(ctx, data.Id, direction, date, t, p, bookingNo, ticketNo, userData, bookingData, false)
 	}
 
@@ -255,7 +256,7 @@ func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bo
 	for attempt := 0; attempt < retries; attempt++ {
 		if attempt > 0 {
 			delay := time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay
-			c.logger.Info().Int("attempt", attempt).Dur("delay", delay).Msg("Retrying zinc complete...")
+			c.logger.Info().Ctx(ctx).Int("attempt", attempt).Dur("delay", delay).Msg("Retrying zinc complete...")
 			time.Sleep(delay)
 		}
 
@@ -263,7 +264,7 @@ func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bo
 		if lastErr == nil {
 			return nil
 		}
-		c.logger.Error().Err(lastErr).Int("attempt", attempt).Msg("Failed to mark booking as complete")
+		c.logger.Error().Ctx(ctx).Err(lastErr).Int("attempt", attempt).Msg("Failed to mark booking as complete")
 	}
 	return lastErr
 }
@@ -273,7 +274,7 @@ func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookin
 		"file": bytes.NewReader(pdf),
 	})
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to create form")
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to create form")
 		return err
 	}
 	completed, err := c.zinc.PostApiVVersionBookingCompleteIdWithBody(ctx, "1.0", id, &zinc.PostApiVVersionBookingCompleteIdParams{
@@ -292,24 +293,13 @@ func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookin
 	return nil
 }
 
-// park moves the zinc booking to Recovering and pushes a RecoverDto onto the
-// recover queue; optionally releases the KTMB reservation (never when the
-// purchase is known to have succeeded)
+// park records a booking for recovery: it pushes an encrypted RecoverDto onto
+// the recover queue FIRST (the durable record — when a purchase succeeded, the
+// ticket identifiers live only here), then does a best-effort transition to
+// Recovering (the recoverer drives the transition itself if this fails), then
+// optionally releases the KTMB reservation (never when the purchase succeeded).
 func (c *Client) park(ctx context.Context, id openapi_types.UUID, direction, date, t string, p Passenger,
 	bookingNo, ticketNo, userData, bookingData string, release bool) error {
-
-	recovering, err := c.zinc.PostApiVVersionBookingRecoveringId(ctx, "1.0", id)
-	if err != nil {
-		c.logger.Error().Err(err).Str("bookingId", id.String()).Msg("Failed to mark booking as recovering")
-		return err
-	}
-	defer recovering.Body.Close()
-	if recovering.StatusCode != 200 {
-		body, _ := io.ReadAll(recovering.Body)
-		rErr := fmt.Errorf("failed to mark booking as recovering: status %d: %s", recovering.StatusCode, string(body))
-		c.logger.Error().Err(rErr).Str("bookingId", id.String()).Msg("Failed to mark booking as recovering")
-		return rErr
-	}
 
 	dto := lib.RecoverDto{
 		BookingId:      id.String(),
@@ -326,24 +316,58 @@ func (c *Client) park(ctx context.Context, id openapi_types.UUID, direction, dat
 	}
 	enc, err := c.recoverEncr.EncryptAny(dto)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to encrypt recover dto")
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to encrypt recover dto")
 		return err
 	}
 
 	tracer := otel.Tracer(c.psm)
-	_, err = c.mainRedis.QueuePush(ctx, tracer, c.recovererCfg.QueueName, enc)
-	if err != nil {
-		c.logger.Error().Err(err).Str("queue", c.recovererCfg.QueueName).Msg("Failed to push recover dto")
+	if err = c.pushRecover(ctx, tracer, enc); err != nil {
+		// nothing more we can do — the money record could not be durably stored
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", id.String()).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Str("queue", c.recovererCfg.QueueName).Msg("Failed to push recover dto after retries")
 		return err
 	}
-	c.logger.Info().Str("bookingId", id.String()).Str("queue", c.recovererCfg.QueueName).Msg("Booking parked for recovery")
+	c.logger.Info().Ctx(ctx).Str("bookingId", id.String()).Str("queue", c.recovererCfg.QueueName).Msg("Booking recovery record queued")
+
+	// best-effort transition; the recoverer transitions Buying -> Recovering
+	// itself if this does not land (e.g. a correlated zinc outage)
+	recovering, err := c.zinc.PostApiVVersionBookingRecoveringId(ctx, "1.0", id)
+	if err != nil {
+		c.logger.Warn().Ctx(ctx).Err(err).Str("bookingId", id.String()).Msg("Failed to transition booking to recovering (recoverer will retry)")
+	} else {
+		defer recovering.Body.Close()
+		if recovering.StatusCode != 200 {
+			body, _ := io.ReadAll(recovering.Body)
+			c.logger.Warn().Ctx(ctx).Int("status", recovering.StatusCode).Str("body", string(body)).Str("bookingId", id.String()).Msg("Non-200 transitioning booking to recovering (recoverer will retry)")
+		}
+	}
 
 	if release {
 		_, e := c.buyer.Release(userData, bookingData)
 		if e != nil {
 			// best effort: the reservation expires on its own; recovery is queued
-			c.logger.Error().Err(e).Msg("Failed to release KTMB reservation after parking")
+			c.logger.Error().Ctx(ctx).Err(e).Msg("Failed to release KTMB reservation after parking")
 		}
 	}
 	return nil
+}
+
+// pushRecover pushes the encrypted recover record with a short retry, since it
+// is the sole durable store of a captured ticket's identifiers
+func (c *Client) pushRecover(ctx context.Context, tracer trace.Tracer, enc string) error {
+	retries := c.buyerCfg.CompleteRetries
+	if retries < 1 {
+		retries = 1
+	}
+	var lastErr error
+	for attempt := 0; attempt < retries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay)
+		}
+		_, lastErr = c.mainRedis.QueuePush(ctx, tracer, c.recovererCfg.QueueName, enc)
+		if lastErr == nil {
+			return nil
+		}
+		c.logger.Error().Ctx(ctx).Err(lastErr).Int("attempt", attempt).Str("queue", c.recovererCfg.QueueName).Msg("Failed to push recover dto")
+	}
+	return lastErr
 }

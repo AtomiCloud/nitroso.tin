@@ -78,7 +78,7 @@ long-running pipeline stage; they communicate through Redis streams/queues and s
 in `zinc` + the KTMB API. Shared runtime state lives in the `State` struct (`cmds/state.go`),
 built once in `main.go` and passed to every command.
 
-### CLI Subcommands (9 total)
+### CLI Subcommands (11 total)
 
 The booking pipeline (stages 1→6):
 
@@ -103,17 +103,29 @@ PrintTicket`, and reports the completed ticket back to `zinc`. Releases on a 404
 6. **terminator** (`lib/terminator`) — Consumes a separate termination queue; looks up the
    booking in KTMB, fetches the refund policy, and refunds the ticket.
 
+- **recoverer** (`lib/recoverer`) — Runs as a `Deployment`; drains the **`recover`** queue
+  hourly (`robfig/cron`) and reconciles zinc's `Recovering` bookings. Resolves
+  duplicate-passport conflicts and captured-but-unreported tickets: force-completes when the
+  ticket exists uncaptured on our KTMB account (binary-search of `UpcomingShuttleList`), marks
+  the booking `Duplicate` (full refund) when the passenger holds it via another channel, re-buys
+  when the conflict was transient, or parks it as `RequireManualIntervention` when it cannot
+  decide safely. The buyer feeds it by parking conflicted bookings instead of crash-looping.
+
 Operational / utility subcommands:
 
 - **manual-buy** — Manually complete a booking: uploads a ticket file to `zinc`
   `POST /api/v{version}/booking/complete/{id}`. Args: `<ticketPath> <bookingNo> <ticketNo> <bookingId>`.
+- **recover** — Manually recover stuck bookings by passport + date + time + direction: looks
+  them up via `zinc`, confirms interactively, then runs the recoverer's classification.
 - **resend** — Pushes an empty string onto the Redis `buyqueue` (legacy/debug).
 - **decrypt** — Decrypts a `FindStore` value using the `ENCRYPTION_KEY` env var (debug utility).
 
 ### Redis Topology (`lib/otelredis`)
 
 - **Streams/queues:** `Update` (CDC → poller/enricher/reserver), `Enrich`
-  (enricher → reserver), `Reserver` (reserver → buyer), plus a terminator queue.
+  (enricher → reserver), `Reserver` (reserver → buyer), a terminator queue, plus the
+  **`recover`** queue (buyer → recoverer; a fast-path hint — zinc's `Recovering` status is
+  the durable source of truth, reconciled each cycle).
 - **Caches:** `MAIN` (zinc maincache), `LIVE` (tin livecache), `STREAM` (zinc streamcache) —
   keys are **case-sensitive uppercase**.
 - Messages are wrapped in a `{message, context}` JSON envelope so OpenTelemetry trace
@@ -152,7 +164,7 @@ Operational / utility subcommands:
 ### Infrastructure
 
 - **Helm:** `infra/root_chart/` depends on `infra/consumer_chart/` (a generic `golang-chart`
-  aliased once per module: cdc, poller, terminator, enricher, reserver, buyer). External
+  aliased once per module: cdc, poller, terminator, enricher, reserver, buyer, recoverer). External
   deps: redis (bitnami), `sulfoxide-bromine`, and `zinc`/`helium` root-charts.
 - **Per-module specialization:** `poller` gets `jobRbac` (create K8s Jobs); `reserver` is a
   `StatefulSet`; the rest are `Deployment`s. ArgoCD sync-waves order bromine → livecache → modules.

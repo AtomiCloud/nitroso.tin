@@ -10,81 +10,106 @@ import (
 
 const ktmbDateTimeLayout = "2006-01-02T15:04:05"
 
-// FoundTicket is a ticket on our KTMB account matching a recover item
-type FoundTicket struct {
+// foundTicket is a ticket on our KTMB account matching a recover item
+type foundTicket struct {
 	BookingNo string
 	TicketNo  string
 }
 
+// pageFetcher fetches one page of the KTMB upcoming-ticket list (1-indexed).
+type pageFetcher func(page int64) (ktmb.TicketListRes, error)
+
 // findTicket locates a ticket for the passport on the target departure via
-// KTMB's upcoming-ticket list. The list is paginated and ascending by
-// departure datetime, so binary-search the page containing the target, then
-// scan outward across pages sharing the boundary datetime.
-func (c *Client) findTicket(userData string, target time.Time, direction, passport string) (*FoundTicket, error) {
-	first, err := c.listPage(userData, 1)
+// KTMB's upcoming-ticket list. Returns (nil, nil) only when the ticket is
+// definitively absent; an error means the scan was inconclusive (the caller
+// must retry rather than treat it as "not ours", which would refund a user
+// who actually holds a valid ticket).
+func (c *Client) findTicket(userData string, target time.Time, direction, passport string) (*foundTicket, error) {
+	return findTicketIn(func(page int64) (ktmb.TicketListRes, error) {
+		return c.listPage(userData, page)
+	}, target, direction, passport, c.loc)
+}
+
+// findTicketIn is the testable core: the list is ascending by departure
+// datetime, so binary-search for a page whose datetime range spans the target,
+// then scan every contiguous page that still contains the target datetime
+// (same-datetime entries can straddle page boundaries).
+func findTicketIn(fetch pageFetcher, target time.Time, direction, passport string, loc *time.Location) (*foundTicket, error) {
+	first, err := fetch(1)
 	if err != nil {
 		return nil, err
 	}
-	totalPage := first.TotalPage
-	if totalPage <= 0 || len(first.Bookings) == 0 {
+	total := first.TotalPage
+	if total <= 0 || len(first.Bookings) == 0 {
 		return nil, nil
 	}
 
-	if f := c.matchPage(first, target, direction, passport); f != nil {
-		return f, nil
+	getPage := func(page int64) (ktmb.TicketListRes, error) {
+		if page == 1 {
+			return first, nil
+		}
+		return fetch(page)
 	}
 
-	lo, hi := int64(2), totalPage
-	candidate := int64(0)
+	// binary search for a page whose [firstDepart, lastDepart] spans target
+	lo, hi := int64(1), total
+	hit := int64(0)
 	for lo <= hi {
 		mid := (lo + hi) / 2
-		page, err := c.listPage(userData, mid)
+		page, err := getPage(mid)
 		if err != nil {
 			return nil, err
 		}
 		if len(page.Bookings) == 0 {
-			break
+			// a page inside the known range came back empty: the list mutated
+			// under us — inconclusive, retry
+			return nil, fmt.Errorf("empty page %d within range during scan", mid)
 		}
-		if f := c.matchPage(page, target, direction, passport); f != nil {
-			return f, nil
-		}
-
-		firstDt, err := c.departOf(page.Bookings[0])
+		firstDt, err := departOf(page.Bookings[0], loc)
 		if err != nil {
 			return nil, err
 		}
-		lastDt, err := c.departOf(page.Bookings[len(page.Bookings)-1])
+		lastDt, err := departOf(page.Bookings[len(page.Bookings)-1], loc)
 		if err != nil {
 			return nil, err
 		}
-
 		switch {
 		case target.Before(firstDt):
 			hi = mid - 1
 		case target.After(lastDt):
 			lo = mid + 1
 		default:
-			// target datetime falls inside this page but did not match: entries
-			// with the same departure may spill into neighbouring pages
-			candidate = mid
-			lo = hi + 1
+			hit = mid
+			lo = hi + 1 // found a spanning page, exit the search
 		}
 	}
-
-	if candidate == 0 {
-		return nil, nil
+	if hit == 0 {
+		return nil, nil // target datetime falls outside every page's range
 	}
 
-	// scan neighbours that share the boundary departure datetime
-	for _, page := range []int64{candidate - 1, candidate + 1} {
-		if page < 1 || page > totalPage {
-			continue
-		}
-		res, err := c.listPage(userData, page)
+	// scan left from the hit page while pages still contain the target datetime
+	for page := hit; page >= 1; page-- {
+		res, err := getPage(page)
 		if err != nil {
 			return nil, err
 		}
-		if f := c.matchPage(res, target, direction, passport); f != nil {
+		if f := matchPage(res, target, direction, passport, loc); f != nil {
+			return f, nil
+		}
+		if !pageContainsDatetime(res, target, loc) {
+			break
+		}
+	}
+	// scan right from the page after the hit
+	for page := hit + 1; page <= total; page++ {
+		res, err := getPage(page)
+		if err != nil {
+			return nil, err
+		}
+		if !pageContainsDatetime(res, target, loc) {
+			break
+		}
+		if f := matchPage(res, target, direction, passport, loc); f != nil {
 			return f, nil
 		}
 	}
@@ -102,9 +127,20 @@ func (c *Client) listPage(userData string, page int64) (ktmb.TicketListRes, erro
 	return res.Data, nil
 }
 
-func (c *Client) matchPage(page ktmb.TicketListRes, target time.Time, direction, passport string) *FoundTicket {
+// pageContainsDatetime reports whether any booking on the page departs exactly
+// at target — i.e. whether the target datetime's entries may extend further.
+func pageContainsDatetime(page ktmb.TicketListRes, target time.Time, loc *time.Location) bool {
 	for _, booking := range page.Bookings {
-		dt, err := c.departOf(booking)
+		if dt, err := departOf(booking, loc); err == nil && dt.Equal(target) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchPage(page ktmb.TicketListRes, target time.Time, direction, passport string, loc *time.Location) *foundTicket {
+	for _, booking := range page.Bookings {
+		dt, err := departOf(booking, loc)
 		if err != nil || !dt.Equal(target) {
 			continue
 		}
@@ -114,7 +150,7 @@ func (c *Client) matchPage(page ktmb.TicketListRes, target time.Time, direction,
 		for _, trip := range booking.Trips {
 			for _, ticket := range trip.Tickets {
 				if strings.EqualFold(strings.TrimSpace(ticket.PassengerPassportNo), strings.TrimSpace(passport)) {
-					return &FoundTicket{BookingNo: booking.BookingNo, TicketNo: ticket.TicketNo}
+					return &foundTicket{BookingNo: booking.BookingNo, TicketNo: ticket.TicketNo}
 				}
 			}
 		}
@@ -122,12 +158,12 @@ func (c *Client) matchPage(page ktmb.TicketListRes, target time.Time, direction,
 	return nil
 }
 
-func (c *Client) departOf(booking ktmb.TicketListBookingRes) (time.Time, error) {
-	return time.ParseInLocation(ktmbDateTimeLayout, booking.DepartFromLocalDateTime, c.loc)
+func departOf(booking ktmb.TicketListBookingRes, loc *time.Location) (time.Time, error) {
+	return time.ParseInLocation(ktmbDateTimeLayout, booking.DepartFromLocalDateTime, loc)
 }
 
 // directionOf maps KTMB station names to the platform's direction strings:
-// departing Woodlands ⇒ WToJ, departing JB Sentral ⇒ JToW
+// departing Woodlands => WToJ, departing JB Sentral => JToW
 func directionOf(fromStationName string) string {
 	if strings.Contains(strings.ToUpper(fromStationName), "WOODLANDS") {
 		return "WToJ"
