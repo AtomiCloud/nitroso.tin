@@ -158,6 +158,40 @@ This is the tool for bookings already stuck when the pipeline ships.
   (§5), `recoverer`/`recover` commands, `RecovererConfig` + `buyer.completeRetries`/
   `conflictPatterns`, regenerated `lib/zinc` SDK, `recoverer` helm alias, unit tests for the
   conflict matcher and the scanner (bisection, page-spanning, inconclusive/strict).
+- **argon** (`feat/recovery-statuses`, base branch `pichu` — the active argon branch, NOT
+  `main`): the SvelteKit frontend must stop calling the removed `revert` endpoint and render
+  the three new statuses without crashing (§6.1).
+
+### 6.1 argon frontend (SvelteKit)
+
+The frontend types booking `status` as a plain nullable string (no enum), so the new values
+compile fine but the status→color lookup map throws at render if a value is missing. Required
+changes:
+
+1. **Regenerate the API SDK from the updated zinc** — `task sdk-gen` (runs
+   `scripts/local/sdk_gen.sh v1` against a live zinc at `API_URL`, default
+   `http://127.0.0.1:9002`). This DROPS the now-dead `vBookingRevertCreate`, ADDS the
+   `recovering`/`duplicate`/`manual-intervention` endpoints, and ADDS `PassportNumber` to the
+   booking-search query. NEVER hand-edit `src/lib/api/core/*` (generated).
+2. **`src/routes/bookings/book_status.ts`** — add `Recovering`, `Duplicate`,
+   `RequireManualIntervention` to `BOOKING_STATUS` (value/label/color). REQUIRED: the map is
+   indexed as `BOOKING_STATUS[status].color` in `BookingRow.svelte`, `Booking.svelte`, and
+   `bookings/+page.svelte`; an unmapped status throws `Cannot read properties of undefined`.
+   Adding entries also populates the status filter dropdown automatically.
+3. **`src/lib/components/entities/Bookings/BookingRow.svelte`** — remove the admin "Buying
+   (Click to revert)" button, the `revertBuying()` function, the `reverting` var, the `session`
+   const, and the now-unused imports (`page`, `toResult`, `api`, `toast`, `invalidateAll`);
+   render just the plain status badge.
+4. **i18n `src/lib/i18n/locales/{en,ms,zh}.json`** — add `status.booking.Recovering`,
+   `status.booking.Duplicate`, `status.booking.RequireManualIntervention`, and
+   `status.transactionType.BookingDuplicate` in ALL THREE locales; remove the now-unused
+   `bookingActions.row.{revertSuccess,revertError,clickToRevert}` keys.
+5. **`src/lib/components/entities/Bookings/Booking.svelte`** — add `Duplicate` to the
+   terminal-state list (`["Cancelled", "Refunded", "Terminated"]`) so a duplicated booking
+   shows the terminal card.
+
+Not in scope: exposing the new admin recovery actions or a passport-search UI — those are
+tin/CLI-driven. argon only needs to stop calling the removed endpoint and render the new states.
 
 ## 7. Deploy sequencing
 
@@ -165,18 +199,20 @@ This is the tool for bookings already stuck when the pipeline ships.
 2. **zinc** — new endpoints are additive; `revert` removal is safe once helium's reverter is gone.
 3. **tin** — regenerate the SDK from deployed zinc, then deploy. Run §5 manual recovery for the
    currently-stuck bookings.
-
-argon follow-up (out of scope): its admin "Buying (Click to revert)" button will error once
-`revert` is gone; drop it in a later argon PR.
+4. **argon** — regenerate its SDK from deployed zinc and deploy; safe any time after zinc since
+   it only drops a call and adds display strings.
 
 ## 8. Acceptance checklist
 
 - [ ] Money invariants §3.1–§3.6 hold on every reachable path.
 - [ ] Every `BookStatus`/`TransactionType` switch/mapper/validator extended with the new values.
-- [ ] No residual `revert`/`Reverter`/`RevertBuying` reference in any repo (code, infra, docs, CI).
+- [ ] No residual `revert`/`Reverter`/`RevertBuying` reference in any repo (code, infra, docs, CI)
+      except regenerated-away SDK stubs.
 - [ ] Buyer never crash-loops on a conflict; a captured ticket is never dropped or released.
 - [ ] Recoverer never refunds on an inconclusive scan and never double-buys.
 - [ ] No booking with held money is left unresolvable by any path.
 - [ ] Recoverer is single-replica (helm) and says so in code.
 - [ ] go.mod stays at the pinned Go version; SDK regeneration introduces no toolchain bump.
-- [ ] All three PRs green in CI.
+- [ ] argon renders all three new statuses without a runtime crash and no longer calls the
+      removed `revert` endpoint; `npm run check` passes.
+- [ ] All four PRs green in CI.
