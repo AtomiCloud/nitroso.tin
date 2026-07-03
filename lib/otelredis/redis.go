@@ -65,7 +65,15 @@ func (r OtelRedis) QueuePush(ctx context.Context, tracer trace.Tracer, queue str
 
 	childSpan.SetAttributes(attribute.String("message", string(messageJson)))
 
-	return r.LPush(ctx, queue, string(messageJson)), nil
+	// Return the command's own error, not a bare nil: go-redis stores execution
+	// errors (connection refused, context cancel, READONLY during failover) on
+	// the *IntCmd, so returning (cmd, nil) would make every LPUSH failure look
+	// like a successful enqueue. The recover-queue callers (buyer pushRecover,
+	// recoverer requeue) treat this queue as the sole durable store of a captured
+	// ticket's identifiers, so a silently-dropped push could later drive a
+	// wrongful refund (§4/§5 durability).
+	cmd := r.LPush(ctx, queue, string(messageJson))
+	return cmd, cmd.Err()
 }
 
 func (r OtelRedis) QueuePop(ctx context.Context, tracer trace.Tracer, queue string, handler func(ctx context.Context, message json.RawMessage) error) error {
@@ -100,6 +108,40 @@ func (r OtelRedis) QueuePop(ctx context.Context, tracer trace.Tracer, queue stri
 	ctx, childSpan := tracer.Start(ctx, "redis read from queue: "+queue, opts...)
 	defer childSpan.End()
 	return handler(ctx, marshal)
+}
+
+// QueuePopNoWait pops one message without blocking. Returns false when the
+// queue is empty. Same envelope handling as QueuePop.
+func (r OtelRedis) QueuePopNoWait(ctx context.Context, tracer trace.Tracer, queue string, handler func(ctx context.Context, message json.RawMessage) error) (bool, error) {
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(semconv.MessagingSystemKey.String("queue")),
+	}
+
+	propagator := otel.GetTextMapPropagator()
+
+	val, err := r.RPop(ctx, queue).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return false, nil
+		}
+		return false, err
+	}
+
+	var msg OtelRedisMessage
+	err = json.Unmarshal([]byte(val), &msg)
+	if err != nil {
+		return true, err
+	}
+
+	ctx = propagator.Extract(ctx, msg.Context)
+	marshal, err := json.Marshal(msg.Message)
+	if err != nil {
+		return true, err
+	}
+	ctx, childSpan := tracer.Start(ctx, "redis read from queue: "+queue, opts...)
+	defer childSpan.End()
+	return true, handler(ctx, marshal)
 }
 
 func (r OtelRedis) StreamAdd(ctx context.Context, tracer trace.Tracer, stream string, any interface{}) (*redis.StringCmd, error) {

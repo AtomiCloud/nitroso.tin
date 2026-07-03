@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"fmt"
+	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
@@ -34,8 +35,11 @@ func (state *State) Buyer(c *cli.Context) error {
 		return er
 	}
 
-	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber, state.Config.Buyer.SleepBuffer)
-	client := buyer.New(&b, &mainRedis, &streamRedis, state.OtelConfigurator, state.Logger, state.Config.Stream, state.Config.Buyer, state.Psm, zClient, encr)
+	recoverEncr := encryptor.NewSymEncryptor[lib.RecoverDto](state.Config.Encryptor.Key, state.Logger)
+
+	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber, state.Config.Buyer.SleepBuffer, state.Config.Buyer.ConflictPatterns)
+	client := buyer.New(&b, &mainRedis, &streamRedis, state.OtelConfigurator, state.Logger, state.Config.Stream, state.Config.Buyer,
+		state.Config.Recoverer, state.Psm, zClient, encr, recoverEncr)
 
 	err := client.Start(ctx)
 	if err != nil {

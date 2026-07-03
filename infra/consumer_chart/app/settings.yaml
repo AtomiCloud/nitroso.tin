@@ -37,10 +37,20 @@ buyer:
   scheme: http
   host: localhost
   port: 9000
+  completeRetries: 5
+  parkRetries: 5
+  conflictPatterns:
+    - 'duplicate passport'
 
 terminator:
   backoffLimit: 3
   queueName: 'terminator'
+
+recoverer:
+  queueName: 'recover'
+  drainCron: '@every 15m'
+  sweepCron: '@every 1h'
+  maxAttempts: 5
 
 app:
   landscape: lapras

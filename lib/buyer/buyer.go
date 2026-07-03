@@ -8,18 +8,20 @@ import (
 )
 
 type Buyer struct {
-	ktmb          ktmb.Ktmb
-	contactNumber string
-	logger        *zerolog.Logger
-	sleepBuffer   int
+	ktmb             ktmb.Ktmb
+	contactNumber    string
+	logger           *zerolog.Logger
+	sleepBuffer      int
+	conflictPatterns []string
 }
 
-func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBuffer int) Buyer {
+func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBuffer int, conflictPatterns []string) Buyer {
 	return Buyer{
-		ktmb:          k,
-		logger:        logger,
-		contactNumber: contactNumber,
-		sleepBuffer:   sleepBuffer,
+		ktmb:             k,
+		logger:           logger,
+		contactNumber:    contactNumber,
+		sleepBuffer:      sleepBuffer,
+		conflictPatterns: conflictPatterns,
 	}
 }
 
@@ -43,6 +45,12 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	time.Sleep(sd)
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Sleep Complete. Setting Passenger...")
 
+	if len(start.Data.Passengers) == 0 {
+		// pre-payment: no money moved yet, so a plain error (retry) is safe
+		e := fmt.Errorf("book start response carries no passengers: %+v", start.Messages)
+		c.logger.Error().Err(e).Msg("Malformed book start response")
+		return nil, "", "", e
+	}
 	bd1 := start.Data.BookingData
 	ud1 := start.Data.UserData
 	pd := start.Data.Passengers[0].PassengerData
@@ -74,6 +82,11 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	}
 
 	if !passenger.Status {
+		if matchesConflict(c.conflictPatterns, passenger.Messages) {
+			e := &ConflictError{Messages: passenger.Messages}
+			c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Passenger conflict detected (duplicate passport)")
+			return nil, "", "", e
+		}
 		e := fmt.Errorf("failed to set passenger: %+v", passenger.Messages)
 		c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to set passenger")
 		return nil, "", "", e
@@ -118,15 +131,46 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	time.Sleep(sd)
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Sleep Complete. Printing Ticket...")
 
-	ticket, err := c.ktmb.PrintTicket(complete.Data.UserData, complete.Data.Booking.BookingNo, complete.Data.Booking.Trips[0].Tickets[0].TicketNo)
-	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to print ticket")
-		return nil, "", "", err
+	bookingNo, ticketNo, idErr := ticketIdsOf(complete.Data)
+	if idErr != nil {
+		// Complete reported success, so the payment IS captured — a malformed
+		// response shape must park the booking (with whatever identifiers we
+		// have), never panic or read as a failed buy: the popped queue item is
+		// the only other record and it is already gone
+		e := &PurchasedError{BookingNo: bookingNo, TicketNo: ticketNo, Cause: idErr}
+		c.logger.Error().Err(idErr).Str("bookingNo", bookingNo).Msg("Purchase succeeded but complete response is malformed, parking for recovery")
+		return nil, bookingNo, ticketNo, e
 	}
 
-	c.logger.Info().Any("passenger", p).Msg("Successfully purchased Ticket")
-	return ticket, complete.Data.Booking.BookingNo, complete.Data.Booking.Trips[0].Tickets[0].TicketNo, nil
+	ticket, err := c.ktmb.PrintTicket(complete.Data.UserData, bookingNo, ticketNo)
+	if err != nil {
+		// the purchase already succeeded — surface the ticket identifiers so the
+		// caller can recover instead of treating this as a failed buy
+		e := &PurchasedError{BookingNo: bookingNo, TicketNo: ticketNo, Cause: err}
+		c.logger.Error().Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Purchase succeeded but failed to print ticket")
+		return nil, bookingNo, ticketNo, e
+	}
 
+	// log ticket identifiers, not the passenger object — the latter carries the
+	// full name + passport number (PII) into the log stream
+	c.logger.Info().Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Str("date", date).Str("time", t).Str("dir", direction).Msg("Successfully purchased Ticket")
+	return ticket, bookingNo, ticketNo, nil
+
+}
+
+// ticketIdsOf extracts the booking/ticket identifiers from a successful
+// Complete response without trusting its shape: by the time Complete reports
+// Status=true the payment is captured, so a missing trips/tickets array must
+// surface as an error the caller can park on — never an index panic, which
+// would drop the sole in-process record of a paid ticket. The BookingNo is
+// returned even when the ticket number is missing so recovery keeps whatever
+// identifier exists.
+func ticketIdsOf(complete ktmb.CompleteRes) (string, string, error) {
+	bookingNo := complete.Booking.BookingNo
+	if len(complete.Booking.Trips) == 0 || len(complete.Booking.Trips[0].Tickets) == 0 {
+		return bookingNo, "", fmt.Errorf("complete response carries no trips/tickets (bookingNo %q)", bookingNo)
+	}
+	return bookingNo, complete.Booking.Trips[0].Tickets[0].TicketNo, nil
 }
 
 func (c *Buyer) Release(userData, bookingData string) (ktmb.GenericRes[*interface{}], error) {

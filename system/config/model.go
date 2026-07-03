@@ -14,6 +14,7 @@ type RootConfig struct {
 	Ktmb       KtmbConfig
 	Buyer      BuyerConfig
 	Terminator TerminatorConfig
+	Recoverer  RecovererConfig
 	Buffer     BufferConfig
 	Pool       PoolConfig
 }
@@ -50,12 +51,37 @@ type BuyerConfig struct {
 	Scheme string
 	Host   string
 	Port   string
+
+	// CompleteRetries is how many times the buyer retries reporting a captured
+	// ticket to zinc before parking the booking for recovery
+	CompleteRetries int
+	// ParkRetries is how many times the buyer retries each parking step (the
+	// recover-queue push and the Buying -> Recovering transition); the queue
+	// push is the sole durable store of a captured ticket's identifiers
+	ParkRetries int
+	// ConflictPatterns are case-insensitive substrings of KTMB SetPassenger
+	// error messages that mean "this passenger already holds a ticket"
+	ConflictPatterns []string
 }
 
 // Terminator Config
 type TerminatorConfig struct {
 	BackoffLimit int
 	QueueName    string
+}
+
+// Recoverer Config
+type RecovererConfig struct {
+	QueueName string
+	// DrainCron is how often the recover queue is drained (robfig/cron syntax,
+	// e.g. '@every 15m') — the fast path for freshly-parked bookings.
+	DrainCron string
+	// SweepCron is how often zinc is reconciled for Recovering bookings whose
+	// queue item was lost (e.g. '@every 1h'); each sweep also drains first.
+	SweepCron string
+	// MaxAttempts is how many drain cycles an item may fail before it is
+	// parked as RequireManualIntervention
+	MaxAttempts int
 }
 
 // KTMB Config

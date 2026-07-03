@@ -11,6 +11,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// ktmbAppInfo is the device fingerprint KTMB expects on reserve/buy calls;
+// shared by every command that drives a purchase (reserver, recoverer).
+const ktmbAppInfo = "{\"DeviceName\":\"Google\",\"OperatingSystemName\":\"Android\",\"OperatingSystemVersion\":\"13\",\"AppVersion\":\"1.4.1\"}"
+
 func (state *State) Reserver(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Reserver")
 
@@ -18,8 +22,6 @@ func (state *State) Reserver(c *cli.Context) error {
 	loginConsumerId := xid.New().String()
 	ktmbConfig := state.Config.Ktmb
 	ctx := c.Context
-
-	appInfo := "{\"DeviceName\":\"Google\",\"OperatingSystemName\":\"Android\",\"OperatingSystemVersion\":\"13\",\"AppVersion\":\"1.4.1\"}"
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
@@ -42,7 +44,7 @@ func (state *State) Reserver(c *cli.Context) error {
 	loginSyncer := reserver.NewLoginSyncer(loginToReserve, &streamRedis, retriever, state.OtelConfigurator,
 		state.Logger, state.Psm, state.Ps, state.Config.Stream, state.Config.Reserver)
 
-	client := reserver.New(k, state.Logger, &mainRedis, &streamRedis, rEncr, state.Config.Reserver, state.Config.Stream, appInfo,
+	client := reserver.New(k, state.Logger, &mainRedis, &streamRedis, rEncr, state.Config.Reserver, state.Config.Stream, ktmbAppInfo,
 		state.OtelConfigurator, state.Psm, state.Location, loginToReserve, countToReserve, diffToReserve)
 
 	go func() {
