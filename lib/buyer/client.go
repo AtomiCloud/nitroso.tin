@@ -13,7 +13,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
-	openapi_types "github.com/oapi-codegen/runtime/types"
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
@@ -328,17 +328,14 @@ func (c *Client) park(ctx context.Context, id openapi_types.UUID, direction, dat
 	}
 	c.logger.Info().Ctx(ctx).Str("bookingId", id.String()).Str("queue", c.recovererCfg.QueueName).Msg("Booking recovery record queued")
 
-	// best-effort transition; the recoverer transitions Buying -> Recovering
-	// itself if this does not land (e.g. a correlated zinc outage)
-	recovering, err := c.zinc.PostApiVVersionBookingRecoveringId(ctx, "1.0", id)
-	if err != nil {
-		c.logger.Warn().Ctx(ctx).Err(err).Str("bookingId", id.String()).Msg("Failed to transition booking to recovering (recoverer will retry)")
-	} else {
-		defer recovering.Body.Close()
-		if recovering.StatusCode != 200 {
-			body, _ := io.ReadAll(recovering.Body)
-			c.logger.Warn().Ctx(ctx).Int("status", recovering.StatusCode).Str("body", string(body)).Str("bookingId", id.String()).Msg("Non-200 transitioning booking to recovering (recoverer will retry)")
-		}
+	// transition to Recovering with retry so the booking leaves Buying promptly
+	// (a booking left in Buying is only recovered via the queue item or the
+	// manual `recover` command, since Buying cannot be safely auto-swept — it is
+	// indistinguishable from an in-flight purchase). If this ultimately fails,
+	// the recoverer drives Buying -> Recovering itself when it drains the queued
+	// record.
+	if err = c.transitionRecovering(ctx, id); err != nil {
+		c.logger.Warn().Ctx(ctx).Err(err).Str("bookingId", id.String()).Msg("Failed to transition booking to recovering after retries (recoverer will drive it from the queue)")
 	}
 
 	if release {
@@ -349,6 +346,33 @@ func (c *Client) park(ctx context.Context, id openapi_types.UUID, direction, dat
 		}
 	}
 	return nil
+}
+
+// transitionRecovering moves the booking Buying -> Recovering with a short
+// retry so it does not linger in the un-sweepable Buying state.
+func (c *Client) transitionRecovering(ctx context.Context, id openapi_types.UUID) error {
+	retries := c.buyerCfg.CompleteRetries
+	if retries < 1 {
+		retries = 1
+	}
+	var lastErr error
+	for attempt := 0; attempt < retries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay)
+		}
+		resp, err := c.zinc.PostApiVVersionBookingRecoveringId(ctx, "1.0", id)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode == 200 {
+			return nil
+		}
+		lastErr = fmt.Errorf("transition to recovering: status %d: %s", resp.StatusCode, string(body))
+	}
+	return lastErr
 }
 
 // pushRecover pushes the encrypted recover record with a short retry, since it

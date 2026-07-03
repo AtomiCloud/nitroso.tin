@@ -104,7 +104,7 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 		return err
 	}
 
-	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
+	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber, false)
 	if err != nil {
 		// an inconclusive scan must never fall through to a refund
 		l.Error().Err(err).Msg("KTMB ticket scan inconclusive, will retry")
@@ -176,7 +176,9 @@ func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, userData string,
 			if _, e := c.buyer.Release(store.UserData, bookingData); e != nil {
 				l.Error().Err(e).Msg("Failed to release probe reservation")
 			}
-			found, ferr := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
+			// strict: KTMB just told us the passenger is booked, so an empty own-
+			// account list is contradictory and must not drive a refund
+			found, ferr := c.findTicket(userData, target, dto.Direction, dto.PassportNumber, true)
 			if ferr != nil {
 				l.Error().Err(ferr).Msg("Re-buy conflicted but re-scan inconclusive, will retry")
 				return ferr

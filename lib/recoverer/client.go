@@ -101,13 +101,18 @@ func (c *Client) Start(ctx context.Context) error {
 			return ctx.Err()
 		case trigger := <-ch:
 			c.logger.Info().Ctx(ctx).Str("trigger", trigger).Msg("Recoverer cycle starting")
-			if drainErr := c.Drain(ctx); drainErr != nil {
+			handled, drainErr := c.Drain(ctx)
+			if drainErr != nil {
 				c.logger.Error().Ctx(ctx).Err(drainErr).Msg("Recoverer drain failed")
 			}
 			// safety net: the queue is a fast-path hint (destructive RPop), so a
 			// lost item would strand a booking in Recovering forever. Reconcile
-			// against zinc, the durable source of truth, every cycle.
-			if sweepErr := c.Sweep(ctx); sweepErr != nil {
+			// against zinc, the durable source of truth, every cycle — but skip
+			// bookings the drain already touched this cycle: their queue item
+			// carries the buyer's deterministic ticket identifiers, which the
+			// zinc-reconstructed item lacks, and a requeued item is retried next
+			// cycle rather than re-processed with weaker info now.
+			if sweepErr := c.Sweep(ctx, handled); sweepErr != nil {
 				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Recoverer sweep failed")
 			}
 			c.logger.Info().Ctx(ctx).Msg("Recoverer cycle complete")
@@ -116,16 +121,19 @@ func (c *Client) Start(ctx context.Context) error {
 }
 
 // Drain pops every item currently on the recover queue and processes each.
-// Per-item failures are re-queued (with an attempt cap), never dropped.
-func (c *Client) Drain(ctx context.Context) error {
+// Per-item failures are re-queued (with an attempt cap), never dropped. It
+// returns the set of BookingIds it touched this cycle so the sweep can skip
+// them (their queue item carries stronger info than the zinc reconstruction).
+func (c *Client) Drain(ctx context.Context) (map[string]bool, error) {
 	tracer := otel.Tracer(c.psm)
+	handled := map[string]bool{}
 
 	// cap at the queue length observed at the start so re-queued items are not
 	// re-processed within the same drain
 	length, err := c.mainRedis.LLen(ctx, c.config.QueueName).Result()
 	if err != nil {
 		c.logger.Error().Ctx(ctx).Err(err).Str("queue", c.config.QueueName).Msg("Failed to read recover queue length")
-		return err
+		return handled, err
 	}
 	c.logger.Info().Ctx(ctx).Int64("length", length).Str("queue", c.config.QueueName).Msg("Draining recover queue")
 
@@ -141,6 +149,7 @@ func (c *Client) Drain(ctx context.Context) error {
 				c.logger.Error().Ctx(ctx).Err(e).Msg("Failed to decrypt recover queue message")
 				return nil // undecryptable: drop — the sweep re-derives from zinc
 			}
+			handled[dto.BookingId] = true
 			c.logger.Info().Ctx(ctx).Str("bookingId", dto.BookingId).Int("attempts", dto.Attempts).Msg("Processing recover item")
 			pErr := c.ProcessItem(ctx, dto)
 			if pErr != nil {
@@ -151,20 +160,23 @@ func (c *Client) Drain(ctx context.Context) error {
 		})
 		if popErr != nil {
 			c.logger.Error().Ctx(ctx).Err(popErr).Msg("Failed to pop recover queue")
-			return popErr
+			return handled, popErr
 		}
 		if !found {
 			break
 		}
 	}
-	return nil
+	return handled, nil
 }
 
 // Sweep reconciles against zinc: every booking still in Recovering is
 // re-derived and re-processed, so a booking whose queue item was lost (crash
 // mid-drain, requeue push failure, malformed message) is never stranded.
 // zinc — not the queue — is the durable source of truth for booking state.
-func (c *Client) Sweep(ctx context.Context) error {
+// skip holds BookingIds already handled by the drain this cycle: their live
+// queue item carries the buyer's deterministic ticket identifiers, so
+// re-deriving them here (BookingNo unknown) would take a strictly weaker path.
+func (c *Client) Sweep(ctx context.Context, skip map[string]bool) error {
 	bookings, err := c.listRecovering(ctx)
 	if err != nil {
 		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to list recovering bookings for sweep")
@@ -176,7 +188,7 @@ func (c *Client) Sweep(ctx context.Context) error {
 	c.logger.Info().Ctx(ctx).Int("count", len(bookings)).Msg("Sweeping recovering bookings")
 	for _, b := range bookings {
 		dto := reconstructDto(b)
-		if dto.BookingId == "" {
+		if dto.BookingId == "" || skip[dto.BookingId] {
 			continue
 		}
 		if err := c.ProcessItem(ctx, dto); err != nil {

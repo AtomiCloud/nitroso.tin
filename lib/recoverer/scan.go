@@ -24,23 +24,31 @@ type pageFetcher func(page int64) (ktmb.TicketListRes, error)
 // definitively absent; an error means the scan was inconclusive (the caller
 // must retry rather than treat it as "not ours", which would refund a user
 // who actually holds a valid ticket).
-func (c *Client) findTicket(userData string, target time.Time, direction, passport string) (*foundTicket, error) {
+//
+// strict makes an empty/blank list inconclusive rather than definitively
+// absent — use it in the re-scan after a KTMB conflict, where an empty own-
+// account list is contradictory (KTMB just said the passenger is booked) and
+// must never drive a refund.
+func (c *Client) findTicket(userData string, target time.Time, direction, passport string, strict bool) (*foundTicket, error) {
 	return findTicketIn(func(page int64) (ktmb.TicketListRes, error) {
 		return c.listPage(userData, page)
-	}, target, direction, passport, c.loc)
+	}, target, direction, passport, c.loc, strict)
 }
 
 // findTicketIn is the testable core: the list is ascending by departure
 // datetime, so binary-search for a page whose datetime range spans the target,
 // then scan every contiguous page that still contains the target datetime
 // (same-datetime entries can straddle page boundaries).
-func findTicketIn(fetch pageFetcher, target time.Time, direction, passport string, loc *time.Location) (*foundTicket, error) {
+func findTicketIn(fetch pageFetcher, target time.Time, direction, passport string, loc *time.Location, strict bool) (*foundTicket, error) {
 	first, err := fetch(1)
 	if err != nil {
 		return nil, err
 	}
 	total := first.TotalPage
 	if total <= 0 || len(first.Bookings) == 0 {
+		if strict {
+			return nil, fmt.Errorf("empty ticket list while a booking was expected (inconclusive)")
+		}
 		return nil, nil
 	}
 

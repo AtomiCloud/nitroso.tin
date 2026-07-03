@@ -135,7 +135,7 @@ func TestFindTicketIn(t *testing.T) {
 	find := func(hour int, dir, passport string) (*foundTicket, error) {
 		fetch, _ := paginate(all, 4)
 		target := base.Add(time.Duration(hour) * time.Hour)
-		return findTicketIn(fetch, target, dir, passport, loc)
+		return findTicketIn(fetch, target, dir, passport, loc, false)
 	}
 
 	// target on page 1
@@ -161,7 +161,7 @@ func TestFindTicketIn(t *testing.T) {
 	// datetime beyond the list entirely → not found
 	fetch, _ := paginate(all, 4)
 	beyond := base.Add(100 * time.Hour)
-	if f, err := findTicketIn(fetch, beyond, "WToJ", "PPW00", loc); err != nil || f != nil {
+	if f, err := findTicketIn(fetch, beyond, "WToJ", "PPW00", loc, false); err != nil || f != nil {
 		t.Errorf("beyond-range: expected nil,nil got %+v err %v", f, err)
 	}
 }
@@ -179,7 +179,7 @@ func TestFindTicketInSpanningManyPages(t *testing.T) {
 	all = append(all, ticket(dt, "WOODLANDS CIQ", "KSTLAST", "TSTLAST", "TARGET"))
 
 	fetch, _ := paginate(all, 3)
-	f, err := findTicketIn(fetch, target, "WToJ", "TARGET", loc)
+	f, err := findTicketIn(fetch, target, "WToJ", "TARGET", loc, false)
 	if err != nil || f == nil || f.BookingNo != "KSTLAST" {
 		t.Errorf("spanning pages: expected KSTLAST, got %+v err %v", f, err)
 	}
@@ -201,7 +201,23 @@ func TestFindTicketInInconclusiveOnEmptyMidPage(t *testing.T) {
 			return ktmb.TicketListRes{Page: page, TotalPage: 3, Bookings: nil}, nil
 		}
 	}
-	if _, err := findTicketIn(fetch, target, "WToJ", "AA", loc); err == nil {
+	if _, err := findTicketIn(fetch, target, "WToJ", "AA", loc, false); err == nil {
 		t.Error("expected inconclusive error on empty mid-page, got nil")
+	}
+}
+
+func TestFindTicketInStrictEmptyList(t *testing.T) {
+	loc := sgLoc(t)
+	target := time.Date(2026, 7, 3, 13, 45, 0, 0, loc)
+	empty := func(page int64) (ktmb.TicketListRes, error) {
+		return ktmb.TicketListRes{Page: 1, TotalPage: 0, Bookings: nil}, nil
+	}
+	// non-strict: an empty list is a definitive "not on our account"
+	if f, err := findTicketIn(empty, target, "WToJ", "AA", loc, false); err != nil || f != nil {
+		t.Errorf("non-strict empty: expected nil,nil got %+v err %v", f, err)
+	}
+	// strict (post-conflict re-scan): an empty list is contradictory → inconclusive
+	if _, err := findTicketIn(empty, target, "WToJ", "AA", loc, true); err == nil {
+		t.Error("strict empty: expected inconclusive error, got nil")
 	}
 }
