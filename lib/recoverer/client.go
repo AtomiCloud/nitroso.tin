@@ -24,6 +24,13 @@ import (
 // force-complete when the ticket is provably ours, mark duplicate when the
 // passenger already holds it elsewhere, re-buy when no conflict actually
 // exists, and park for a human when nothing can be decided safely.
+//
+// SINGLE REPLICA ONLY. The drain pops with a destructive RPop and the sweep's
+// queued-skip / handled-skip dedup assumes the drain and sweep run sequentially
+// in one process. Running more than one recoverer concurrently would let two
+// drains double-pop and a sweep weak-process an item another replica is
+// handling — risking a wrongful refund. Keep replicaCount at 1 (see the Helm
+// values); do not add an HPA.
 type Client struct {
 	ktmb             ktmb.Ktmb
 	buyer            *buyer.Buyer
