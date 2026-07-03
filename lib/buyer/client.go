@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
@@ -12,6 +13,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"io"
@@ -28,9 +30,11 @@ type Client struct {
 	logger           *zerolog.Logger
 	streamsCfg       config.StreamConfig
 	buyerCfg         config.BuyerConfig
+	recovererCfg     config.RecovererConfig
 	psm              string
 	zinc             *zinc.Client
 	encr             encryptor.Encryptor[reserver.ReserveDto]
+	recoverEncr      encryptor.Encryptor[lib.RecoverDto]
 }
 
 var baseDelay = 1 * time.Second
@@ -54,7 +58,8 @@ func CreateForm(values map[string]io.Reader) (s string, reader io.Reader, err er
 }
 
 func New(buyer *Buyer, mainRedis, streamRedis *otelredis.OtelRedis, otelConfigurator *telemetry.OtelConfigurator, logger *zerolog.Logger,
-	streamsCfg config.StreamConfig, buyerCfg config.BuyerConfig, psm string, zinc *zinc.Client, enrc encryptor.Encryptor[reserver.ReserveDto]) *Client {
+	streamsCfg config.StreamConfig, buyerCfg config.BuyerConfig, recovererCfg config.RecovererConfig, psm string, zinc *zinc.Client,
+	enrc encryptor.Encryptor[reserver.ReserveDto], recoverEncr encryptor.Encryptor[lib.RecoverDto]) *Client {
 	return &Client{
 		buyer:            buyer,
 		mainRedis:        mainRedis,
@@ -63,9 +68,11 @@ func New(buyer *Buyer, mainRedis, streamRedis *otelredis.OtelRedis, otelConfigur
 		logger:           logger,
 		streamsCfg:       streamsCfg,
 		buyerCfg:         buyerCfg,
+		recovererCfg:     recovererCfg,
 		psm:              psm,
 		zinc:             zinc,
 		encr:             enrc,
+		recoverEncr:      recoverEncr,
 	}
 }
 
@@ -158,7 +165,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		_, e := c.buyer.Release(userData, bookingData)
 		if e != nil {
 			c.logger.Error().Err(e).Msg("Failed to release")
-			return err
+			return e
 		}
 		return nil
 	}
@@ -206,33 +213,137 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	c.logger.Info().Any("passenger", p).Msg("Passenger")
 	buy, bookingNo, ticketNo, err := c.buyer.Buy(userData, bookingData, p, direction, date, t)
 	if err != nil {
-		c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("failed to buy")
-		return err
+		var conflictErr *ConflictError
+		var purchasedErr *PurchasedError
+		switch {
+		case errors.As(err, &conflictErr):
+			// this passenger already holds a ticket for this slot — park the
+			// booking for the recoverer and free the KTMB reservation
+			c.logger.Warn().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Duplicate-passenger conflict, parking booking for recovery")
+			return c.park(ctx, data.Id, direction, date, t, p, "", "", userData, bookingData, true)
+		case errors.As(err, &purchasedErr):
+			// the KTMB purchase went through — never release; park with the ticket
+			// identifiers so the recoverer can force-complete deterministically
+			c.logger.Warn().Err(err).Str("bookingNo", purchasedErr.BookingNo).Str("ticketNo", purchasedErr.TicketNo).Msg("Purchase captured but ticket retrieval failed, parking booking for recovery")
+			return c.park(ctx, data.Id, direction, date, t, p, purchasedErr.BookingNo, purchasedErr.TicketNo, userData, bookingData, false)
+		default:
+			c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("failed to buy")
+			return err
+		}
 	}
 
-	reader := bytes.NewReader(buy)
+	err = c.completeWithZinc(ctx, data.Id, bookingNo, ticketNo, buy)
+	if err != nil {
+		// the ticket is bought and paid for; losing this item would strand it —
+		// park with the ticket identifiers instead of failing the queue handler
+		c.logger.Error().Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Failed to report completed ticket to zinc, parking booking for recovery")
+		return c.park(ctx, data.Id, direction, date, t, p, bookingNo, ticketNo, userData, bookingData, false)
+	}
+
+	return nil
+}
+
+// completeWithZinc reports a captured ticket to zinc, retrying with backoff:
+// the KTMB money is already spent, so this must not give up on a blip
+func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, pdf []byte) error {
+	retries := c.buyerCfg.CompleteRetries
+	if retries < 1 {
+		retries = 1
+	}
+
+	var lastErr error
+	for attempt := 0; attempt < retries; attempt++ {
+		if attempt > 0 {
+			delay := time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay
+			c.logger.Info().Int("attempt", attempt).Dur("delay", delay).Msg("Retrying zinc complete...")
+			time.Sleep(delay)
+		}
+
+		lastErr = c.completeOnce(ctx, id, bookingNo, ticketNo, pdf)
+		if lastErr == nil {
+			return nil
+		}
+		c.logger.Error().Err(lastErr).Int("attempt", attempt).Msg("Failed to mark booking as complete")
+	}
+	return lastErr
+}
+
+func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, pdf []byte) error {
 	contentType, rr, err := CreateForm(map[string]io.Reader{
-		"file": reader,
+		"file": bytes.NewReader(pdf),
 	})
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to create form")
 		return err
 	}
-	completed, err := c.zinc.PostApiVVersionBookingCompleteIdWithBody(ctx, "1.0", data.Id, &zinc.PostApiVVersionBookingCompleteIdParams{
+	completed, err := c.zinc.PostApiVVersionBookingCompleteIdWithBody(ctx, "1.0", id, &zinc.PostApiVVersionBookingCompleteIdParams{
 		BookingNo: &bookingNo,
 		TicketNo:  &ticketNo,
 	}, contentType, rr)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to get buying id")
 		return err
 	}
 	defer completed.Body.Close()
 
 	if completed.StatusCode != 200 {
-		rErr := fmt.Errorf("failed to makr booking as complete")
-		c.logger.Error().Err(rErr).Msg("failed to get mark booking as complete")
+		body, _ := io.ReadAll(completed.Body)
+		return fmt.Errorf("failed to mark booking as complete: status %d: %s", completed.StatusCode, string(body))
+	}
+	return nil
+}
+
+// park moves the zinc booking to Recovering and pushes a RecoverDto onto the
+// recover queue; optionally releases the KTMB reservation (never when the
+// purchase is known to have succeeded)
+func (c *Client) park(ctx context.Context, id openapi_types.UUID, direction, date, t string, p Passenger,
+	bookingNo, ticketNo, userData, bookingData string, release bool) error {
+
+	recovering, err := c.zinc.PostApiVVersionBookingRecoveringId(ctx, "1.0", id)
+	if err != nil {
+		c.logger.Error().Err(err).Str("bookingId", id.String()).Msg("Failed to mark booking as recovering")
+		return err
+	}
+	defer recovering.Body.Close()
+	if recovering.StatusCode != 200 {
+		body, _ := io.ReadAll(recovering.Body)
+		rErr := fmt.Errorf("failed to mark booking as recovering: status %d: %s", recovering.StatusCode, string(body))
+		c.logger.Error().Err(rErr).Str("bookingId", id.String()).Msg("Failed to mark booking as recovering")
 		return rErr
 	}
 
+	dto := lib.RecoverDto{
+		BookingId:      id.String(),
+		Direction:      direction,
+		Date:           date,
+		Time:           t,
+		FullName:       p.FullName,
+		Gender:         p.Gender,
+		PassportExpiry: p.PassportExpiry,
+		PassportNumber: p.PassportNumber,
+		BookingNo:      bookingNo,
+		TicketNo:       ticketNo,
+		Attempts:       0,
+	}
+	enc, err := c.recoverEncr.EncryptAny(dto)
+	if err != nil {
+		c.logger.Error().Err(err).Msg("Failed to encrypt recover dto")
+		return err
+	}
+
+	tracer := otel.Tracer(c.psm)
+	_, err = c.mainRedis.QueuePush(ctx, tracer, c.recovererCfg.QueueName, enc)
+	if err != nil {
+		c.logger.Error().Err(err).Str("queue", c.recovererCfg.QueueName).Msg("Failed to push recover dto")
+		return err
+	}
+	c.logger.Info().Str("bookingId", id.String()).Str("queue", c.recovererCfg.QueueName).Msg("Booking parked for recovery")
+
+	if release {
+		_, e := c.buyer.Release(userData, bookingData)
+		if e != nil {
+			// best effort: the reservation expires on its own; recovery is queued
+			c.logger.Error().Err(e).Msg("Failed to release KTMB reservation after parking")
+		}
+	}
 	return nil
 }

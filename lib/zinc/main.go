@@ -111,9 +111,32 @@ type CreatePassengerReq struct {
 	PassportNumber *string `json:"passportNumber"`
 }
 
+// CreatePaymentReq defines model for CreatePaymentReq.
+type CreatePaymentReq struct {
+	Amount   float64 `json:"amount"`
+	Currency *string `json:"currency"`
+}
+
+// CreatePaymentRes defines model for CreatePaymentRes.
+type CreatePaymentRes struct {
+	AdditionalData    *interface{}          `json:"additionalData"`
+	Amount            float64               `json:"amount"`
+	CreatedAt         time.Time             `json:"createdAt"`
+	Currency          *string               `json:"currency"`
+	ExternalReference *string               `json:"externalReference"`
+	Gateway           *string               `json:"gateway"`
+	Id                openapi_types.UUID    `json:"id"`
+	LastUpdated       time.Time             `json:"lastUpdated"`
+	Secret            *string               `json:"secret"`
+	Status            *string               `json:"status"`
+	Statuses          *map[string]time.Time `json:"statuses"`
+}
+
 // CreateUserReq defines model for CreateUserReq.
 type CreateUserReq struct {
-	Username *string `json:"username"`
+	AccessToken *string `json:"accessToken"`
+	IdToken     *string `json:"idToken"`
+	Username    *string `json:"username"`
 }
 
 // CreateWithdrawalReq defines model for CreateWithdrawalReq.
@@ -215,6 +238,28 @@ type PassengerRes struct {
 	User      UserPrincipalRes      `json:"user"`
 }
 
+// PaymentPrincipalRes defines model for PaymentPrincipalRes.
+type PaymentPrincipalRes struct {
+	AdditionalData    *interface{}          `json:"additionalData"`
+	Amount            float64               `json:"amount"`
+	CapturedAmount    float64               `json:"capturedAmount"`
+	CreatedAt         time.Time             `json:"createdAt"`
+	Currency          *string               `json:"currency"`
+	ExternalReference *string               `json:"externalReference"`
+	Gateway           *string               `json:"gateway"`
+	Id                openapi_types.UUID    `json:"id"`
+	LastUpdated       time.Time             `json:"lastUpdated"`
+	Status            *string               `json:"status"`
+	Statuses          *map[string]time.Time `json:"statuses"`
+}
+
+// PaymentRes defines model for PaymentRes.
+type PaymentRes struct {
+	Principal   PaymentPrincipalRes     `json:"principal"`
+	Transaction TransactionPrincipalRes `json:"transaction"`
+	Wallet      WalletPrincipalRes      `json:"wallet"`
+}
+
 // RejectWithdrawalReq defines model for RejectWithdrawalReq.
 type RejectWithdrawalReq struct {
 	Note *string `json:"note"`
@@ -303,7 +348,9 @@ type UpdatePassengerReq struct {
 
 // UpdateUserReq defines model for UpdateUserReq.
 type UpdateUserReq struct {
-	Username *string `json:"username"`
+	AccessToken *string `json:"accessToken"`
+	IdToken     *string `json:"idToken"`
+	Username    *string `json:"username"`
 }
 
 // UserExistRes defines model for UserExistRes.
@@ -313,8 +360,11 @@ type UserExistRes struct {
 
 // UserPrincipalRes defines model for UserPrincipalRes.
 type UserPrincipalRes struct {
-	Id       *string `json:"id"`
-	Username *string `json:"username"`
+	Email         *string   `json:"email"`
+	EmailVerified *bool     `json:"emailVerified"`
+	Id            *string   `json:"id"`
+	Roles         *[]string `json:"roles"`
+	Username      *string   `json:"username"`
 }
 
 // UserRes defines model for UserRes.
@@ -375,13 +425,14 @@ type WithdrawalStatusRes struct {
 
 // GetApiVVersionBookingParams defines parameters for GetApiVVersionBooking.
 type GetApiVVersionBookingParams struct {
-	Date      *string `form:"Date,omitempty" json:"Date,omitempty"`
-	Direction *string `form:"Direction,omitempty" json:"Direction,omitempty"`
-	Status    *string `form:"Status,omitempty" json:"Status,omitempty"`
-	Time      *string `form:"Time,omitempty" json:"Time,omitempty"`
-	UserId    *string `form:"UserId,omitempty" json:"UserId,omitempty"`
-	Limit     *int32  `form:"Limit,omitempty" json:"Limit,omitempty"`
-	Skip      *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
+	Date           *string `form:"Date,omitempty" json:"Date,omitempty"`
+	Direction      *string `form:"Direction,omitempty" json:"Direction,omitempty"`
+	Status         *string `form:"Status,omitempty" json:"Status,omitempty"`
+	Time           *string `form:"Time,omitempty" json:"Time,omitempty"`
+	UserId         *string `form:"UserId,omitempty" json:"UserId,omitempty"`
+	PassportNumber *string `form:"PassportNumber,omitempty" json:"PassportNumber,omitempty"`
+	Limit          *int32  `form:"Limit,omitempty" json:"Limit,omitempty"`
+	Skip           *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
 }
 
 // PostApiVVersionBookingCancelIdParams defines parameters for PostApiVVersionBookingCancelId.
@@ -442,6 +493,29 @@ type PutApiVVersionPassengerIdParams struct {
 	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
 }
 
+// GetApiVVersionPaymentParams defines parameters for GetApiVVersionPayment.
+type GetApiVVersionPaymentParams struct {
+	Id                *openapi_types.UUID `form:"Id,omitempty" json:"Id,omitempty"`
+	WalletId          *openapi_types.UUID `form:"WalletId,omitempty" json:"WalletId,omitempty"`
+	TransactionId     *openapi_types.UUID `form:"TransactionId,omitempty" json:"TransactionId,omitempty"`
+	Reference         *string             `form:"Reference,omitempty" json:"Reference,omitempty"`
+	Gateway           *string             `form:"Gateway,omitempty" json:"Gateway,omitempty"`
+	Min               *float64            `form:"Min,omitempty" json:"Min,omitempty"`
+	Max               *float64            `form:"Max,omitempty" json:"Max,omitempty"`
+	CreatedBefore     *string             `form:"CreatedBefore,omitempty" json:"CreatedBefore,omitempty"`
+	CreatedAfter      *string             `form:"CreatedAfter,omitempty" json:"CreatedAfter,omitempty"`
+	LastUpdatedBefore *string             `form:"LastUpdatedBefore,omitempty" json:"LastUpdatedBefore,omitempty"`
+	LastUpdatedAfter  *string             `form:"LastUpdatedAfter,omitempty" json:"LastUpdatedAfter,omitempty"`
+	Status            *string             `form:"Status,omitempty" json:"Status,omitempty"`
+	Limit             *int32              `form:"Limit,omitempty" json:"Limit,omitempty"`
+	Skip              *int32              `form:"Skip,omitempty" json:"Skip,omitempty"`
+}
+
+// PostApiVVersionPaymentWalletIdParams defines parameters for PostApiVVersionPaymentWalletId.
+type PostApiVVersionPaymentWalletIdParams struct {
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+}
+
 // GetApiVVersionTransactionParams defines parameters for GetApiVVersionTransaction.
 type GetApiVVersionTransactionParams struct {
 	Search          *string             `form:"Search,omitempty" json:"Search,omitempty"`
@@ -464,6 +538,7 @@ type GetApiVVersionTransactionIdParams struct {
 type GetApiVVersionUserParams struct {
 	Id       *string `form:"Id,omitempty" json:"Id,omitempty"`
 	Username *string `form:"Username,omitempty" json:"Username,omitempty"`
+	Email    *string `form:"Email,omitempty" json:"Email,omitempty"`
 	Limit    *int32  `form:"Limit,omitempty" json:"Limit,omitempty"`
 	Skip     *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
 }
@@ -542,6 +617,9 @@ type PutApiVVersionPassengerIdJSONRequestBody = UpdatePassengerReq
 
 // PostApiVVersionPassengerUserIdJSONRequestBody defines body for PostApiVVersionPassengerUserId for application/json ContentType.
 type PostApiVVersionPassengerUserIdJSONRequestBody = CreatePassengerReq
+
+// PostApiVVersionPaymentWalletIdJSONRequestBody defines body for PostApiVVersionPaymentWalletId for application/json ContentType.
+type PostApiVVersionPaymentWalletIdJSONRequestBody = CreatePaymentReq
 
 // PutApiVVersionScheduleBulkJSONRequestBody defines body for PutApiVVersionScheduleBulk for application/json ContentType.
 type PutApiVVersionScheduleBulkJSONRequestBody = ScheduleBulkUpdateReq
@@ -684,6 +762,18 @@ type ClientInterface interface {
 	// GetApiVVersionBookingCountsDirectionDate request
 	GetApiVVersionBookingCountsDirectionDate(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PostApiVVersionBookingDuplicateId request
+	PostApiVVersionBookingDuplicateId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionBookingManualInterventionId request
+	PostApiVVersionBookingManualInterventionId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionBookingRecoveringId request
+	PostApiVVersionBookingRecoveringId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionBookingRefund request
+	GetApiVVersionBookingRefund(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PostApiVVersionBookingRefundId request
 	PostApiVVersionBookingRefundId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -752,6 +842,26 @@ type ClientInterface interface {
 
 	// GetApiVVersionPassengerUserIdId request
 	GetApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionPayment request
+	GetApiVVersionPayment(ctx context.Context, version string, params *GetApiVVersionPaymentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApiVVersionPaymentIdId request
+	DeleteApiVVersionPaymentIdId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionPaymentIdId request
+	GetApiVVersionPaymentIdId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApiVVersionPaymentReferenceReference request
+	DeleteApiVVersionPaymentReferenceReference(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionPaymentReferenceReference request
+	GetApiVVersionPaymentReferenceReference(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionPaymentWalletIdWithBody request with any body
+	PostApiVVersionPaymentWalletIdWithBody(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiVVersionPaymentWalletId(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, body PostApiVVersionPaymentWalletIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PutApiVVersionScheduleBulkWithBody request with any body
 	PutApiVVersionScheduleBulkWithBody(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -988,8 +1098,7 @@ func (c *Client) PostApiVVersionBookingCancelId(ctx context.Context, version str
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string,
-	id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) PostApiVVersionBookingCompleteIdWithBody(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCompleteIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostApiVVersionBookingCompleteIdRequestWithBody(c.Server, version, id, params, contentType, body)
 	if err != nil {
 		return nil, err
@@ -1027,6 +1136,54 @@ func (c *Client) GetApiVVersionBookingCounts(ctx context.Context, version string
 
 func (c *Client) GetApiVVersionBookingCountsDirectionDate(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionBookingCountsDirectionDateRequest(c.Server, version, direction, date)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingDuplicateId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingDuplicateIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingManualInterventionId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingManualInterventionIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingRecoveringId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingRecoveringIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionBookingRefund(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionBookingRefundRequest(c.Server, version)
 	if err != nil {
 		return nil, err
 	}
@@ -1327,6 +1484,90 @@ func (c *Client) PostApiVVersionPassengerUserId(ctx context.Context, version str
 
 func (c *Client) GetApiVVersionPassengerUserIdId(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiVVersionPassengerUserIdIdRequest(c.Server, version, userId, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionPayment(ctx context.Context, version string, params *GetApiVVersionPaymentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionPaymentRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApiVVersionPaymentIdId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteApiVVersionPaymentIdIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionPaymentIdId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionPaymentIdIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApiVVersionPaymentReferenceReference(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteApiVVersionPaymentReferenceReferenceRequest(c.Server, version, reference)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionPaymentReferenceReference(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionPaymentReferenceReferenceRequest(c.Server, version, reference)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionPaymentWalletIdWithBody(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionPaymentWalletIdRequestWithBody(c.Server, version, walletId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionPaymentWalletId(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, body PostApiVVersionPaymentWalletIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionPaymentWalletIdRequest(c.Server, version, walletId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2127,6 +2368,22 @@ func NewGetApiVVersionBookingRequest(server string, version string, params *GetA
 
 		}
 
+		if params.PassportNumber != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "PassportNumber", runtime.ParamLocationQuery, *params.PassportNumber); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
@@ -2431,6 +2688,163 @@ func NewGetApiVVersionBookingCountsDirectionDateRequest(server string, version s
 	}
 
 	operationPath := fmt.Sprintf("/api/v%s/Booking/counts/%s/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingDuplicateIdRequest generates requests for PostApiVVersionBookingDuplicateId
+func NewPostApiVVersionBookingDuplicateIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/duplicate/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingManualInterventionIdRequest generates requests for PostApiVVersionBookingManualInterventionId
+func NewPostApiVVersionBookingManualInterventionIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/manual-intervention/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingRecoveringIdRequest generates requests for PostApiVVersionBookingRecoveringId
+func NewPostApiVVersionBookingRecoveringIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/recovering/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionBookingRefundRequest generates requests for GetApiVVersionBookingRefund
+func NewGetApiVVersionBookingRefundRequest(server string, version string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/refund", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -3521,6 +3935,510 @@ func NewGetApiVVersionPassengerUserIdIdRequest(server string, version string, us
 	return req, nil
 }
 
+// NewGetApiVVersionPaymentRequest generates requests for GetApiVVersionPayment
+func NewGetApiVVersionPaymentRequest(server string, version string, params *GetApiVVersionPaymentParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Payment", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Id != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WalletId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "WalletId", runtime.ParamLocationQuery, *params.WalletId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TransactionId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "TransactionId", runtime.ParamLocationQuery, *params.TransactionId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Reference != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Reference", runtime.ParamLocationQuery, *params.Reference); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Gateway != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Gateway", runtime.ParamLocationQuery, *params.Gateway); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Min != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Min", runtime.ParamLocationQuery, *params.Min); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Max != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Max", runtime.ParamLocationQuery, *params.Max); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.CreatedBefore != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "CreatedBefore", runtime.ParamLocationQuery, *params.CreatedBefore); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.CreatedAfter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "CreatedAfter", runtime.ParamLocationQuery, *params.CreatedAfter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.LastUpdatedBefore != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "LastUpdatedBefore", runtime.ParamLocationQuery, *params.LastUpdatedBefore); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.LastUpdatedAfter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "LastUpdatedAfter", runtime.ParamLocationQuery, *params.LastUpdatedAfter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Skip != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Skip", runtime.ParamLocationQuery, *params.Skip); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteApiVVersionPaymentIdIdRequest generates requests for DeleteApiVVersionPaymentIdId
+func NewDeleteApiVVersionPaymentIdIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Payment/id/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionPaymentIdIdRequest generates requests for GetApiVVersionPaymentIdId
+func NewGetApiVVersionPaymentIdIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Payment/id/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteApiVVersionPaymentReferenceReferenceRequest generates requests for DeleteApiVVersionPaymentReferenceReference
+func NewDeleteApiVVersionPaymentReferenceReferenceRequest(server string, version string, reference string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reference", runtime.ParamLocationPath, reference)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Payment/reference/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetApiVVersionPaymentReferenceReferenceRequest generates requests for GetApiVVersionPaymentReferenceReference
+func NewGetApiVVersionPaymentReferenceReferenceRequest(server string, version string, reference string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reference", runtime.ParamLocationPath, reference)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Payment/reference/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionPaymentWalletIdRequest calls the generic PostApiVVersionPaymentWalletId builder with application/json body
+func NewPostApiVVersionPaymentWalletIdRequest(server string, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, body PostApiVVersionPaymentWalletIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiVVersionPaymentWalletIdRequestWithBody(server, version, walletId, params, "application/json", bodyReader)
+}
+
+// NewPostApiVVersionPaymentWalletIdRequestWithBody generates requests for PostApiVVersionPaymentWalletId with any type of body
+func NewPostApiVVersionPaymentWalletIdRequestWithBody(server string, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "walletId", runtime.ParamLocationPath, walletId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Payment/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewPutApiVVersionScheduleBulkRequest calls the generic PutApiVVersionScheduleBulk builder with application/json body
 func NewPutApiVVersionScheduleBulkRequest(server string, version string, body PutApiVVersionScheduleBulkJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -4217,6 +5135,22 @@ func NewGetApiVVersionUserRequest(server string, version string, params *GetApiV
 		if params.Username != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Username", runtime.ParamLocationQuery, *params.Username); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Email != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "Email", runtime.ParamLocationQuery, *params.Email); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -5497,6 +6431,18 @@ type ClientWithResponsesInterface interface {
 	// GetApiVVersionBookingCountsDirectionDateWithResponse request
 	GetApiVVersionBookingCountsDirectionDateWithResponse(ctx context.Context, version string, direction string, date string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingCountsDirectionDateResponse, error)
 
+	// PostApiVVersionBookingDuplicateIdWithResponse request
+	PostApiVVersionBookingDuplicateIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingDuplicateIdResponse, error)
+
+	// PostApiVVersionBookingManualInterventionIdWithResponse request
+	PostApiVVersionBookingManualInterventionIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingManualInterventionIdResponse, error)
+
+	// PostApiVVersionBookingRecoveringIdWithResponse request
+	PostApiVVersionBookingRecoveringIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingRecoveringIdResponse, error)
+
+	// GetApiVVersionBookingRefundWithResponse request
+	GetApiVVersionBookingRefundWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingRefundResponse, error)
+
 	// PostApiVVersionBookingRefundIdWithResponse request
 	PostApiVVersionBookingRefundIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingRefundIdResponse, error)
 
@@ -5565,6 +6511,26 @@ type ClientWithResponsesInterface interface {
 
 	// GetApiVVersionPassengerUserIdIdWithResponse request
 	GetApiVVersionPassengerUserIdIdWithResponse(ctx context.Context, version string, userId string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionPassengerUserIdIdResponse, error)
+
+	// GetApiVVersionPaymentWithResponse request
+	GetApiVVersionPaymentWithResponse(ctx context.Context, version string, params *GetApiVVersionPaymentParams, reqEditors ...RequestEditorFn) (*GetApiVVersionPaymentResponse, error)
+
+	// DeleteApiVVersionPaymentIdIdWithResponse request
+	DeleteApiVVersionPaymentIdIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPaymentIdIdResponse, error)
+
+	// GetApiVVersionPaymentIdIdWithResponse request
+	GetApiVVersionPaymentIdIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionPaymentIdIdResponse, error)
+
+	// DeleteApiVVersionPaymentReferenceReferenceWithResponse request
+	DeleteApiVVersionPaymentReferenceReferenceWithResponse(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPaymentReferenceReferenceResponse, error)
+
+	// GetApiVVersionPaymentReferenceReferenceWithResponse request
+	GetApiVVersionPaymentReferenceReferenceWithResponse(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*GetApiVVersionPaymentReferenceReferenceResponse, error)
+
+	// PostApiVVersionPaymentWalletIdWithBodyWithResponse request with any body
+	PostApiVVersionPaymentWalletIdWithBodyWithResponse(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionPaymentWalletIdResponse, error)
+
+	PostApiVVersionPaymentWalletIdWithResponse(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, body PostApiVVersionPaymentWalletIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionPaymentWalletIdResponse, error)
 
 	// PutApiVVersionScheduleBulkWithBodyWithResponse request with any body
 	PutApiVVersionScheduleBulkWithBodyWithResponse(ctx context.Context, version string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutApiVVersionScheduleBulkResponse, error)
@@ -5894,6 +6860,94 @@ func (r GetApiVVersionBookingCountsDirectionDateResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetApiVVersionBookingCountsDirectionDateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionBookingDuplicateIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionBookingDuplicateIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionBookingDuplicateIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionBookingManualInterventionIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionBookingManualInterventionIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionBookingManualInterventionIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionBookingRecoveringIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionBookingRecoveringIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionBookingRecoveringIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionBookingRefundResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]BookingPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionBookingRefundResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionBookingRefundResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6310,6 +7364,138 @@ func (r GetApiVVersionPassengerUserIdIdResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetApiVVersionPassengerUserIdIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionPaymentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]PaymentPrincipalRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionPaymentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionPaymentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteApiVVersionPaymentIdIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PaymentRes
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteApiVVersionPaymentIdIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteApiVVersionPaymentIdIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionPaymentIdIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PaymentRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionPaymentIdIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionPaymentIdIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteApiVVersionPaymentReferenceReferenceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PaymentRes
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteApiVVersionPaymentReferenceReferenceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteApiVVersionPaymentReferenceReferenceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetApiVVersionPaymentReferenceReferenceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PaymentRes
+}
+
+// Status returns HTTPResponse.Status
+func (r GetApiVVersionPaymentReferenceReferenceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetApiVVersionPaymentReferenceReferenceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostApiVVersionPaymentWalletIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CreatePaymentRes
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiVVersionPaymentWalletIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiVVersionPaymentWalletIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -7139,6 +8325,42 @@ func (c *ClientWithResponses) GetApiVVersionBookingCountsDirectionDateWithRespon
 	return ParseGetApiVVersionBookingCountsDirectionDateResponse(rsp)
 }
 
+// PostApiVVersionBookingDuplicateIdWithResponse request returning *PostApiVVersionBookingDuplicateIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingDuplicateIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingDuplicateIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingDuplicateId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingDuplicateIdResponse(rsp)
+}
+
+// PostApiVVersionBookingManualInterventionIdWithResponse request returning *PostApiVVersionBookingManualInterventionIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingManualInterventionIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingManualInterventionIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingManualInterventionId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingManualInterventionIdResponse(rsp)
+}
+
+// PostApiVVersionBookingRecoveringIdWithResponse request returning *PostApiVVersionBookingRecoveringIdResponse
+func (c *ClientWithResponses) PostApiVVersionBookingRecoveringIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingRecoveringIdResponse, error) {
+	rsp, err := c.PostApiVVersionBookingRecoveringId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionBookingRecoveringIdResponse(rsp)
+}
+
+// GetApiVVersionBookingRefundWithResponse request returning *GetApiVVersionBookingRefundResponse
+func (c *ClientWithResponses) GetApiVVersionBookingRefundWithResponse(ctx context.Context, version string, reqEditors ...RequestEditorFn) (*GetApiVVersionBookingRefundResponse, error) {
+	rsp, err := c.GetApiVVersionBookingRefund(ctx, version, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionBookingRefundResponse(rsp)
+}
+
 // PostApiVVersionBookingRefundIdWithResponse request returning *PostApiVVersionBookingRefundIdResponse
 func (c *ClientWithResponses) PostApiVVersionBookingRefundIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostApiVVersionBookingRefundIdResponse, error) {
 	rsp, err := c.PostApiVVersionBookingRefundId(ctx, version, id, reqEditors...)
@@ -7356,6 +8578,68 @@ func (c *ClientWithResponses) GetApiVVersionPassengerUserIdIdWithResponse(ctx co
 		return nil, err
 	}
 	return ParseGetApiVVersionPassengerUserIdIdResponse(rsp)
+}
+
+// GetApiVVersionPaymentWithResponse request returning *GetApiVVersionPaymentResponse
+func (c *ClientWithResponses) GetApiVVersionPaymentWithResponse(ctx context.Context, version string, params *GetApiVVersionPaymentParams, reqEditors ...RequestEditorFn) (*GetApiVVersionPaymentResponse, error) {
+	rsp, err := c.GetApiVVersionPayment(ctx, version, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionPaymentResponse(rsp)
+}
+
+// DeleteApiVVersionPaymentIdIdWithResponse request returning *DeleteApiVVersionPaymentIdIdResponse
+func (c *ClientWithResponses) DeleteApiVVersionPaymentIdIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPaymentIdIdResponse, error) {
+	rsp, err := c.DeleteApiVVersionPaymentIdId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteApiVVersionPaymentIdIdResponse(rsp)
+}
+
+// GetApiVVersionPaymentIdIdWithResponse request returning *GetApiVVersionPaymentIdIdResponse
+func (c *ClientWithResponses) GetApiVVersionPaymentIdIdWithResponse(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetApiVVersionPaymentIdIdResponse, error) {
+	rsp, err := c.GetApiVVersionPaymentIdId(ctx, version, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionPaymentIdIdResponse(rsp)
+}
+
+// DeleteApiVVersionPaymentReferenceReferenceWithResponse request returning *DeleteApiVVersionPaymentReferenceReferenceResponse
+func (c *ClientWithResponses) DeleteApiVVersionPaymentReferenceReferenceWithResponse(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*DeleteApiVVersionPaymentReferenceReferenceResponse, error) {
+	rsp, err := c.DeleteApiVVersionPaymentReferenceReference(ctx, version, reference, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteApiVVersionPaymentReferenceReferenceResponse(rsp)
+}
+
+// GetApiVVersionPaymentReferenceReferenceWithResponse request returning *GetApiVVersionPaymentReferenceReferenceResponse
+func (c *ClientWithResponses) GetApiVVersionPaymentReferenceReferenceWithResponse(ctx context.Context, version string, reference string, reqEditors ...RequestEditorFn) (*GetApiVVersionPaymentReferenceReferenceResponse, error) {
+	rsp, err := c.GetApiVVersionPaymentReferenceReference(ctx, version, reference, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetApiVVersionPaymentReferenceReferenceResponse(rsp)
+}
+
+// PostApiVVersionPaymentWalletIdWithBodyWithResponse request with arbitrary body returning *PostApiVVersionPaymentWalletIdResponse
+func (c *ClientWithResponses) PostApiVVersionPaymentWalletIdWithBodyWithResponse(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiVVersionPaymentWalletIdResponse, error) {
+	rsp, err := c.PostApiVVersionPaymentWalletIdWithBody(ctx, version, walletId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionPaymentWalletIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiVVersionPaymentWalletIdWithResponse(ctx context.Context, version string, walletId openapi_types.UUID, params *PostApiVVersionPaymentWalletIdParams, body PostApiVVersionPaymentWalletIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiVVersionPaymentWalletIdResponse, error) {
+	rsp, err := c.PostApiVVersionPaymentWalletId(ctx, version, walletId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiVVersionPaymentWalletIdResponse(rsp)
 }
 
 // PutApiVVersionScheduleBulkWithBodyWithResponse request with arbitrary body returning *PutApiVVersionScheduleBulkResponse
@@ -7995,6 +9279,122 @@ func ParseGetApiVVersionBookingCountsDirectionDateResponse(rsp *http.Response) (
 	return response, nil
 }
 
+// ParsePostApiVVersionBookingDuplicateIdResponse parses an HTTP response from a PostApiVVersionBookingDuplicateIdWithResponse call
+func ParsePostApiVVersionBookingDuplicateIdResponse(rsp *http.Response) (*PostApiVVersionBookingDuplicateIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionBookingDuplicateIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionBookingManualInterventionIdResponse parses an HTTP response from a PostApiVVersionBookingManualInterventionIdWithResponse call
+func ParsePostApiVVersionBookingManualInterventionIdResponse(rsp *http.Response) (*PostApiVVersionBookingManualInterventionIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionBookingManualInterventionIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionBookingRecoveringIdResponse parses an HTTP response from a PostApiVVersionBookingRecoveringIdWithResponse call
+func ParsePostApiVVersionBookingRecoveringIdResponse(rsp *http.Response) (*PostApiVVersionBookingRecoveringIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionBookingRecoveringIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionBookingRefundResponse parses an HTTP response from a GetApiVVersionBookingRefundWithResponse call
+func ParseGetApiVVersionBookingRefundResponse(rsp *http.Response) (*GetApiVVersionBookingRefundResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionBookingRefundResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []BookingPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParsePostApiVVersionBookingRefundIdResponse parses an HTTP response from a PostApiVVersionBookingRefundIdWithResponse call
 func ParsePostApiVVersionBookingRefundIdResponse(rsp *http.Response) (*PostApiVVersionBookingRefundIdResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -8507,6 +9907,180 @@ func ParseGetApiVVersionPassengerUserIdIdResponse(rsp *http.Response) (*GetApiVV
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest PassengerRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionPaymentResponse parses an HTTP response from a GetApiVVersionPaymentWithResponse call
+func ParseGetApiVVersionPaymentResponse(rsp *http.Response) (*GetApiVVersionPaymentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionPaymentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []PaymentPrincipalRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteApiVVersionPaymentIdIdResponse parses an HTTP response from a DeleteApiVVersionPaymentIdIdWithResponse call
+func ParseDeleteApiVVersionPaymentIdIdResponse(rsp *http.Response) (*DeleteApiVVersionPaymentIdIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteApiVVersionPaymentIdIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PaymentRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionPaymentIdIdResponse parses an HTTP response from a GetApiVVersionPaymentIdIdWithResponse call
+func ParseGetApiVVersionPaymentIdIdResponse(rsp *http.Response) (*GetApiVVersionPaymentIdIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionPaymentIdIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PaymentRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteApiVVersionPaymentReferenceReferenceResponse parses an HTTP response from a DeleteApiVVersionPaymentReferenceReferenceWithResponse call
+func ParseDeleteApiVVersionPaymentReferenceReferenceResponse(rsp *http.Response) (*DeleteApiVVersionPaymentReferenceReferenceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteApiVVersionPaymentReferenceReferenceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PaymentRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParseGetApiVVersionPaymentReferenceReferenceResponse parses an HTTP response from a GetApiVVersionPaymentReferenceReferenceWithResponse call
+func ParseGetApiVVersionPaymentReferenceReferenceResponse(rsp *http.Response) (*GetApiVVersionPaymentReferenceReferenceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetApiVVersionPaymentReferenceReferenceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PaymentRes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiVVersionPaymentWalletIdResponse parses an HTTP response from a PostApiVVersionPaymentWalletIdWithResponse call
+func ParsePostApiVVersionPaymentWalletIdResponse(rsp *http.Response) (*PostApiVVersionPaymentWalletIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiVVersionPaymentWalletIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreatePaymentRes
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9442,6 +11016,18 @@ type ServerInterface interface {
 	// (GET /api/v{version}/Booking/counts/{Direction}/{Date})
 	GetApiVVersionBookingCountsDirectionDate(ctx echo.Context, version string, direction string, date string) error
 
+	// (POST /api/v{version}/Booking/duplicate/{id})
+	PostApiVVersionBookingDuplicateId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (POST /api/v{version}/Booking/manual-intervention/{id})
+	PostApiVVersionBookingManualInterventionId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (POST /api/v{version}/Booking/recovering/{id})
+	PostApiVVersionBookingRecoveringId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (GET /api/v{version}/Booking/refund)
+	GetApiVVersionBookingRefund(ctx echo.Context, version string) error
+
 	// (POST /api/v{version}/Booking/refund/{id})
 	PostApiVVersionBookingRefundId(ctx echo.Context, version string, id openapi_types.UUID) error
 
@@ -9498,6 +11084,24 @@ type ServerInterface interface {
 
 	// (GET /api/v{version}/Passenger/{userId}/{id})
 	GetApiVVersionPassengerUserIdId(ctx echo.Context, version string, userId string, id openapi_types.UUID) error
+
+	// (GET /api/v{version}/Payment)
+	GetApiVVersionPayment(ctx echo.Context, version string, params GetApiVVersionPaymentParams) error
+
+	// (DELETE /api/v{version}/Payment/id/{id})
+	DeleteApiVVersionPaymentIdId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (GET /api/v{version}/Payment/id/{id})
+	GetApiVVersionPaymentIdId(ctx echo.Context, version string, id openapi_types.UUID) error
+
+	// (DELETE /api/v{version}/Payment/reference/{reference})
+	DeleteApiVVersionPaymentReferenceReference(ctx echo.Context, version string, reference string) error
+
+	// (GET /api/v{version}/Payment/reference/{reference})
+	GetApiVVersionPaymentReferenceReference(ctx echo.Context, version string, reference string) error
+
+	// (POST /api/v{version}/Payment/{walletId})
+	PostApiVVersionPaymentWalletId(ctx echo.Context, version string, walletId openapi_types.UUID, params PostApiVVersionPaymentWalletIdParams) error
 
 	// (PUT /api/v{version}/Schedule/bulk)
 	PutApiVVersionScheduleBulk(ctx echo.Context, version string) error
@@ -9740,6 +11344,13 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBooking(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter UserId: %s", err))
 	}
 
+	// ------------- Optional query parameter "PassportNumber" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "PassportNumber", ctx.QueryParams(), &params.PassportNumber)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter PassportNumber: %s", err))
+	}
+
 	// ------------- Optional query parameter "Limit" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "Limit", ctx.QueryParams(), &params.Limit)
@@ -9911,6 +11522,102 @@ func (w *ServerInterfaceWrapper) GetApiVVersionBookingCountsDirectionDate(ctx ec
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetApiVVersionBookingCountsDirectionDate(ctx, version, direction, date)
+	return err
+}
+
+// PostApiVVersionBookingDuplicateId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingDuplicateId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingDuplicateId(ctx, version, id)
+	return err
+}
+
+// PostApiVVersionBookingManualInterventionId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingManualInterventionId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingManualInterventionId(ctx, version, id)
+	return err
+}
+
+// PostApiVVersionBookingRecoveringId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionBookingRecoveringId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionBookingRecoveringId(ctx, version, id)
+	return err
+}
+
+// GetApiVVersionBookingRefund converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionBookingRefund(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionBookingRefund(ctx, version)
 	return err
 }
 
@@ -10479,6 +12186,263 @@ func (w *ServerInterfaceWrapper) GetApiVVersionPassengerUserIdId(ctx echo.Contex
 	return err
 }
 
+// GetApiVVersionPayment converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionPayment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetApiVVersionPaymentParams
+	// ------------- Optional query parameter "Id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Id", ctx.QueryParams(), &params.Id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Id: %s", err))
+	}
+
+	// ------------- Optional query parameter "WalletId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "WalletId", ctx.QueryParams(), &params.WalletId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter WalletId: %s", err))
+	}
+
+	// ------------- Optional query parameter "TransactionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "TransactionId", ctx.QueryParams(), &params.TransactionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter TransactionId: %s", err))
+	}
+
+	// ------------- Optional query parameter "Reference" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Reference", ctx.QueryParams(), &params.Reference)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Reference: %s", err))
+	}
+
+	// ------------- Optional query parameter "Gateway" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Gateway", ctx.QueryParams(), &params.Gateway)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Gateway: %s", err))
+	}
+
+	// ------------- Optional query parameter "Min" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Min", ctx.QueryParams(), &params.Min)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Min: %s", err))
+	}
+
+	// ------------- Optional query parameter "Max" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Max", ctx.QueryParams(), &params.Max)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Max: %s", err))
+	}
+
+	// ------------- Optional query parameter "CreatedBefore" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "CreatedBefore", ctx.QueryParams(), &params.CreatedBefore)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter CreatedBefore: %s", err))
+	}
+
+	// ------------- Optional query parameter "CreatedAfter" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "CreatedAfter", ctx.QueryParams(), &params.CreatedAfter)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter CreatedAfter: %s", err))
+	}
+
+	// ------------- Optional query parameter "LastUpdatedBefore" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "LastUpdatedBefore", ctx.QueryParams(), &params.LastUpdatedBefore)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter LastUpdatedBefore: %s", err))
+	}
+
+	// ------------- Optional query parameter "LastUpdatedAfter" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "LastUpdatedAfter", ctx.QueryParams(), &params.LastUpdatedAfter)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter LastUpdatedAfter: %s", err))
+	}
+
+	// ------------- Optional query parameter "Status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Status: %s", err))
+	}
+
+	// ------------- Optional query parameter "Limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "Skip" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Skip", ctx.QueryParams(), &params.Skip)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Skip: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionPayment(ctx, version, params)
+	return err
+}
+
+// DeleteApiVVersionPaymentIdId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteApiVVersionPaymentIdId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteApiVVersionPaymentIdId(ctx, version, id)
+	return err
+}
+
+// GetApiVVersionPaymentIdId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionPaymentIdId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionPaymentIdId(ctx, version, id)
+	return err
+}
+
+// DeleteApiVVersionPaymentReferenceReference converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteApiVVersionPaymentReferenceReference(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "reference" -------------
+	var reference string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "reference", runtime.ParamLocationPath, ctx.Param("reference"), &reference)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter reference: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteApiVVersionPaymentReferenceReference(ctx, version, reference)
+	return err
+}
+
+// GetApiVVersionPaymentReferenceReference converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiVVersionPaymentReferenceReference(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "reference" -------------
+	var reference string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "reference", runtime.ParamLocationPath, ctx.Param("reference"), &reference)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter reference: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiVVersionPaymentReferenceReference(ctx, version, reference)
+	return err
+}
+
+// PostApiVVersionPaymentWalletId converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiVVersionPaymentWalletId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "version" -------------
+	var version string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "version", runtime.ParamLocationPath, ctx.Param("version"), &version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter version: %s", err))
+	}
+
+	// ------------- Path parameter "walletId" -------------
+	var walletId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "walletId", runtime.ParamLocationPath, ctx.Param("walletId"), &walletId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter walletId: %s", err))
+	}
+
+	ctx.Set(BearerScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PostApiVVersionPaymentWalletIdParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiVVersionPaymentWalletId(ctx, version, walletId, params)
+	return err
+}
+
 // PutApiVVersionScheduleBulk converts echo context to params.
 func (w *ServerInterfaceWrapper) PutApiVVersionScheduleBulk(ctx echo.Context) error {
 	var err error
@@ -10850,6 +12814,13 @@ func (w *ServerInterfaceWrapper) GetApiVVersionUser(ctx echo.Context) error {
 	err = runtime.BindQueryParameter("form", true, false, "Username", ctx.QueryParams(), &params.Username)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Username: %s", err))
+	}
+
+	// ------------- Optional query parameter "Email" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "Email", ctx.QueryParams(), &params.Email)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Email: %s", err))
 	}
 
 	// ------------- Optional query parameter "Limit" -------------
@@ -11509,6 +13480,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/api/v:version/Booking/complete/:id", wrapper.PostApiVVersionBookingCompleteId)
 	router.GET(baseURL+"/api/v:version/Booking/counts", wrapper.GetApiVVersionBookingCounts)
 	router.GET(baseURL+"/api/v:version/Booking/counts/:Direction/:Date", wrapper.GetApiVVersionBookingCountsDirectionDate)
+	router.POST(baseURL+"/api/v:version/Booking/duplicate/:id", wrapper.PostApiVVersionBookingDuplicateId)
+	router.POST(baseURL+"/api/v:version/Booking/manual-intervention/:id", wrapper.PostApiVVersionBookingManualInterventionId)
+	router.POST(baseURL+"/api/v:version/Booking/recovering/:id", wrapper.PostApiVVersionBookingRecoveringId)
+	router.GET(baseURL+"/api/v:version/Booking/refund", wrapper.GetApiVVersionBookingRefund)
 	router.POST(baseURL+"/api/v:version/Booking/refund/:id", wrapper.PostApiVVersionBookingRefundId)
 	router.GET(baseURL+"/api/v:version/Booking/reserve/:Direction/:Date/:Time", wrapper.GetApiVVersionBookingReserveDirectionDateTime)
 	router.POST(baseURL+"/api/v:version/Booking/terminate/:id", wrapper.PostApiVVersionBookingTerminateId)
@@ -11528,6 +13503,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/api/v:version/Passenger/:id", wrapper.PutApiVVersionPassengerId)
 	router.POST(baseURL+"/api/v:version/Passenger/:userId", wrapper.PostApiVVersionPassengerUserId)
 	router.GET(baseURL+"/api/v:version/Passenger/:userId/:id", wrapper.GetApiVVersionPassengerUserIdId)
+	router.GET(baseURL+"/api/v:version/Payment", wrapper.GetApiVVersionPayment)
+	router.DELETE(baseURL+"/api/v:version/Payment/id/:id", wrapper.DeleteApiVVersionPaymentIdId)
+	router.GET(baseURL+"/api/v:version/Payment/id/:id", wrapper.GetApiVVersionPaymentIdId)
+	router.DELETE(baseURL+"/api/v:version/Payment/reference/:reference", wrapper.DeleteApiVVersionPaymentReferenceReference)
+	router.GET(baseURL+"/api/v:version/Payment/reference/:reference", wrapper.GetApiVVersionPaymentReferenceReference)
+	router.POST(baseURL+"/api/v:version/Payment/:walletId", wrapper.PostApiVVersionPaymentWalletId)
 	router.PUT(baseURL+"/api/v:version/Schedule/bulk", wrapper.PutApiVVersionScheduleBulk)
 	router.GET(baseURL+"/api/v:version/Schedule/latest", wrapper.GetApiVVersionScheduleLatest)
 	router.GET(baseURL+"/api/v:version/Schedule/range/:From/:To", wrapper.GetApiVVersionScheduleRangeFromTo)
@@ -11566,67 +13547,75 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"kz9u17fr/wUAAP//AAbrgJrcAAA=",
+	"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",
+	"///iyuhiswQBAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

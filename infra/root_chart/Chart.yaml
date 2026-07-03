@@ -56,6 +56,13 @@ dependencies:
     alias: buyer
     tags:
       - active
+  - name: golang-chart
+    version: 0.1.0
+    repository: file://../consumer_chart
+    condition: recoverer.enabled
+    alias: recoverer
+    tags:
+      - active
   - name: redis
     repository: oci://registry-1.docker.io/bitnamicharts
     version: 18.6.1

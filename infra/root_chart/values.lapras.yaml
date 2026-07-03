@@ -30,6 +30,18 @@ terminator:
 
   configMountPath: /app/config
 
+recoverer:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: 'tin-recoverer'
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 cdc:
   serviceTree:
     landscape: *landscape

@@ -8,18 +8,20 @@ import (
 )
 
 type Buyer struct {
-	ktmb          ktmb.Ktmb
-	contactNumber string
-	logger        *zerolog.Logger
-	sleepBuffer   int
+	ktmb             ktmb.Ktmb
+	contactNumber    string
+	logger           *zerolog.Logger
+	sleepBuffer      int
+	conflictPatterns []string
 }
 
-func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBuffer int) Buyer {
+func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBuffer int, conflictPatterns []string) Buyer {
 	return Buyer{
-		ktmb:          k,
-		logger:        logger,
-		contactNumber: contactNumber,
-		sleepBuffer:   sleepBuffer,
+		ktmb:             k,
+		logger:           logger,
+		contactNumber:    contactNumber,
+		sleepBuffer:      sleepBuffer,
+		conflictPatterns: conflictPatterns,
 	}
 }
 
@@ -74,6 +76,11 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	}
 
 	if !passenger.Status {
+		if matchesConflict(c.conflictPatterns, passenger.Messages) {
+			e := &ConflictError{Messages: passenger.Messages}
+			c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Passenger conflict detected (duplicate passport)")
+			return nil, "", "", e
+		}
 		e := fmt.Errorf("failed to set passenger: %+v", passenger.Messages)
 		c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to set passenger")
 		return nil, "", "", e
@@ -118,14 +125,20 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	time.Sleep(sd)
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Sleep Complete. Printing Ticket...")
 
-	ticket, err := c.ktmb.PrintTicket(complete.Data.UserData, complete.Data.Booking.BookingNo, complete.Data.Booking.Trips[0].Tickets[0].TicketNo)
+	bookingNo := complete.Data.Booking.BookingNo
+	ticketNo := complete.Data.Booking.Trips[0].Tickets[0].TicketNo
+
+	ticket, err := c.ktmb.PrintTicket(complete.Data.UserData, bookingNo, ticketNo)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to print ticket")
-		return nil, "", "", err
+		// the purchase already succeeded — surface the ticket identifiers so the
+		// caller can recover instead of treating this as a failed buy
+		e := &PurchasedError{BookingNo: bookingNo, TicketNo: ticketNo, Cause: err}
+		c.logger.Error().Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Purchase succeeded but failed to print ticket")
+		return nil, bookingNo, ticketNo, e
 	}
 
 	c.logger.Info().Any("passenger", p).Msg("Successfully purchased Ticket")
-	return ticket, complete.Data.Booking.BookingNo, complete.Data.Booking.Trips[0].Tickets[0].TicketNo, nil
+	return ticket, bookingNo, ticketNo, nil
 
 }
 

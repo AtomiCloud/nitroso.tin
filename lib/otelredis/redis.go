@@ -102,6 +102,40 @@ func (r OtelRedis) QueuePop(ctx context.Context, tracer trace.Tracer, queue stri
 	return handler(ctx, marshal)
 }
 
+// QueuePopNoWait pops one message without blocking. Returns false when the
+// queue is empty. Same envelope handling as QueuePop.
+func (r OtelRedis) QueuePopNoWait(ctx context.Context, tracer trace.Tracer, queue string, handler func(ctx context.Context, message json.RawMessage) error) (bool, error) {
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(semconv.MessagingSystemKey.String("queue")),
+	}
+
+	propagator := otel.GetTextMapPropagator()
+
+	val, err := r.RPop(ctx, queue).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return false, nil
+		}
+		return false, err
+	}
+
+	var msg OtelRedisMessage
+	err = json.Unmarshal([]byte(val), &msg)
+	if err != nil {
+		return true, err
+	}
+
+	ctx = propagator.Extract(ctx, msg.Context)
+	marshal, err := json.Marshal(msg.Message)
+	if err != nil {
+		return true, err
+	}
+	ctx, childSpan := tracer.Start(ctx, "redis read from queue: "+queue, opts...)
+	defer childSpan.End()
+	return true, handler(ctx, marshal)
+}
+
 func (r OtelRedis) StreamAdd(ctx context.Context, tracer trace.Tracer, stream string, any interface{}) (*redis.StringCmd, error) {
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindProducer),

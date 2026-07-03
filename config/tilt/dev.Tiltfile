@@ -12,6 +12,17 @@ def start(landscape, platform, service, port, live):
         ]
     )
 
+    recoverer_image_name = platform + "-" + service + "-recoverer"
+    docker_build(
+        recoverer_image_name,
+        '.',
+        dockerfile = './infra/dev.Dockerfile',
+        entrypoint='air -- recoverer',
+        live_update=[
+            sync('.', '/app'),
+        ]
+    )
+
     cdc_image_name = platform + "-" + service + "-cdc"
     docker_build(
         cdc_image_name,

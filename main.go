@@ -120,6 +120,14 @@ func main() {
 				Action: state.Terminator,
 			},
 			{
+				Name:   "recoverer",
+				Action: state.Recoverer,
+			},
+			{
+				Name:   "recover",
+				Action: state.Recover,
+			},
+			{
 				Name: "manual-buy",
 				Action: func(context *cli.Context) error {
 					buyerCfg := state.Config.Buyer
