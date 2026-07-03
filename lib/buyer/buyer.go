@@ -151,7 +151,9 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		return nil, bookingNo, ticketNo, e
 	}
 
-	c.logger.Info().Any("passenger", p).Msg("Successfully purchased Ticket")
+	// log ticket identifiers, not the passenger object — the latter carries the
+	// full name + passport number (PII) into the log stream
+	c.logger.Info().Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Str("date", date).Str("time", t).Str("dir", direction).Msg("Successfully purchased Ticket")
 	return ticket, bookingNo, ticketNo, nil
 
 }

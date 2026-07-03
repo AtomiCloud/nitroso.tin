@@ -15,7 +15,7 @@ import (
 // captured ticket's identifiers, so a silent drop can drive a wrongful refund.
 func TestQueuePushPropagatesCommandError(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"})
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 	r := OtelRedis{rdb}
 
 	// a cancelled context makes the LPUSH fail deterministically without needing

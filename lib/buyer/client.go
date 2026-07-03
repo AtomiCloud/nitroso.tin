@@ -229,7 +229,8 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		PassportNumber: *data.Passenger.PassportNumber,
 	}
 
-	c.logger.Info().Any("passenger", p).Msg("Passenger")
+	// don't log the passenger object (full name + passport number are PII)
+	c.logger.Info().Str("date", date).Str("time", t).Str("dir", direction).Msg("Buying for reserved booking")
 	buy, bookingNo, ticketNo, err := c.buyer.Buy(userData, bookingData, p, direction, date, t)
 	if err != nil {
 		var conflictErr *ConflictError

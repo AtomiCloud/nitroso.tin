@@ -29,7 +29,7 @@ money.
 
 ## 2. Booking state machine (zinc)
 
-```
+```text
 Pending ─▶ Buying ─▶ Completed
               │
               ▼
@@ -144,7 +144,7 @@ sweep drains first). Per booking (`ProcessItem`):
 
 ### Manual recovery
 
-`tin recover <passport> <date HH> <time> <direction>`: search zinc (PassportNumber filter),
+`tin recover <passport> <date dd-MM-yyyy> <time HH:mm:ss> <direction JToW|WToJ>`: search zinc (PassportNumber filter),
 interactively confirm each candidate, transition to `Recovering`, run the same classification.
 This is the tool for bookings already stuck when the pipeline ships.
 
