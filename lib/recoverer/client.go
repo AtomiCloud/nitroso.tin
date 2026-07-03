@@ -207,13 +207,17 @@ func (c *Client) Sweep(ctx context.Context, skip map[string]bool) error {
 
 	c.logger.Info().Ctx(ctx).Int("count", len(bookings)).Msg("Sweeping recovering bookings")
 	for _, b := range bookings {
-		dto := reconstructDto(b)
+		dto := ReconstructDto(b)
 		if dto.BookingId == "" || skip[dto.BookingId] || queued[dto.BookingId] {
 			continue
 		}
 		if err := c.ProcessItem(ctx, dto); err != nil {
-			// left in Recovering; the next sweep retries it
-			c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Sweep failed to process recovering booking")
+			// requeue with an attempt count so the failure is durably counted:
+			// repeated failures escalate to RequireManualIntervention (§5.7)
+			// instead of silently retrying every sweep forever. The live queue
+			// item also makes the next cycle's drain (not the sweep) retry it.
+			c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Sweep failed to process recovering booking, requeueing with attempt count")
+			c.requeue(ctx, dto)
 		}
 	}
 	return nil
@@ -267,8 +271,26 @@ func (c *Client) requeue(ctx context.Context, dto lib.RecoverDto) {
 		return
 	}
 	tracer := otel.Tracer(c.psm)
-	_, err = c.mainRedis.QueuePush(ctx, tracer, c.config.QueueName, enc)
-	if err != nil {
-		c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Failed to requeue recover dto")
+	// The queue is the sole durable store of this item's attempt count, so a
+	// transient Redis failure here would silently reset §5.7 escalation the next
+	// sweep (which reconstructs Attempts:0 from zinc). Retry a few times before
+	// giving up; a total failure still leaves the booking Recovering in zinc, so
+	// the next sweep re-derives and re-processes it.
+	for attempt := 0; attempt < recoverRequeueRetries; attempt++ {
+		if _, err = c.mainRedis.QueuePush(ctx, tracer, c.config.QueueName, enc); err == nil {
+			return
+		}
+		c.logger.Error().Ctx(ctx).Err(err).Int("attempt", attempt).Str("bookingId", dto.BookingId).Msg("Failed to requeue recover dto, retrying")
+		select {
+		case <-ctx.Done():
+			c.logger.Error().Ctx(ctx).Err(ctx.Err()).Str("bookingId", dto.BookingId).Msg("Requeue aborted by context; item stays Recovering in zinc for the next sweep")
+			return
+		case <-time.After(time.Duration(attempt+1) * 100 * time.Millisecond):
+		}
 	}
+	c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Failed to requeue recover dto after retries; item stays Recovering in zinc for the next sweep")
 }
+
+// recoverRequeueRetries bounds how many times requeue retries a failed Redis
+// push before falling back to zinc's durable Recovering status.
+const recoverRequeueRetries = 3

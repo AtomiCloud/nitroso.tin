@@ -38,6 +38,7 @@ buyer:
   host: localhost
   port: 9000
   completeRetries: 5
+  parkRetries: 5
   conflictPatterns:
     - 'duplicate passport'
 

@@ -55,6 +55,10 @@ type BuyerConfig struct {
 	// CompleteRetries is how many times the buyer retries reporting a captured
 	// ticket to zinc before parking the booking for recovery
 	CompleteRetries int
+	// ParkRetries is how many times the buyer retries each parking step (the
+	// recover-queue push and the Buying -> Recovering transition); the queue
+	// push is the sole durable store of a captured ticket's identifiers
+	ParkRetries int
 	// ConflictPatterns are case-insensitive substrings of KTMB SetPassenger
 	// error messages that mean "this passenger already holds a ticket"
 	ConflictPatterns []string

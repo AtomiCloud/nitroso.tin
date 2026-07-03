@@ -65,7 +65,15 @@ func (r OtelRedis) QueuePush(ctx context.Context, tracer trace.Tracer, queue str
 
 	childSpan.SetAttributes(attribute.String("message", string(messageJson)))
 
-	return r.LPush(ctx, queue, string(messageJson)), nil
+	// Return the command's own error, not a bare nil: go-redis stores execution
+	// errors (connection refused, context cancel, READONLY during failover) on
+	// the *IntCmd, so returning (cmd, nil) would make every LPUSH failure look
+	// like a successful enqueue. The recover-queue callers (buyer pushRecover,
+	// recoverer requeue) treat this queue as the sole durable store of a captured
+	// ticket's identifiers, so a silently-dropped push could later drive a
+	// wrongful refund (§4/§5 durability).
+	cmd := r.LPush(ctx, queue, string(messageJson))
+	return cmd, cmd.Err()
 }
 
 func (r OtelRedis) QueuePop(ctx context.Context, tracer trace.Tracer, queue string, handler func(ctx context.Context, message json.RawMessage) error) error {

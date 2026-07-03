@@ -206,8 +206,11 @@ tin/CLI-driven. argon only needs to stop calling the removed endpoint and render
 
 - [ ] Money invariants §3.1–§3.6 hold on every reachable path.
 - [ ] Every `BookStatus`/`TransactionType` switch/mapper/validator extended with the new values.
-- [ ] No residual `revert`/`Reverter`/`RevertBuying` reference in any repo (code, infra, docs, CI)
-      except regenerated-away SDK stubs.
+- [ ] No residual **live** `revert`/`Reverter`/`RevertBuying` reference in any repo's code, infra,
+      or CI (call site, DI wiring, chart alias, values block, pipeline step). Regenerated-away SDK
+      stubs and design docs that describe the removal — **this document included** — are exempt:
+      they name the removed elements only to explain what was deleted and why, so a grep gate should
+      exclude `docs/RECOVERY.md` and the canonical spec.
 - [ ] Buyer never crash-loops on a conflict; a captured ticket is never dropped or released.
 - [ ] Recoverer never refunds on an inconclusive scan and never double-buys.
 - [ ] No booking with held money is left unresolvable by any path.

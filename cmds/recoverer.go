@@ -50,10 +50,8 @@ func (state *State) buildRecoverer() (*recoverer.Client, *zinc.Client, error) {
 
 	b := buyer.NewBuyer(k, state.Logger, buyerCfg.ContactNumber, buyerCfg.SleepBuffer, buyerCfg.ConflictPatterns)
 
-	appInfo := "{\"DeviceName\":\"Google\",\"OperatingSystemName\":\"Android\",\"OperatingSystemVersion\":\"13\",\"AppVersion\":\"1.4.1\"}"
-
 	client := recoverer.New(k, &b, &s, retriever, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
-		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, appInfo, state.Location)
+		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, ktmbAppInfo, state.Location)
 	return client, zClient, nil
 }
 
@@ -122,10 +120,10 @@ func (state *State) Recover(c *cli.Context) error {
 
 	reader := bufio.NewReader(os.Stdin)
 	for _, b := range bookings {
-		status := deref(b.Status)
+		status := lib.Deref(b.Status)
 		fmt.Printf("\nBooking %s\n  passenger: %s (%s)\n  trip:      %s %s %s\n  status:    %s\n  bookingNo: %s ticketNo: %s\n",
-			b.Id.String(), deref(b.Passenger.FullName), deref(b.Passenger.PassportNumber),
-			deref(b.Direction), deref(b.Date), deref(b.Time), status, deref(b.BookingNo), deref(b.TicketNo))
+			b.Id.String(), lib.Deref(b.Passenger.FullName), lib.Deref(b.Passenger.PassportNumber),
+			lib.Deref(b.Direction), lib.Deref(b.Date), lib.Deref(b.Time), status, lib.Deref(b.BookingNo), lib.Deref(b.TicketNo))
 
 		if status != "Pending" && status != "Buying" && status != "Recovering" {
 			fmt.Printf("  -> status %s is not recoverable, skipping\n", status)
@@ -151,21 +149,9 @@ func (state *State) Recover(c *cli.Context) error {
 			}
 		}
 
-		expiry := deref(b.Passenger.PassportExpiry)
-		heliumExpiry := ""
-		if len(strings.Split(expiry, "-")) == 3 {
-			heliumExpiry = fmt.Sprintf("%sT00:00:00", lib.ZincToHeliumDate(expiry))
-		}
-		dto := lib.RecoverDto{
-			BookingId:      b.Id.String(),
-			Direction:      direction,
-			Date:           date,
-			Time:           t,
-			FullName:       deref(b.Passenger.FullName),
-			Gender:         deref(b.Passenger.Gender),
-			PassportExpiry: heliumExpiry,
-			PassportNumber: deref(b.Passenger.PassportNumber),
-		}
+		// the booking was searched by passport+date+time+direction, so its own
+		// fields carry the same values the CLI args hold
+		dto := recoverer.ReconstructDto(b)
 
 		fmt.Println("  -> running recovery classification...")
 		if err := client.ProcessItem(c.Context, dto); err != nil {
@@ -189,11 +175,4 @@ func postTransition(c *cli.Context, id uuid.UUID, name string,
 		return fmt.Errorf("failed to mark booking as %s: status %d: %s", name, resp.StatusCode, string(body))
 	}
 	return nil
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

@@ -56,9 +56,10 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 		return nil
 	}
 
-	// completed-but-reverted legacy corruption: the ledger already collected
-	// this booking's reserve (BookingNo is only written by a committed
-	// Complete) — force-completing again would double-collect. Park it.
+	// legacy corruption (booking rolled back to a non-completed status after its
+	// reserve was already collected): the ledger already collected this booking's
+	// reserve (BookingNo is only written by a committed Complete) —
+	// force-completing again would double-collect. Park it.
 	if booking.Principal.BookingNo != nil && *booking.Principal.BookingNo != "" {
 		l.Error().Str("bookingNo", *booking.Principal.BookingNo).
 			Msg("Booking has a captured ticket but non-completed status (legacy corruption), parking for manual intervention")
@@ -104,9 +105,10 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 		return err
 	}
 
-	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber, false)
+	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
 	if err != nil {
-		// an inconclusive scan must never fall through to a refund
+		// an inconclusive scan (empty/blank list, mutated pagination, unparseable
+		// row) must never fall through to a refund OR a re-buy probe
 		l.Error().Err(err).Msg("KTMB ticket scan inconclusive, will retry")
 		return err
 	}
@@ -176,28 +178,12 @@ func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, userData string,
 			if _, e := c.buyer.Release(store.UserData, bookingData); e != nil {
 				l.Error().Err(e).Msg("Failed to release probe reservation")
 			}
-			// strict: KTMB just told us the passenger is booked, so an empty own-
-			// account list is contradictory and must not drive a refund
-			found, ferr := c.findTicket(userData, target, dto.Direction, dto.PassportNumber, true)
-			if ferr != nil {
-				l.Error().Err(ferr).Msg("Re-buy conflicted but re-scan inconclusive, will retry")
-				return ferr
-			}
-			if found != nil {
-				// stash identifiers so a force-complete failure requeues onto the
-				// deterministic path next cycle instead of re-probing
-				dto.BookingNo = found.BookingNo
-				dto.TicketNo = found.TicketNo
-				l.Info().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan located our uncaptured ticket, force completing")
-				if e := c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo); e != nil {
-					l.Error().Err(e).Msg("Force complete failed after re-scan, requeueing with ticket identifiers")
-					c.requeue(ctx, dto)
-					return nil
-				}
-				return nil
-			}
-			l.Warn().Err(err).Msg("Re-buy confirmed conflict and ticket is not on our account, marking duplicate")
-			return c.markDuplicate(ctx, dto.BookingId)
+			return c.resolveConflict(ctx, dto, func() (*foundTicket, error) {
+				// KTMB just told us the passenger is booked, so an empty own-account
+				// list is contradictory; findTicket treats it (and every other
+				// inconclusive condition) as an error that must not drive a refund
+				return c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
+			}, l)
 		case errors.As(err, &purchasedErr):
 			// bought but ticket retrieval failed — requeue deterministically
 			l.Warn().Err(err).Msg("Re-buy purchased but ticket retrieval failed, requeueing with ticket identifiers")
@@ -220,6 +206,51 @@ func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, userData string,
 	l.Info().Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Re-buy succeeded, completing booking")
 	if err := c.completeBooking(ctx, dto.BookingId, bookingNo, ticketNo, pdf); err != nil {
 		l.Error().Err(err).Msg("Re-buy succeeded but complete failed, requeueing with ticket identifiers")
+		c.requeue(ctx, dto)
+		return nil
+	}
+	return nil
+}
+
+// resolveConflict decides a booking whose re-buy probe was rejected as a
+// duplicate: re-scan our KTMB account to find WHOSE ticket blocks it. It
+// applies the same gates as the main scan's found-path (§5.6) — in particular
+// the claim gate: a found ticket already recorded on another Completed zinc
+// booking marks THIS booking Duplicate (refund), because force-completing it
+// would collect this booking's reserve for a ticket someone else owns. Only a
+// conclusive "not on our account" re-scan may refund; an inconclusive re-scan
+// (or claim check) retries.
+func (c *Client) resolveConflict(ctx context.Context, dto lib.RecoverDto, rescan func() (*foundTicket, error), l zerolog.Logger) error {
+	found, err := rescan()
+	if err != nil {
+		l.Error().Err(err).Msg("Re-buy conflicted but re-scan inconclusive, will retry")
+		return err
+	}
+	if found == nil {
+		l.Warn().Msg("Re-buy confirmed conflict and ticket is not on our account, marking duplicate")
+		return c.markDuplicate(ctx, dto.BookingId)
+	}
+	claimed, err := c.isClaimed(ctx, dto, found.BookingNo)
+	if err != nil {
+		// retry with the ORIGINAL dto (no stashed identifiers): stashing before
+		// the claim gate passes would route the next cycle onto the deterministic
+		// force-complete path, which skips this gate entirely
+		l.Error().Err(err).Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan found a ticket but the claim check failed, will retry")
+		return err
+	}
+	if claimed {
+		// the ticket on our account already belongs to another zinc booking
+		// (user double-booked) — this booking is a true duplicate
+		l.Warn().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan ticket already claimed by another completed booking, marking duplicate")
+		return c.markDuplicate(ctx, dto.BookingId)
+	}
+	// ours and unclaimed: stash identifiers so a force-complete failure requeues
+	// onto the deterministic path next cycle instead of re-probing
+	dto.BookingNo = found.BookingNo
+	dto.TicketNo = found.TicketNo
+	l.Info().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan located our uncaptured ticket, force completing")
+	if e := c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo); e != nil {
+		l.Error().Err(e).Msg("Force complete failed after re-scan, requeueing with ticket identifiers")
 		c.requeue(ctx, dto)
 		return nil
 	}
@@ -271,12 +302,19 @@ func (c *Client) completeBooking(ctx context.Context, bookingId, bookingNo, tick
 // completed zinc booking for the same passenger and slot
 func (c *Client) isClaimed(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (bool, error) {
 	completed := "Completed"
+	// explicit Limit so a zinc default page size can't hide the claiming booking:
+	// a miss here returns false and force-completes a ticket owned by another
+	// Completed booking, collecting this booking's reserve for someone else's
+	// ticket (a §3.1 double-collect). The exact passport+slot+direction tuple
+	// yields ≤1 in practice, so a large cap suffices.
+	limit := int32(100)
 	resp, err := c.zinc.GetApiVVersionBooking(ctx, "1.0", &zinc.GetApiVVersionBookingParams{
 		PassportNumber: &dto.PassportNumber,
 		Date:           &dto.Date,
 		Time:           &dto.Time,
 		Direction:      &dto.Direction,
 		Status:         &completed,
+		Limit:          &limit,
 	})
 	if err != nil {
 		return false, err
@@ -338,26 +376,20 @@ func (c *Client) listRecovering(ctx context.Context) ([]zinc.BookingPrincipalRes
 	return all, nil
 }
 
-// reconstructDto rebuilds a recover item from a zinc booking (the sweep path).
-// It cannot know a captured-but-unreported ticket's KTMB numbers — zinc has
-// none for such bookings — so BookingNo/TicketNo are left empty and the scan
-// re-derives them.
-func reconstructDto(b zinc.BookingPrincipalRes) lib.RecoverDto {
-	deref := func(s *string) string {
-		if s == nil {
-			return ""
-		}
-		return *s
-	}
+// ReconstructDto rebuilds a recover item from a zinc booking (the sweep path
+// and the manual `recover` command). It cannot know a captured-but-unreported
+// ticket's KTMB numbers — zinc has none for such bookings — so
+// BookingNo/TicketNo are left empty and the scan re-derives them.
+func ReconstructDto(b zinc.BookingPrincipalRes) lib.RecoverDto {
 	return lib.RecoverDto{
 		BookingId:      b.Id.String(),
-		Direction:      deref(b.Direction),
-		Date:           deref(b.Date),
-		Time:           deref(b.Time),
-		FullName:       deref(b.Passenger.FullName),
-		Gender:         deref(b.Passenger.Gender),
-		PassportExpiry: safeHeliumExpiry(deref(b.Passenger.PassportExpiry)),
-		PassportNumber: deref(b.Passenger.PassportNumber),
+		Direction:      lib.Deref(b.Direction),
+		Date:           lib.Deref(b.Date),
+		Time:           lib.Deref(b.Time),
+		FullName:       lib.Deref(b.Passenger.FullName),
+		Gender:         lib.Deref(b.Passenger.Gender),
+		PassportExpiry: safeHeliumExpiry(lib.Deref(b.Passenger.PassportExpiry)),
+		PassportNumber: lib.Deref(b.Passenger.PassportNumber),
 	}
 }
 

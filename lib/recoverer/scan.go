@@ -24,32 +24,34 @@ type pageFetcher func(page int64) (ktmb.TicketListRes, error)
 // definitively absent; an error means the scan was inconclusive (the caller
 // must retry rather than treat it as "not ours", which would refund a user
 // who actually holds a valid ticket).
-//
-// strict makes an empty/blank list inconclusive rather than definitively
-// absent — use it in the re-scan after a KTMB conflict, where an empty own-
-// account list is contradictory (KTMB just said the passenger is booked) and
-// must never drive a refund.
-func (c *Client) findTicket(userData string, target time.Time, direction, passport string, strict bool) (*foundTicket, error) {
+func (c *Client) findTicket(userData string, target time.Time, direction, passport string) (*foundTicket, error) {
 	return findTicketIn(func(page int64) (ktmb.TicketListRes, error) {
 		return c.listPage(userData, page)
-	}, target, direction, passport, c.loc, strict)
+	}, target, direction, passport, c.loc)
 }
 
 // findTicketIn is the testable core: the list is ascending by departure
 // datetime, so binary-search for a page whose datetime range spans the target,
 // then scan every contiguous page that still contains the target datetime
 // (same-datetime entries can straddle page boundaries).
-func findTicketIn(fetch pageFetcher, target time.Time, direction, passport string, loc *time.Location, strict bool) (*foundTicket, error) {
+//
+// Inconclusive conditions all surface as errors, never as "not found": an
+// empty/blank list (our production account always holds tickets, so a blank
+// page is a scrape failure until proven otherwise — spec §3.3), an empty page
+// inside the known range (list mutated under us), and an unparseable departure
+// datetime on any page that could hold the target (the malformed row could BE
+// the target's row). A definitive passport+datetime+direction match found on a
+// page always wins over a malformed sibling row: acting on a found ticket is a
+// force-complete, which is money-safe, whereas failing to report it would only
+// delay recovery.
+func findTicketIn(fetch pageFetcher, target time.Time, direction, passport string, loc *time.Location) (*foundTicket, error) {
 	first, err := fetch(1)
 	if err != nil {
 		return nil, err
 	}
 	total := first.TotalPage
 	if total <= 0 || len(first.Bookings) == 0 {
-		if strict {
-			return nil, fmt.Errorf("empty ticket list while a booking was expected (inconclusive)")
-		}
-		return nil, nil
+		return nil, fmt.Errorf("empty ticket list (inconclusive, must retry — never treat as absent)")
 	}
 
 	getPage := func(page int64) (ktmb.TicketListRes, error) {
@@ -101,10 +103,25 @@ func findTicketIn(fetch pageFetcher, target time.Time, direction, passport strin
 		if err != nil {
 			return nil, err
 		}
-		if f := matchPage(res, target, direction, passport, loc); f != nil {
+		if len(res.Bookings) == 0 {
+			// an empty page reached only via the contiguous scan (never the
+			// bisection) is inconclusive, not "not found": the target's row may
+			// live on this now-blank page. Treating it as absent could drive a
+			// wrongful refund (spec §3.3).
+			return nil, fmt.Errorf("empty page %d during left contiguous scan (inconclusive, must retry)", page)
+		}
+		f, matchErr := matchPage(res, target, direction, passport, loc)
+		if f != nil {
 			return f, nil
 		}
-		if !pageContainsDatetime(res, target, loc) {
+		if matchErr != nil {
+			return nil, matchErr
+		}
+		contains, containsErr := pageContainsDatetime(res, target, loc)
+		if containsErr != nil {
+			return nil, containsErr
+		}
+		if !contains {
 			break
 		}
 	}
@@ -114,11 +131,23 @@ func findTicketIn(fetch pageFetcher, target time.Time, direction, passport strin
 		if err != nil {
 			return nil, err
 		}
-		if !pageContainsDatetime(res, target, loc) {
-			break
+		if len(res.Bookings) == 0 {
+			// empty page in the contiguous scan → inconclusive (see scan-left)
+			return nil, fmt.Errorf("empty page %d during right contiguous scan (inconclusive, must retry)", page)
 		}
-		if f := matchPage(res, target, direction, passport, loc); f != nil {
+		f, matchErr := matchPage(res, target, direction, passport, loc)
+		if f != nil {
 			return f, nil
+		}
+		if matchErr != nil {
+			return nil, matchErr
+		}
+		contains, containsErr := pageContainsDatetime(res, target, loc)
+		if containsErr != nil {
+			return nil, containsErr
+		}
+		if !contains {
+			break
 		}
 	}
 	return nil, nil
@@ -137,44 +166,112 @@ func (c *Client) listPage(userData string, page int64) (ktmb.TicketListRes, erro
 
 // pageContainsDatetime reports whether any booking on the page departs exactly
 // at target — i.e. whether the target datetime's entries may extend further.
-func pageContainsDatetime(page ktmb.TicketListRes, target time.Time, loc *time.Location) bool {
-	for _, booking := range page.Bookings {
-		if dt, err := departOf(booking, loc); err == nil && dt.Equal(target) {
-			return true
-		}
-	}
-	return false
-}
-
-func matchPage(page ktmb.TicketListRes, target time.Time, direction, passport string, loc *time.Location) *foundTicket {
+// A definitive hit wins; otherwise an unparseable departure is an error (the
+// malformed row could be at the target datetime), never a silent "no".
+func pageContainsDatetime(page ktmb.TicketListRes, target time.Time, loc *time.Location) (bool, error) {
+	var parseErr error
 	for _, booking := range page.Bookings {
 		dt, err := departOf(booking, loc)
-		if err != nil || !dt.Equal(target) {
+		if err != nil {
+			parseErr = fmt.Errorf("unparseable departure %q on booking %s (inconclusive): %w",
+				booking.DepartFromLocalDateTime, booking.BookingNo, err)
 			continue
 		}
-		if directionOf(booking.FromStationName) != direction {
+		if dt.Equal(target) {
+			return true, nil
+		}
+	}
+	return false, parseErr
+}
+
+// matchPage looks for the passport's ticket at the target datetime+direction
+// on one page. A definitive match wins; otherwise any ambiguity on a row that
+// could BE the target's row is an error (inconclusive), never a silent skip —
+// a skipped true match would end in a wrongful refund (§3.3). Two dimensions
+// can be ambiguous:
+//
+//   - an unparseable departure datetime (the malformed row could be at the
+//     target datetime), and
+//   - a datetime+passport match whose direction cannot be *confirmed* equal to
+//     the target. The passport is checked BEFORE direction so an unrelated
+//     passenger's opposite-direction booking at the same instant is still
+//     ignored, but our OWN passenger's booking at the target datetime whose
+//     FromStationName cannot be positively classified as the target direction
+//     (abbreviated/localized/blank) must NOT be silently skipped nor treated as
+//     a definitive match: a real passenger cannot hold two opposite-direction
+//     tickets at the same instant, so such a row is almost certainly our
+//     misclassified ticket. Classification is tri-state (confirmed-WToJ,
+//     confirmed-JToW, unconfirmed): a station is a definitive match ONLY when it
+//     is *positively* confirmed as the target direction. An unconfirmed station
+//     is inconclusive for BOTH target directions — a station that merely fails
+//     to be Woodlands is NOT thereby "JToW". Skipping (or force-completing) such
+//     a row reads as "not ours" / "the wrong-direction ticket is ours" and
+//     drives a wrongful refund or a wrongful force-complete; instead surface it
+//     as inconclusive so the caller retries (and ultimately parks for a human).
+func matchPage(page ktmb.TicketListRes, target time.Time, direction, passport string, loc *time.Location) (*foundTicket, error) {
+	var inconclusiveErr error
+	for _, booking := range page.Bookings {
+		dt, err := departOf(booking, loc)
+		if err != nil {
+			inconclusiveErr = fmt.Errorf("unparseable departure %q on booking %s (inconclusive): %w",
+				booking.DepartFromLocalDateTime, booking.BookingNo, err)
 			continue
 		}
-		for _, trip := range booking.Trips {
-			for _, ticket := range trip.Tickets {
-				if strings.EqualFold(strings.TrimSpace(ticket.PassengerPassportNo), strings.TrimSpace(passport)) {
-					return &foundTicket{BookingNo: booking.BookingNo, TicketNo: ticket.TicketNo}
-				}
+		if !dt.Equal(target) {
+			continue
+		}
+		ticketNo, hasPassport := ticketForPassport(booking, passport)
+		if !hasPassport {
+			continue
+		}
+		dir, confirmed := classifyDirection(booking.FromStationName)
+		if !confirmed || dir != direction {
+			inconclusiveErr = fmt.Errorf(
+				"passport %s present on booking %s at target datetime but station %q could not be positively confirmed as target direction %q (classified=%q confirmed=%t) (inconclusive)",
+				passport, booking.BookingNo, booking.FromStationName, direction, dir, confirmed)
+			continue
+		}
+		return &foundTicket{BookingNo: booking.BookingNo, TicketNo: ticketNo}, nil
+	}
+	return nil, inconclusiveErr
+}
+
+// ticketForPassport returns the ticket number for the passport on this booking
+// (matched case-insensitively and trimmed) and whether it was present.
+func ticketForPassport(booking ktmb.TicketListBookingRes, passport string) (string, bool) {
+	for _, trip := range booking.Trips {
+		for _, ticket := range trip.Tickets {
+			if strings.EqualFold(strings.TrimSpace(ticket.PassengerPassportNo), strings.TrimSpace(passport)) {
+				return ticket.TicketNo, true
 			}
 		}
 	}
-	return nil
+	return "", false
 }
 
 func departOf(booking ktmb.TicketListBookingRes, loc *time.Location) (time.Time, error) {
 	return time.ParseInLocation(ktmbDateTimeLayout, booking.DepartFromLocalDateTime, loc)
 }
 
-// directionOf maps KTMB station names to the platform's direction strings:
-// departing Woodlands => WToJ, departing JB Sentral => JToW
-func directionOf(fromStationName string) string {
-	if strings.Contains(strings.ToUpper(fromStationName), "WOODLANDS") {
-		return "WToJ"
+// classifyDirection maps a KTMB station name to the platform's direction
+// strings, tri-state: it returns (direction, confirmed). A direction is only
+// returned with confirmed==true when the station name POSITIVELY identifies its
+// origin — departing Woodlands => WToJ, departing JB Sentral => JToW. Any other
+// string (abbreviated, localized, blank, unknown) is unconfirmed ("", false):
+// crucially, a station that merely does NOT contain "WOODLANDS" is NOT thereby
+// "JToW". Callers must treat an unconfirmed station as inconclusive for BOTH
+// target directions — a positive JToW confirmation requires a JToW origin token,
+// never the absence of a Woodlands token. This symmetry is load-bearing: without
+// it, a WToJ ticket with an ambiguous station would false-match a JToW target and
+// drive a wrongful force-complete (the mirror of the WToJ wrongful-refund path).
+func classifyDirection(fromStationName string) (string, bool) {
+	upper := strings.ToUpper(fromStationName)
+	if strings.Contains(upper, "WOODLANDS") {
+		return "WToJ", true
 	}
-	return "JToW"
+	// JB Sentral is the JToW origin; match its distinctive tokens only.
+	if strings.Contains(upper, "SENTRAL") || strings.Contains(upper, "JOHOR") {
+		return "JToW", true
+	}
+	return "", false
 }

@@ -40,6 +40,24 @@ type Client struct {
 
 var baseDelay = 1 * time.Second
 
+// retryBackoff runs op up to retries times (min 1) with exponential backoff
+// between attempts, returning nil on the first success or the last error.
+func retryBackoff(retries int, op func(attempt int) error) error {
+	if retries < 1 {
+		retries = 1
+	}
+	var lastErr error
+	for attempt := 0; attempt < retries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay)
+		}
+		if lastErr = op(attempt); lastErr == nil {
+			return nil
+		}
+	}
+	return lastErr
+}
+
 func CreateForm(values map[string]io.Reader) (s string, reader io.Reader, err error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -247,26 +265,13 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 // completeWithZinc reports a captured ticket to zinc, retrying with backoff:
 // the KTMB money is already spent, so this must not give up on a blip
 func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, pdf []byte) error {
-	retries := c.buyerCfg.CompleteRetries
-	if retries < 1 {
-		retries = 1
-	}
-
-	var lastErr error
-	for attempt := 0; attempt < retries; attempt++ {
-		if attempt > 0 {
-			delay := time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay
-			c.logger.Info().Ctx(ctx).Int("attempt", attempt).Dur("delay", delay).Msg("Retrying zinc complete...")
-			time.Sleep(delay)
+	return retryBackoff(c.buyerCfg.CompleteRetries, func(attempt int) error {
+		err := c.completeOnce(ctx, id, bookingNo, ticketNo, pdf)
+		if err != nil {
+			c.logger.Error().Ctx(ctx).Err(err).Int("attempt", attempt).Msg("Failed to mark booking as complete")
 		}
-
-		lastErr = c.completeOnce(ctx, id, bookingNo, ticketNo, pdf)
-		if lastErr == nil {
-			return nil
-		}
-		c.logger.Error().Ctx(ctx).Err(lastErr).Int("attempt", attempt).Msg("Failed to mark booking as complete")
-	}
-	return lastErr
+		return err
+	})
 }
 
 func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, pdf []byte) error {
@@ -351,47 +356,28 @@ func (c *Client) park(ctx context.Context, id openapi_types.UUID, direction, dat
 // transitionRecovering moves the booking Buying -> Recovering with a short
 // retry so it does not linger in the un-sweepable Buying state.
 func (c *Client) transitionRecovering(ctx context.Context, id openapi_types.UUID) error {
-	retries := c.buyerCfg.CompleteRetries
-	if retries < 1 {
-		retries = 1
-	}
-	var lastErr error
-	for attempt := 0; attempt < retries; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay)
-		}
+	return retryBackoff(c.buyerCfg.ParkRetries, func(int) error {
 		resp, err := c.zinc.PostApiVVersionBookingRecoveringId(ctx, "1.0", id)
 		if err != nil {
-			lastErr = err
-			continue
+			return err
 		}
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if resp.StatusCode == 200 {
 			return nil
 		}
-		lastErr = fmt.Errorf("transition to recovering: status %d: %s", resp.StatusCode, string(body))
-	}
-	return lastErr
+		return fmt.Errorf("transition to recovering: status %d: %s", resp.StatusCode, string(body))
+	})
 }
 
 // pushRecover pushes the encrypted recover record with a short retry, since it
 // is the sole durable store of a captured ticket's identifiers
 func (c *Client) pushRecover(ctx context.Context, tracer trace.Tracer, enc string) error {
-	retries := c.buyerCfg.CompleteRetries
-	if retries < 1 {
-		retries = 1
-	}
-	var lastErr error
-	for attempt := 0; attempt < retries; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Duration(math.Pow(2, float64(attempt-1))) * baseDelay)
+	return retryBackoff(c.buyerCfg.ParkRetries, func(attempt int) error {
+		_, err := c.mainRedis.QueuePush(ctx, tracer, c.recovererCfg.QueueName, enc)
+		if err != nil {
+			c.logger.Error().Ctx(ctx).Err(err).Int("attempt", attempt).Str("queue", c.recovererCfg.QueueName).Msg("Failed to push recover dto")
 		}
-		_, lastErr = c.mainRedis.QueuePush(ctx, tracer, c.recovererCfg.QueueName, enc)
-		if lastErr == nil {
-			return nil
-		}
-		c.logger.Error().Ctx(ctx).Err(lastErr).Int("attempt", attempt).Str("queue", c.recovererCfg.QueueName).Msg("Failed to push recover dto")
-	}
-	return lastErr
+		return err
+	})
 }
