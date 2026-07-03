@@ -39,14 +39,13 @@ buyer:
   port: 9000
   completeRetries: 5
   conflictPatterns:
-    - 'duplicate'
+    - 'duplicate passport'
 
 terminator:
   backoffLimit: 3
   queueName: 'terminator'
 
 recoverer:
-  backoffLimit: 3
   queueName: 'recover'
   cron: '@every 1h'
   maxAttempts: 5
