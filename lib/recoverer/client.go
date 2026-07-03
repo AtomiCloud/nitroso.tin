@@ -185,10 +185,23 @@ func (c *Client) Sweep(ctx context.Context, skip map[string]bool) error {
 	if len(bookings) == 0 {
 		return nil
 	}
+	// Also skip any booking that still has a live queue item — parked
+	// concurrently by the buyer after the drain's snapshot, or left behind by a
+	// drain error. park() pushes the queue item BEFORE the Recovering
+	// transition, so every such booking we see as Recovering is captured here;
+	// leaving it for the next drain preserves its deterministic ticket
+	// identifiers instead of taking the weaker zinc-reconstructed scan path.
+	queued, err := c.queuedBookingIds(ctx)
+	if err != nil {
+		// don't risk the weak path on a partial view of live items
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to read live queue items, skipping sweep this cycle")
+		return err
+	}
+
 	c.logger.Info().Ctx(ctx).Int("count", len(bookings)).Msg("Sweeping recovering bookings")
 	for _, b := range bookings {
 		dto := reconstructDto(b)
-		if dto.BookingId == "" || skip[dto.BookingId] {
+		if dto.BookingId == "" || skip[dto.BookingId] || queued[dto.BookingId] {
 			continue
 		}
 		if err := c.ProcessItem(ctx, dto); err != nil {
@@ -197,6 +210,33 @@ func (c *Client) Sweep(ctx context.Context, skip map[string]bool) error {
 		}
 	}
 	return nil
+}
+
+// queuedBookingIds returns the BookingIds of every recover record currently on
+// the queue (decrypting each envelope). Used by the sweep to avoid re-deriving
+// a booking that still has a live, stronger queue item.
+func (c *Client) queuedBookingIds(ctx context.Context) (map[string]bool, error) {
+	ids := map[string]bool{}
+	vals, err := c.mainRedis.LRange(ctx, c.config.QueueName, 0, -1).Result()
+	if err != nil {
+		return ids, err
+	}
+	for _, v := range vals {
+		var msg otelredis.OtelRedisMessage
+		if e := json.Unmarshal([]byte(v), &msg); e != nil {
+			continue
+		}
+		enc, ok := msg.Message.(string)
+		if !ok {
+			continue
+		}
+		dto, e := c.encr.DecryptAny(enc)
+		if e != nil {
+			continue
+		}
+		ids[dto.BookingId] = true
+	}
+	return ids, nil
 }
 
 // requeue pushes the item back with an incremented attempt counter; past the

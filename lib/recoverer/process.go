@@ -184,8 +184,17 @@ func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, userData string,
 				return ferr
 			}
 			if found != nil {
+				// stash identifiers so a force-complete failure requeues onto the
+				// deterministic path next cycle instead of re-probing
+				dto.BookingNo = found.BookingNo
+				dto.TicketNo = found.TicketNo
 				l.Info().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan located our uncaptured ticket, force completing")
-				return c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo)
+				if e := c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo); e != nil {
+					l.Error().Err(e).Msg("Force complete failed after re-scan, requeueing with ticket identifiers")
+					c.requeue(ctx, dto)
+					return nil
+				}
+				return nil
 			}
 			l.Warn().Err(err).Msg("Re-buy confirmed conflict and ticket is not on our account, marking duplicate")
 			return c.markDuplicate(ctx, dto.BookingId)
