@@ -40,6 +40,12 @@ buyer:
   completeRetries: 5
   parkRetries: 5
   conflictPatterns:
+    # KTMB's actual SetPassenger message is "Duplicated passport number for
+    # onward trip : <passport>." — note "Duplicated", not "duplicate", so the
+    # old 'duplicate passport' substring never matched and conflicts fell
+    # through to the generic-error path (booking stranded in Buying, never
+    # parked for recovery). Match the real wording; keep the old one too.
+    - 'duplicated passport'
     - 'duplicate passport'
 
 terminator:

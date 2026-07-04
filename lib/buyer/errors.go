@@ -6,7 +6,8 @@ import (
 )
 
 // ConflictError marks a KTMB rejection that means this passenger already holds
-// a ticket for the slot (e.g. "duplicate passport" at SetPassenger). The
+// a ticket for the slot. KTMB's SetPassenger wording is "Duplicated passport
+// number for onward trip : <passport>." (matched via conflictPatterns). The
 // booking should be parked for recovery instead of crash-looping the buyer.
 type ConflictError struct {
 	Messages []string
