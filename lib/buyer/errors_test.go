@@ -3,13 +3,17 @@ package buyer
 import "testing"
 
 func TestMatchesConflict(t *testing.T) {
-	patterns := []string{"duplicate passport"}
+	// mirror the deployed config (config/app + infra/consumer_chart settings.yaml)
+	patterns := []string{"duplicated passport", "duplicate passport"}
 
 	cases := []struct {
 		name     string
 		messages []string
 		want     bool
 	}{
+		// the real KTMB SetPassenger rejection — the string this fix exists for
+		{"real ktmb onward-trip message", []string{"Duplicated passport number for onward trip : K4461909G."}, true},
+		{"real ktmb return-trip variant", []string{"Duplicated passport number for return trip : A1234567."}, true},
 		{"duplicate passport message", []string{"Duplicate passport no. found in the same trip."}, true},
 		{"case insensitive", []string{"DUPLICATE PASSPORT NO."}, true},
 		{"unrelated error", []string{"Session expired"}, false},
@@ -24,6 +28,19 @@ func TestMatchesConflict(t *testing.T) {
 				t.Errorf("matchesConflict(%v) = %v, want %v", tc.messages, got, tc.want)
 			}
 		})
+	}
+}
+
+// regression guard: the OLD pattern alone must NOT match KTMB's real wording —
+// this is the exact bug (extra 'd' in "Duplicated") that stranded conflicts in
+// Buying. If someone drops 'duplicated passport', this test fails loudly.
+func TestOldPatternMissesRealKtmbMessage(t *testing.T) {
+	real := []string{"Duplicated passport number for onward trip : K4461909G."}
+	if matchesConflict([]string{"duplicate passport"}, real) {
+		t.Fatal("'duplicate passport' unexpectedly matched the real KTMB message; the 'duplicated passport' pattern would be redundant")
+	}
+	if !matchesConflict([]string{"duplicated passport"}, real) {
+		t.Fatal("'duplicated passport' must match the real KTMB message")
 	}
 }
 
