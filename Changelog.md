@@ -1,3 +1,10 @@
+## [1.44.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.44.0...v1.44.1) (2026-07-04)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **buyer:** match KTMB's real duplicate-passport wording ([d0a504f](https://github.com/AtomiCloud/nitroso.tin/commit/d0a504f58329b1f3c1d2d91b8109383f5aa96617))
+
 ## [1.44.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.43.0...v1.44.0) (2026-07-03)
 
 
