@@ -1,3 +1,10 @@
+## [1.45.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.44.1...v1.45.0) (2026-07-05)
+
+
+### ✨ Features ✨
+
+* **buyer:** auto-revert to Pending on transient wallet-insufficient failure ([7ca7294](https://github.com/AtomiCloud/nitroso.tin/commit/7ca729436408db0917c9c9955a39333c7b22fe33))
+
 ## [1.44.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.44.0...v1.44.1) (2026-07-04)
 
 
