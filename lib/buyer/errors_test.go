@@ -52,3 +52,20 @@ func TestMatchesConflictEmptyPatterns(t *testing.T) {
 		t.Error("empty pattern must never match")
 	}
 }
+
+// The buyer reverts a booking Buying -> Pending when Pay fails with a transient,
+// ticket-less error. KTMB's real message is "KTM Wallet balance is insufficient.";
+// the configured revertPatterns must match it (case-insensitive substring) but
+// NOT an unrelated failure like a duplicate-passport conflict.
+func TestRevertPatternMatchesWalletInsufficient(t *testing.T) {
+	patterns := []string{"wallet balance is insufficient"}
+	if !matchesConflict(patterns, []string{"KTM Wallet balance is insufficient."}) {
+		t.Fatal("revert pattern must match KTMB's wallet-insufficient message")
+	}
+	if matchesConflict(patterns, []string{"Duplicated passport number for onward trip : K4461909G."}) {
+		t.Fatal("revert pattern must not match a duplicate-passport error")
+	}
+	if matchesConflict(patterns, []string{"Not enough seat for onward trip."}) {
+		t.Fatal("revert pattern must not match an out-of-seats error")
+	}
+}

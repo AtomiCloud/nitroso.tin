@@ -62,6 +62,12 @@ type BuyerConfig struct {
 	// ConflictPatterns are case-insensitive substrings of KTMB SetPassenger
 	// error messages that mean "this passenger already holds a ticket"
 	ConflictPatterns []string
+	// RevertPatterns are case-insensitive substrings of KTMB error messages that
+	// mean the buy failed for a transient reason that captured NO ticket (e.g.
+	// "wallet balance is insufficient" at Pay). The buyer reverts these bookings
+	// Buying -> Pending so the pipeline retries them once the condition clears,
+	// instead of stranding them in Buying.
+	RevertPatterns []string
 }
 
 // Terminator Config

@@ -48,7 +48,7 @@ func (state *State) buildRecoverer() (*recoverer.Client, *zinc.Client, error) {
 	s := session.New(&k, &mainRedis, state.Logger, state.Config.Ktmb.LoginKey, loginEncr)
 	retriever := reserver.NewRetriever(&mainRedis, findEncr, state.Logger, state.Config.Enricher)
 
-	b := buyer.NewBuyer(k, state.Logger, buyerCfg.ContactNumber, buyerCfg.SleepBuffer, buyerCfg.ConflictPatterns)
+	b := buyer.NewBuyer(k, state.Logger, buyerCfg.ContactNumber, buyerCfg.SleepBuffer, buyerCfg.ConflictPatterns, buyerCfg.RevertPatterns)
 
 	client := recoverer.New(k, &b, &s, retriever, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
 		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, ktmbAppInfo, state.Location)
