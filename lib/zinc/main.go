@@ -748,6 +748,12 @@ type ClientInterface interface {
 	// PostApiVVersionBookingBuyingId request
 	PostApiVVersionBookingBuyingId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PostApiVVersionBookingRevertId request
+	// NOTE: manually added (mirrors the generated Buying method) for the zinc 1.36
+	// revert endpoint; only the raw method is provided, no WithResponse variant.
+	// Regenerate via `pls sdk:gen` against zinc >= 1.36 to reconcile this file.
+	PostApiVVersionBookingRevertId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PostApiVVersionBookingCancelId request
 	PostApiVVersionBookingCancelId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1076,6 +1082,18 @@ func (c *Client) GetApiVVersionBooking(ctx context.Context, version string, para
 
 func (c *Client) PostApiVVersionBookingBuyingId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostApiVVersionBookingBuyingIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingRevertId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingRevertIdRequest(c.Server, version, id)
 	if err != nil {
 		return nil, err
 	}
@@ -2451,6 +2469,47 @@ func NewPostApiVVersionBookingBuyingIdRequest(server string, version string, id 
 	}
 
 	operationPath := fmt.Sprintf("/api/v%s/Booking/buying/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingRevertIdRequest generates requests for PostApiVVersionBookingRevertId
+func NewPostApiVVersionBookingRevertIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/revert/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}

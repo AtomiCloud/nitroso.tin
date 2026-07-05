@@ -17,6 +17,18 @@ func (e *ConflictError) Error() string {
 	return fmt.Sprintf("ktmb conflict (duplicate passenger): %+v", e.Messages)
 }
 
+// RevertError marks a KTMB buy that failed for a transient reason that captured
+// NO ticket (e.g. "wallet balance is insufficient" at Pay). The booking should
+// be reverted Buying -> Pending to retry once the condition clears, rather than
+// stranded in Buying.
+type RevertError struct {
+	Messages []string
+}
+
+func (e *RevertError) Error() string {
+	return fmt.Sprintf("ktmb transient failure (revert to pending): %+v", e.Messages)
+}
+
 // PurchasedError marks a purchase that SUCCEEDED on KTMB (payment captured,
 // booking confirmed) but whose ticket artifacts could not be retrieved. The
 // ticket exists — callers must never treat this as a failed buy or release

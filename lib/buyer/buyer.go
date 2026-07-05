@@ -13,15 +13,17 @@ type Buyer struct {
 	logger           *zerolog.Logger
 	sleepBuffer      int
 	conflictPatterns []string
+	revertPatterns   []string
 }
 
-func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBuffer int, conflictPatterns []string) Buyer {
+func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBuffer int, conflictPatterns, revertPatterns []string) Buyer {
 	return Buyer{
 		ktmb:             k,
 		logger:           logger,
 		contactNumber:    contactNumber,
 		sleepBuffer:      sleepBuffer,
 		conflictPatterns: conflictPatterns,
+		revertPatterns:   revertPatterns,
 	}
 }
 
@@ -105,6 +107,11 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		return nil, "", "", err
 	}
 	if !pay.Status {
+		if matchesConflict(c.revertPatterns, pay.Messages) {
+			e := &RevertError{Messages: pay.Messages}
+			c.logger.Warn().Err(e).Strs("errors", pay.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Transient pay failure with no ticket bought (revertable)")
+			return nil, "", "", e
+		}
 		e := fmt.Errorf("failed to pay: %+v", pay.Messages)
 		c.logger.Error().Err(e).Strs("errors", pay.Messages).Msg("Failed to pay")
 		return nil, "", "", e

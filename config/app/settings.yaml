@@ -47,6 +47,11 @@ buyer:
     # parked for recovery). Match the real wording; keep the old one too.
     - 'duplicated passport'
     - 'duplicate passport'
+  # KTMB error substrings that mean a transient, ticket-less buy failure — the
+  # buyer reverts these bookings Buying -> Pending to retry (e.g. the KTMB
+  # e-wallet ran out of funds at Pay: "KTM Wallet balance is insufficient.").
+  revertPatterns:
+    - 'wallet balance is insufficient'
 
 terminator:
   backoffLimit: 3

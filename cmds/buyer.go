@@ -37,7 +37,7 @@ func (state *State) Buyer(c *cli.Context) error {
 
 	recoverEncr := encryptor.NewSymEncryptor[lib.RecoverDto](state.Config.Encryptor.Key, state.Logger)
 
-	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber, state.Config.Buyer.SleepBuffer, state.Config.Buyer.ConflictPatterns)
+	b := buyer.NewBuyer(k, state.Logger, state.Config.Buyer.ContactNumber, state.Config.Buyer.SleepBuffer, state.Config.Buyer.ConflictPatterns, state.Config.Buyer.RevertPatterns)
 	client := buyer.New(&b, &mainRedis, &streamRedis, state.OtelConfigurator, state.Logger, state.Config.Stream, state.Config.Buyer,
 		state.Config.Recoverer, state.Psm, zClient, encr, recoverEncr)
 

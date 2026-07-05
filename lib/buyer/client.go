@@ -20,6 +20,7 @@ import (
 	"io"
 	"math"
 	"mime/multipart"
+	"net/http"
 	"time"
 )
 
@@ -235,7 +236,14 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 	if err != nil {
 		var conflictErr *ConflictError
 		var purchasedErr *PurchasedError
+		var revertErr *RevertError
 		switch {
+		case errors.As(err, &revertErr):
+			// transient failure that captured NO ticket (e.g. KTMB wallet out) —
+			// revert the booking Buying -> Pending so the pipeline retries it,
+			// and release the KTMB reservation. Safe: no ticket exists.
+			c.logger.Warn().Ctx(ctx).Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Transient buy failure, reverting booking to Pending")
+			return c.revert(ctx, data.Id, userData, bookingData)
 		case errors.As(err, &conflictErr):
 			// this passenger already holds a ticket for this slot — park the
 			// booking for the recoverer and free the KTMB reservation
@@ -296,6 +304,33 @@ func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookin
 		body, _ := io.ReadAll(completed.Body)
 		return fmt.Errorf("failed to mark booking as complete: status %d: %s", completed.StatusCode, string(body))
 	}
+	return nil
+}
+
+// revert recycles a booking that failed for a transient, ticket-less reason
+// (e.g. KTMB wallet insufficient): it moves the booking Buying -> Pending in
+// zinc so the pipeline re-reserves and retries it once the condition clears,
+// and releases the KTMB reservation. zinc's Revert is guarded (Buying-only +
+// uncaptured) so this can never re-buy a booking that already holds a ticket.
+// On a revert failure the booking simply stays Buying for the manual revert
+// path — no ticket is ever at risk here (Pay failed, nothing was bought).
+func (c *Client) revert(ctx context.Context, id openapi_types.UUID, userData, bookingData string) error {
+	resp, err := c.zinc.PostApiVVersionBookingRevertId(ctx, "1.0", id)
+	if err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to revert booking to Pending")
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.logger.Error().Ctx(ctx).Int("status", resp.StatusCode).Str("body", string(body)).Msg("Failed to revert booking to Pending")
+		return fmt.Errorf("failed to revert booking: status %d", resp.StatusCode)
+	}
+	if _, e := c.buyer.Release(userData, bookingData); e != nil {
+		// best effort: the reservation will otherwise expire on its own
+		c.logger.Error().Ctx(ctx).Err(e).Msg("Failed to release KTMB reservation after revert")
+	}
+	c.logger.Info().Ctx(ctx).Msg("Booking reverted to Pending for retry")
 	return nil
 }
 
