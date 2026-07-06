@@ -132,8 +132,8 @@ func TestMatchPage(t *testing.T) {
 // (abbreviated/localized/blank) is misclassified by directionOf as "JToW". Such
 // a row, carrying OUR passport at the target datetime, must surface as
 // inconclusive (retry), never be silently skipped — a silent skip reads as "not
-// ours" and, via the re-buy conflict path, drives a wrongful refund of a ticket
-// we actually hold (§3.3).
+// ours", which now drives a wrongful refund of a ticket we actually hold
+// directly (not found → Duplicate) (§3.3).
 func TestMatchPageDirectionUnconfirmedIsInconclusive(t *testing.T) {
 	loc := sgLoc(t)
 	target := time.Date(2026, 7, 3, 13, 45, 0, 0, loc)
@@ -340,8 +340,7 @@ func TestFindTicketInMalformedMatchingRow(t *testing.T) {
 	target := time.Date(2026, 7, 3, 13, 45, 0, 0, loc)
 	// single page; the row that WOULD match the target passport has a malformed
 	// departure. The scan must be inconclusive (retry), never "not found" —
-	// "not found" leads to a re-buy probe and, after a conflict + a re-scan
-	// that also skips the row, a wrongful refund.
+	// "not found" now leads directly to a Duplicate refund of a ticket we hold.
 	fetch := func(page int64) (ktmb.TicketListRes, error) {
 		return ktmb.TicketListRes{Page: 1, TotalPage: 1, Bookings: []ktmb.TicketListBookingRes{
 			ticket("2026-07-03T10:00:00", "WOODLANDS CIQ", "A", "A", "AA"),
@@ -401,8 +400,8 @@ func TestFindTicketInEmptyListInconclusive(t *testing.T) {
 		return ktmb.TicketListRes{Page: 1, TotalPage: 0, Bookings: nil}, nil
 	}
 	// an empty/blank list is ALWAYS inconclusive (spec §3.3/§5.6): it must
-	// retry, never read as "not on our account" — that would trigger a re-buy
-	// probe (and, post-conflict, could drive a refund of a held ticket)
+	// retry, never read as "not on our account" — that would drive a Duplicate
+	// refund of a held ticket
 	if _, err := findTicketIn(empty, target, "WToJ", "AA", loc); err == nil {
 		t.Error("empty list: expected inconclusive error, got nil")
 	}
@@ -415,7 +414,7 @@ func TestFindTicketInEmptyContiguousScanPage(t *testing.T) {
 	// datetime (so the page contains the target datetime but yields no match for
 	// our passport). page 2 — reachable only by the contiguous scan-right, never
 	// the bisection — comes back empty, though it could hold OUR ticket. The scan
-	// must report inconclusive, never a "not found" that would drive a re-buy /
+	// must report inconclusive, never a "not found" that would drive a Duplicate
 	// wrongful refund of a held ticket (spec §3.3).
 	fetch := func(page int64) (ktmb.TicketListRes, error) {
 		switch page {

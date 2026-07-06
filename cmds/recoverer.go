@@ -11,13 +11,10 @@ import (
 	"strings"
 
 	"github.com/AtomiCloud/nitroso-tin/lib"
-	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
-	"github.com/AtomiCloud/nitroso-tin/lib/enricher"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/lib/recoverer"
-	"github.com/AtomiCloud/nitroso-tin/lib/reserver"
 	"github.com/AtomiCloud/nitroso-tin/lib/session"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/google/uuid"
@@ -42,16 +39,12 @@ func (state *State) buildRecoverer() (*recoverer.Client, *zinc.Client, error) {
 	}
 
 	loginEncr := encryptor.NewSymEncryptor[ktmb.LoginRes](state.Config.Encryptor.Key, state.Logger)
-	findEncr := encryptor.NewSymEncryptor[enricher.FindStore](state.Config.Encryptor.Key, state.Logger)
 	recoverEncr := encryptor.NewSymEncryptor[lib.RecoverDto](state.Config.Encryptor.Key, state.Logger)
 
 	s := session.New(&k, &mainRedis, state.Logger, state.Config.Ktmb.LoginKey, loginEncr)
-	retriever := reserver.NewRetriever(&mainRedis, findEncr, state.Logger, state.Config.Enricher)
 
-	b := buyer.NewBuyer(k, state.Logger, buyerCfg.ContactNumber, buyerCfg.SleepBuffer, buyerCfg.ConflictPatterns, buyerCfg.RevertPatterns)
-
-	client := recoverer.New(k, &b, &s, retriever, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
-		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, ktmbAppInfo, state.Location)
+	client := recoverer.New(k, &s, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
+		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, state.Location)
 	return client, zClient, nil
 }
 
