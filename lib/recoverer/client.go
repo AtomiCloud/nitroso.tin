@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/AtomiCloud/nitroso-tin/lib"
-	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
-	"github.com/AtomiCloud/nitroso-tin/lib/reserver"
 	"github.com/AtomiCloud/nitroso-tin/lib/session"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
@@ -22,8 +20,8 @@ import (
 
 // Client drains the recover queue on a cron and resolves each parked booking:
 // force-complete when the ticket is provably ours, mark duplicate when the
-// passenger already holds it elsewhere, re-buy when no conflict actually
-// exists, and park for a human when nothing can be decided safely.
+// ticket is not on our KTMB account (the passenger holds it elsewhere), and
+// park for a human when nothing can be decided safely.
 //
 // SINGLE REPLICA ONLY. The drain pops with a destructive RPop and the sweep's
 // queued-skip / handled-skip dedup assumes the drain and sweep run sequentially
@@ -33,9 +31,7 @@ import (
 // values); do not add an HPA.
 type Client struct {
 	ktmb             ktmb.Ktmb
-	buyer            *buyer.Buyer
 	session          *session.Session
-	retriever        *reserver.Retriever
 	mainRedis        *otelredis.OtelRedis
 	zinc             *zinc.Client
 	encr             encryptor.Encryptor[lib.RecoverDto]
@@ -44,19 +40,16 @@ type Client struct {
 	config           config.RecovererConfig
 	enricher         config.EnricherConfig
 	psm              string
-	appInfo          string
 	loc              *time.Location
 }
 
-func New(k ktmb.Ktmb, b *buyer.Buyer, s *session.Session, retriever *reserver.Retriever, mainRedis *otelredis.OtelRedis,
+func New(k ktmb.Ktmb, s *session.Session, mainRedis *otelredis.OtelRedis,
 	zClient *zinc.Client, encr encryptor.Encryptor[lib.RecoverDto], otelConfigurator *telemetry.OtelConfigurator,
-	logger *zerolog.Logger, cfg config.RecovererConfig, enricher config.EnricherConfig, psm, appInfo string,
+	logger *zerolog.Logger, cfg config.RecovererConfig, enricher config.EnricherConfig, psm string,
 	loc *time.Location) *Client {
 	return &Client{
 		ktmb:             k,
-		buyer:            b,
 		session:          s,
-		retriever:        retriever,
 		mainRedis:        mainRedis,
 		zinc:             zClient,
 		encr:             encr,
@@ -65,7 +58,6 @@ func New(k ktmb.Ktmb, b *buyer.Buyer, s *session.Session, retriever *reserver.Re
 		config:           cfg,
 		enricher:         enricher,
 		psm:              psm,
-		appInfo:          appInfo,
 		loc:              loc,
 	}
 }

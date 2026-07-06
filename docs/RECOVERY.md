@@ -71,9 +71,9 @@ Recovering=6, Duplicate=7, RequireManualIntervention=8`. Stored as smallint; str
    **conclusive** scan of our KTMB account that did not find our ticket, or when the found
    ticket is already claimed by a different `Completed` zinc booking. An _inconclusive_ scan
    (empty/blank list, mutated pagination) must retry, never refund.
-4. **No double buy.** A re-buy that succeeds stashes its ticket identifiers so a later
-   complete-failure force-completes deterministically instead of re-buying. A re-buy that
-   conflicts spends no money (KTMB rejects pre-payment; the reservation is released).
+4. **No re-buy.** The recoverer never re-purchases a ticket. A booking whose ticket is not on
+   our KTMB account is refunded as `Duplicate`, not bought again — so recovery can never spend
+   money or create a second KTMB booking for the same passenger.
 5. **No stranded money.** A booking with money held in `BookingReserve` is never left in a
    state no path can resolve: `Recovering` is reconciled every cycle; `Buying` is covered by
    the queue item and the manual `recover` command; `RequireManualIntervention` is resolved by
@@ -122,11 +122,11 @@ sweep drains first). Per booking (`ProcessItem`):
    - found + unclaimed → force complete;
    - found + claimed by another `Completed` booking → `duplicate` (refund);
    - inconclusive (empty in-range page, mutated list) → **retry** (never refund);
-   - not found → **re-buy probe** (reserve + buy):
-     - success → complete (stash identifiers first);
-     - `ConflictError` → release probe, **strict re-scan** (empty list = inconclusive → retry);
-       found → force complete; conclusively not ours → `duplicate` (another channel);
-     - `PurchasedError` → requeue deterministically with identifiers.
+   - **not found → `duplicate` (refund).** A conclusive absence means the passenger holds this
+     seat via another channel (KTMB rejected our purchase as a duplicate passport, and the
+     ticket is not on our account). The recoverer does **not** attempt a re-buy — only a
+     _definitive_ not-found reaches here (an inconclusive scan errored out above and retries),
+     so this can never refund a booking whose ticket we actually hold.
 7. Item fails `maxAttempts` cycles → `manual-intervention`.
 
 ### Durability model (queue + sweep)

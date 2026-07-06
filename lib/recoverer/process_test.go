@@ -3,7 +3,6 @@ package recoverer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,9 +15,9 @@ import (
 
 const testBookingId = "b7f9c1de-4a2b-4c3d-9e8f-0a1b2c3d4e5f"
 
-// zincStub fakes the zinc endpoints resolveConflict may touch and records
-// every status transition it drives, so tests can assert exactly which
-// resolution (duplicate vs force-complete) was chosen.
+// zincStub fakes the zinc endpoints the recoverer touches and records every
+// status transition it drives, so tests can assert exactly which resolution
+// (duplicate vs force-complete) was chosen.
 type zincStub struct {
 	t            *testing.T
 	searchStatus int // 0 → 200
@@ -72,93 +71,32 @@ func recoverDto() lib.RecoverDto {
 	}
 }
 
-// The §5.6 double-charge guard: booking A is Completed holding KTMB ticket K1;
-// booking B (same passenger/slot) is Recovering. B's re-buy probe conflicts and
-// the re-scan finds K1 — because K1 is already claimed by A, B must be marked
-// Duplicate (refund), NEVER force-completed (that would collect B's reserve for
-// a ticket A owns). This is the same claim gate the main scan path applies.
-func TestResolveConflictClaimedTicketMarksDuplicate(t *testing.T) {
+// isClaimed is the money-critical §5.6 double-charge gate on the found-ticket
+// path: a KTMB ticket already recorded on another Completed zinc booking must
+// mark THIS booking Duplicate (refund), never force-complete (which would
+// collect this booking's reserve for a ticket someone else owns). These tests
+// pin the gate decision directly.
+
+// The gate returns true when our uncaptured KTMB booking number already appears
+// on a Completed zinc booking for the same passenger+slot.
+func TestIsClaimedMatchingBookingNoIsClaimed(t *testing.T) {
 	no := "KTMB-K1"
 	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{{BookingNo: &no}}}
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 
-	rescan := func() (*foundTicket, error) {
-		return &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T1"}, nil
-	}
-	if err := c.resolveConflict(context.Background(), recoverDto(), rescan, zerolog.Nop()); err != nil {
+	claimed, err := c.isClaimed(context.Background(), recoverDto(), "KTMB-K1")
+	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if len(stub.duplicated) != 1 || stub.duplicated[0] != testBookingId {
-		t.Errorf("expected duplicate transition for %s, got %v", testBookingId, stub.duplicated)
-	}
-	if len(stub.completed) != 0 {
-		t.Errorf("claimed ticket must never be force-completed, got complete calls %v", stub.completed)
+	if !claimed {
+		t.Error("a ticket whose booking number matches a Completed booking must be considered claimed")
 	}
 }
 
-// A failed claim check is inconclusive: retry (error return), never refund and
-// never capture. The error path must not stash the found identifiers — a
-// stashed id would route the next cycle onto the deterministic force-complete
-// path, which skips the claim gate.
-func TestResolveConflictClaimCheckFailureRetries(t *testing.T) {
-	stub := &zincStub{t: t, searchStatus: http.StatusBadGateway}
-	c, closeSrv := conflictClient(t, stub)
-	defer closeSrv()
-
-	rescan := func() (*foundTicket, error) {
-		return &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T1"}, nil
-	}
-	if err := c.resolveConflict(context.Background(), recoverDto(), rescan, zerolog.Nop()); err == nil {
-		t.Fatal("expected error when the claim check fails, got nil")
-	}
-	if len(stub.duplicated) != 0 || len(stub.completed) != 0 {
-		t.Errorf("no transition may run on a failed claim check, got duplicate %v complete %v", stub.duplicated, stub.completed)
-	}
-}
-
-// An inconclusive re-scan (empty list, mutated pagination, unparseable row)
-// must retry — never read as "not ours" and refund (§3.3/§5.6).
-func TestResolveConflictInconclusiveRescanRetries(t *testing.T) {
-	stub := &zincStub{t: t}
-	c, closeSrv := conflictClient(t, stub)
-	defer closeSrv()
-
-	rescan := func() (*foundTicket, error) {
-		return nil, fmt.Errorf("empty ticket list (inconclusive, must retry — never treat as absent)")
-	}
-	if err := c.resolveConflict(context.Background(), recoverDto(), rescan, zerolog.Nop()); err == nil {
-		t.Fatal("expected error for inconclusive re-scan, got nil")
-	}
-	if len(stub.duplicated) != 0 || len(stub.completed) != 0 {
-		t.Errorf("no transition may run on an inconclusive re-scan, got duplicate %v complete %v", stub.duplicated, stub.completed)
-	}
-}
-
-// KTMB confirmed the conflict and a conclusive re-scan shows the ticket is not
-// on our account: the passenger holds it via another channel — true duplicate.
-func TestResolveConflictNotOnAccountMarksDuplicate(t *testing.T) {
-	stub := &zincStub{t: t}
-	c, closeSrv := conflictClient(t, stub)
-	defer closeSrv()
-
-	rescan := func() (*foundTicket, error) { return nil, nil }
-	if err := c.resolveConflict(context.Background(), recoverDto(), rescan, zerolog.Nop()); err != nil {
-		t.Fatalf("expected nil error, got %v", err)
-	}
-	if len(stub.duplicated) != 1 || stub.duplicated[0] != testBookingId {
-		t.Errorf("expected duplicate transition for %s, got %v", testBookingId, stub.duplicated)
-	}
-	if len(stub.completed) != 0 {
-		t.Errorf("expected no complete calls, got %v", stub.completed)
-	}
-}
-
-// A found ticket claimed by a DIFFERENT KTMB booking number than any Completed
-// zinc booking is unclaimed: the claim gate must let it through to capture.
-// (The capture itself needs a live KTMB session, so this only asserts the gate
-// decision — isClaimed — not the force-complete plumbing.)
-func TestResolveConflictUnclaimedIsNotDuplicate(t *testing.T) {
+// A found ticket whose KTMB booking number matches no Completed zinc booking is
+// unclaimed: the gate must let it through to capture (force-complete).
+func TestIsClaimedUnmatchedBookingNoIsNotClaimed(t *testing.T) {
 	other := "KTMB-OTHER"
 	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{{BookingNo: &other}}}
 	c, closeSrv := conflictClient(t, stub)
@@ -171,7 +109,17 @@ func TestResolveConflictUnclaimedIsNotDuplicate(t *testing.T) {
 	if claimed {
 		t.Error("ticket with an unmatched booking number must not be considered claimed")
 	}
-	if len(stub.duplicated) != 0 || len(stub.completed) != 0 {
-		t.Errorf("expected no transitions, got duplicate %v complete %v", stub.duplicated, stub.completed)
+}
+
+// A failed claim search is inconclusive: it must surface an error (caller
+// retries), never a silent "not claimed" that would force-complete a ticket
+// another booking may own.
+func TestIsClaimedSearchFailureErrors(t *testing.T) {
+	stub := &zincStub{t: t, searchStatus: http.StatusBadGateway}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+
+	if _, err := c.isClaimed(context.Background(), recoverDto(), "KTMB-K1"); err == nil {
+		t.Fatal("expected error when the claim search fails, got nil")
 	}
 }

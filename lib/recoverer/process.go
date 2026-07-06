@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 )
 
 const zincDateTimeLayout = "02-01-2006 15:04:05"
@@ -108,7 +106,7 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
 	if err != nil {
 		// an inconclusive scan (empty/blank list, mutated pagination, unparseable
-		// row) must never fall through to a refund OR a re-buy probe
+		// row) must never fall through to a refund — only a definitive not-found does
 		l.Error().Err(err).Msg("KTMB ticket scan inconclusive, will retry")
 		return err
 	}
@@ -129,132 +127,14 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 		return c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo)
 	}
 
-	// not on our account: either the user bought via another channel, or the
-	// conflict was transient. A re-buy attempt distinguishes them — KTMB
-	// rejects with the same duplicate error if the passenger is booked anywhere
-	l.Info().Msg("Ticket not on our KTMB account, probing with a re-buy")
-	return c.rebuy(ctx, dto, userData, target, l)
-}
-
-func (c *Client) rebuy(ctx context.Context, dto lib.RecoverDto, userData string, target time.Time, l zerolog.Logger) error {
-	store, err := c.retriever.GetLoginData(ctx)
-	if err != nil {
-		return err
-	}
-	if store == nil {
-		return fmt.Errorf("no login/find store available for re-buy")
-	}
-
-	find := store.Find[dto.Direction][dto.Date][dto.Time]
-	if find.TripData == "" {
-		return fmt.Errorf("no trip data available for %s %s %s", dto.Direction, dto.Date, dto.Time)
-	}
-
-	reserve, err := c.ktmb.Reserve(store.UserData, c.appInfo, find.SearchData, find.TripData)
-	if err != nil {
-		return err
-	}
-	if !reserve.Status {
-		return fmt.Errorf("failed to reserve for re-buy: %+v", reserve.Messages)
-	}
-	bookingData := reserve.Data.BookingData
-
-	p := buyer.Passenger{
-		FullName:       dto.FullName,
-		Gender:         dto.Gender,
-		PassportExpiry: dto.PassportExpiry,
-		PassportNumber: dto.PassportNumber,
-	}
-
-	pdf, bookingNo, ticketNo, err := c.buyer.Buy(store.UserData, bookingData, p, dto.Direction, dto.Date, dto.Time)
-	if err != nil {
-		var conflictErr *buyer.ConflictError
-		var purchasedErr *buyer.PurchasedError
-		switch {
-		case errors.As(err, &conflictErr):
-			// the probe confirms the passenger is booked somewhere. Release the
-			// probe reservation, then re-scan to decide WHOSE ticket it is —
-			// never refund on a contradictory/inconclusive scan.
-			if _, e := c.buyer.Release(store.UserData, bookingData); e != nil {
-				l.Error().Err(e).Msg("Failed to release probe reservation")
-			}
-			return c.resolveConflict(ctx, dto, func() (*foundTicket, error) {
-				// KTMB just told us the passenger is booked, so an empty own-account
-				// list is contradictory; findTicket treats it (and every other
-				// inconclusive condition) as an error that must not drive a refund
-				return c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
-			}, l)
-		case errors.As(err, &purchasedErr):
-			// bought but ticket retrieval failed — requeue deterministically
-			l.Warn().Err(err).Msg("Re-buy purchased but ticket retrieval failed, requeueing with ticket identifiers")
-			dto.BookingNo = purchasedErr.BookingNo
-			dto.TicketNo = purchasedErr.TicketNo
-			c.requeue(ctx, dto)
-			return nil
-		default:
-			if _, e := c.buyer.Release(store.UserData, bookingData); e != nil {
-				l.Error().Err(e).Msg("Failed to release probe reservation")
-			}
-			return err
-		}
-	}
-
-	// Buy succeeded — real money spent. Stash the identifiers so recovery is
-	// deterministic even if the complete call fails now (never re-buy).
-	dto.BookingNo = bookingNo
-	dto.TicketNo = ticketNo
-	l.Info().Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Re-buy succeeded, completing booking")
-	if err := c.completeBooking(ctx, dto.BookingId, bookingNo, ticketNo, pdf); err != nil {
-		l.Error().Err(err).Msg("Re-buy succeeded but complete failed, requeueing with ticket identifiers")
-		c.requeue(ctx, dto)
-		return nil
-	}
-	return nil
-}
-
-// resolveConflict decides a booking whose re-buy probe was rejected as a
-// duplicate: re-scan our KTMB account to find WHOSE ticket blocks it. It
-// applies the same gates as the main scan's found-path (§5.6) — in particular
-// the claim gate: a found ticket already recorded on another Completed zinc
-// booking marks THIS booking Duplicate (refund), because force-completing it
-// would collect this booking's reserve for a ticket someone else owns. Only a
-// conclusive "not on our account" re-scan may refund; an inconclusive re-scan
-// (or claim check) retries.
-func (c *Client) resolveConflict(ctx context.Context, dto lib.RecoverDto, rescan func() (*foundTicket, error), l zerolog.Logger) error {
-	found, err := rescan()
-	if err != nil {
-		l.Error().Err(err).Msg("Re-buy conflicted but re-scan inconclusive, will retry")
-		return err
-	}
-	if found == nil {
-		l.Warn().Msg("Re-buy confirmed conflict and ticket is not on our account, marking duplicate")
-		return c.markDuplicate(ctx, dto.BookingId)
-	}
-	claimed, err := c.isClaimed(ctx, dto, found.BookingNo)
-	if err != nil {
-		// retry with the ORIGINAL dto (no stashed identifiers): stashing before
-		// the claim gate passes would route the next cycle onto the deterministic
-		// force-complete path, which skips this gate entirely
-		l.Error().Err(err).Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan found a ticket but the claim check failed, will retry")
-		return err
-	}
-	if claimed {
-		// the ticket on our account already belongs to another zinc booking
-		// (user double-booked) — this booking is a true duplicate
-		l.Warn().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan ticket already claimed by another completed booking, marking duplicate")
-		return c.markDuplicate(ctx, dto.BookingId)
-	}
-	// ours and unclaimed: stash identifiers so a force-complete failure requeues
-	// onto the deterministic path next cycle instead of re-probing
-	dto.BookingNo = found.BookingNo
-	dto.TicketNo = found.TicketNo
-	l.Info().Str("ktmbBookingNo", found.BookingNo).Msg("Re-scan located our uncaptured ticket, force completing")
-	if e := c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo); e != nil {
-		l.Error().Err(e).Msg("Force complete failed after re-scan, requeueing with ticket identifiers")
-		c.requeue(ctx, dto)
-		return nil
-	}
-	return nil
+	// not on our account: the passenger holds this seat via another channel
+	// (KTMB rejected our purchase as a duplicate passport, and a definitive scan
+	// shows the ticket is not ours) — a true duplicate. Refund it. Only a
+	// DEFINITIVE absence reaches here: an inconclusive scan (empty/mutated list,
+	// unparseable row) returned an error above and is retried, never refunded, so
+	// this can never refund a booking whose ticket we actually hold.
+	l.Warn().Msg("Ticket not on our KTMB account, marking duplicate")
+	return c.markDuplicate(ctx, dto.BookingId)
 }
 
 // forceComplete downloads the ticket PDF from KTMB and reports it to zinc

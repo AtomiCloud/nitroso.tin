@@ -107,9 +107,10 @@ PrintTicket`, and reports the completed ticket back to `zinc`. Releases on a 404
   hourly (`robfig/cron`) and reconciles zinc's `Recovering` bookings. Resolves
   duplicate-passport conflicts and captured-but-unreported tickets: force-completes when the
   ticket exists uncaptured on our KTMB account (binary-search of `UpcomingShuttleList`), marks
-  the booking `Duplicate` (full refund) when the passenger holds it via another channel, re-buys
-  when the conflict was transient, or parks it as `RequireManualIntervention` when it cannot
-  decide safely. The buyer feeds it by parking conflicted bookings instead of crash-looping.
+  the booking `Duplicate` (full refund) when the ticket is not on our account (the passenger
+  holds it via another channel), or parks it as `RequireManualIntervention` when it cannot
+  decide safely. It never re-buys. The buyer feeds it by parking conflicted bookings instead of
+  crash-looping.
 
 Operational / utility subcommands:
 
