@@ -1,3 +1,10 @@
+## [1.46.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.45.0...v1.46.0) (2026-07-06)
+
+
+### ✨ Features ✨
+
+* **recoverer:** mark Duplicate when ticket not on our KTMB account ([#34](https://github.com/AtomiCloud/nitroso.tin/issues/34)) ([cd6a730](https://github.com/AtomiCloud/nitroso.tin/commit/cd6a730a25abfcf21b3d8ed05bd966af21a2f41e))
+
 ## [1.45.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.44.1...v1.45.0) (2026-07-05)
 
 
