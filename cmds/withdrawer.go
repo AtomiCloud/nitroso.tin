@@ -25,8 +25,10 @@ func (state *State) buildWithdrawer() (*withdrawer.Client, error) {
 	return client, nil
 }
 
-// Withdrawer runs the nightly daemon that approves Pending withdrawals and
-// re-drives Processing withdrawals stuck without a payout confirmation
+// Withdrawer runs the cron daemon with two sweeps: a nightly approve sweep
+// that approves Pending withdrawals and re-drives Processing withdrawals
+// stuck without a payout confirmation, and a 6-hourly reconcile sweep that
+// asks zinc to reconcile every Processing withdrawal against Airwallex
 func (state *State) Withdrawer(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Withdrawer")
 

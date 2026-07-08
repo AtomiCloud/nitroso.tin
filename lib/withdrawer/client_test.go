@@ -31,24 +31,27 @@ func wd(t *testing.T, id string) zinc.WithdrawalPrincipalRes {
 	return zinc.WithdrawalPrincipalRes{Id: u}
 }
 
-// approveResult overrides the stub's response to one withdrawal's approve
-// call; the zero value (unset map entry) means 200 OK.
+// approveResult overrides the stub's response to one withdrawal's approve or
+// reconcile call; the zero value (unset map entry) means 200 OK.
 type approveResult struct {
 	status int
 	body   string
 }
 
-// zincStub fakes the two zinc endpoints the withdrawer touches: the paged
-// Status-filtered listing and the approve endpoint. It serves pre-baked pages
-// per status (page index = Skip/Limit, beyond the last page is empty) and
-// records every approve call, so tests control paging shape — including
-// duplicates from a shrinking set — and per-item approve outcomes exactly.
+// zincStub fakes the three zinc endpoints the withdrawer touches: the paged
+// Status-filtered listing, the approve endpoint and the reconcile endpoint.
+// It serves pre-baked pages per status (page index = Skip/Limit, beyond the
+// last page is empty) and records every approve/reconcile call, so tests
+// control paging shape — including duplicates from a shrinking set — and
+// per-item outcomes exactly.
 type zincStub struct {
-	t         *testing.T
-	pages     map[string][][]zinc.WithdrawalPrincipalRes // status -> successive pages
-	approve   map[string]approveResult                   // withdrawal id -> forced response
-	approved  []string                                   // approve calls, in order
-	listCalls map[string]int                             // status -> number of list calls
+	t          *testing.T
+	pages      map[string][][]zinc.WithdrawalPrincipalRes // status -> successive pages
+	approve    map[string]approveResult                   // withdrawal id -> forced approve response
+	reconcile  map[string]approveResult                   // withdrawal id -> forced reconcile response
+	approved   []string                                   // approve calls, in order
+	reconciled []string                                   // reconcile calls, in order
+	listCalls  map[string]int                             // status -> number of list calls
 }
 
 func (s *zincStub) server() *httptest.Server {
@@ -88,6 +91,17 @@ func (s *zincStub) server() *httptest.Server {
 				return
 			}
 			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost &&
+			strings.HasPrefix(r.URL.Path, "/api/v1.0/Withdrawal/") &&
+			strings.HasSuffix(r.URL.Path, "/reconcile"):
+			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1.0/Withdrawal/"), "/reconcile")
+			s.reconciled = append(s.reconciled, id)
+			if res, ok := s.reconcile[id]; ok {
+				w.WriteHeader(res.status)
+				_, _ = w.Write([]byte(res.body))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
 		default:
 			s.t.Errorf("unexpected zinc call: %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -103,7 +117,7 @@ func sweepClient(t *testing.T, stub *zincStub, limit int) (*Client, func()) {
 		t.Fatal(err)
 	}
 	l := zerolog.Nop()
-	return &Client{zinc: zc, logger: &l, config: config.WithdrawerConfig{Cron: "0 0 0 * * *", Limit: limit}}, srv.Close
+	return &Client{zinc: zc, logger: &l, config: config.WithdrawerConfig{Cron: "0 0 0 * * *", ReconcileCron: "0 0 */6 * * *", Limit: limit}}, srv.Close
 }
 
 // The listing assembles all pages of a status and stops paging on the first
@@ -262,6 +276,114 @@ func TestSweepOther4xxStillCountsAsFailed(t *testing.T) {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if summary.total != 1 || summary.failed != 1 || summary.skipped != 0 || summary.succeeded != 0 {
+		t.Errorf("unexpected summary %+v", summary)
+	}
+}
+
+// The reconcile sweep assembles all Processing pages, stops paging on the
+// first short page, dedupes repeated ids and reconciles each exactly once —
+// and never touches the Pending listing or the approve endpoint.
+func TestReconcilePagingAssemblesPagesAndDedupes(t *testing.T) {
+	stub := &zincStub{t: t, pages: map[string][][]zinc.WithdrawalPrincipalRes{
+		// full page then a short page with a duplicate (set shrank mid-listing):
+		// paging must stop after page 2 and B must be reconciled once
+		"Processing": {
+			{wd(t, idA), wd(t, idB)},
+			{wd(t, idB), wd(t, idC)},
+		},
+	}}
+	c, closeSrv := sweepClient(t, stub, 2)
+	defer closeSrv()
+
+	summary, err := c.reconcileSweep(context.Background())
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	want := []string{idA, idB, idC}
+	if len(stub.reconciled) != len(want) {
+		t.Fatalf("expected reconciles %v, got %v", want, stub.reconciled)
+	}
+	for i, id := range want {
+		if stub.reconciled[i] != id {
+			t.Errorf("reconcile %d: expected %s, got %s", i, id, stub.reconciled[i])
+		}
+	}
+	// page 2 is full (dedupe happens client-side), so a third, short page is fetched
+	if stub.listCalls["Processing"] != 3 {
+		t.Errorf("expected paging to stop on the short page after 3 Processing list calls, got %d", stub.listCalls["Processing"])
+	}
+	if stub.listCalls["Pending"] != 0 {
+		t.Errorf("expected no Pending list calls from the reconcile sweep, got %d", stub.listCalls["Pending"])
+	}
+	if len(stub.approved) != 0 {
+		t.Errorf("expected no approve calls from the reconcile sweep, got %v", stub.approved)
+	}
+	if summary.total != 3 || summary.succeeded != 3 || summary.skipped != 0 || summary.failed != 0 {
+		t.Errorf("unexpected summary %+v", summary)
+	}
+}
+
+// zinc rejecting a reconcile with InvalidWithdrawalOperation (the withdrawal
+// left Processing before the sweep reached it) is benign: it must be tallied
+// as skipped, never as failed. Both problem-details shapes are recognised —
+// the type URL (error portal enabled) and the bare title (portal disabled).
+func TestReconcileSkipsBenignNotProcessingRejection(t *testing.T) {
+	stub := &zincStub{
+		t: t,
+		pages: map[string][][]zinc.WithdrawalPrincipalRes{
+			"Processing": {{wd(t, idA), wd(t, idB), wd(t, idC)}},
+		},
+		reconcile: map[string]approveResult{
+			// already resolved: rejected via the problem type URL
+			idA: {
+				status: http.StatusBadRequest,
+				body:   `{"type":"https://api.zinc.bunnybooker.com/docs/pichu/nitroso/zinc/main/v1/invalid_withdrawal_operation","title":"Invalid Withdrawal Operation","status":400}`,
+			},
+			// already resolved: rejected with the title only (error portal disabled)
+			idC: {
+				status: http.StatusConflict,
+				body:   `{"title":"Invalid Withdrawal Operation","status":409}`,
+			},
+		},
+	}
+	c, closeSrv := sweepClient(t, stub, 10)
+	defer closeSrv()
+
+	summary, err := c.reconcileSweep(context.Background())
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if summary.total != 3 || summary.succeeded != 1 || summary.skipped != 2 || summary.failed != 0 {
+		t.Errorf("unexpected summary %+v", summary)
+	}
+}
+
+// One failing reconcile must not abort the sweep: the remaining withdrawals
+// are still attempted and the tallies attribute exactly one failure — and a
+// 4xx that is NOT InvalidWithdrawalOperation stays a real failure.
+func TestReconcileContinuesPastFailureAndTallies(t *testing.T) {
+	stub := &zincStub{
+		t: t,
+		pages: map[string][][]zinc.WithdrawalPrincipalRes{
+			"Processing": {{wd(t, idA), wd(t, idB), wd(t, idC)}},
+		},
+		reconcile: map[string]approveResult{
+			idA: {status: http.StatusInternalServerError, body: "boom"},
+			// non-benign 4xx: must count as failed, not skipped
+			idB: {status: http.StatusBadRequest, body: `{"title":"Validation Error","status":400}`},
+		},
+	}
+	c, closeSrv := sweepClient(t, stub, 10)
+	defer closeSrv()
+
+	summary, err := c.reconcileSweep(context.Background())
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(stub.reconciled) != 3 {
+		t.Errorf("expected all 3 reconciles attempted despite the failures, got %v", stub.reconciled)
+	}
+	if summary.total != 3 || summary.succeeded != 1 || summary.failed != 2 || summary.skipped != 0 {
 		t.Errorf("unexpected summary %+v", summary)
 	}
 }

@@ -19,10 +19,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Client sweeps zinc nightly for Pending withdrawals and approves each one
-// (Pending -> Processing) via zinc's approve endpoint, one by one.
+// Client runs two cron sweeps against zinc:
 //
-// The sweep also RE-DRIVES stuck Processing withdrawals: zinc can leave a
+// The NIGHTLY APPROVE SWEEP (config.Cron) lists Pending withdrawals and
+// approves each one (Pending -> Processing) via zinc's approve endpoint, one
+// by one. It also RE-DRIVES stuck Processing withdrawals: zinc can leave a
 // withdrawal in Processing with no payout confirmation when an approve's
 // gateway call failed ambiguously or the pod died mid-flight. Re-approving
 // such a withdrawal is safe and expected — zinc re-drives the payout
@@ -31,7 +32,14 @@ import (
 // an InvalidWithdrawalOperation error, which the sweep treats as a benign
 // skip (see Sweep).
 //
-// SINGLE REPLICA ONLY. The sweep assumes it is the only approver: two
+// The 6-HOURLY RECONCILE SWEEP (config.ReconcileCron) lists Processing
+// withdrawals and POSTs each to zinc's reconcile endpoint, which looks the
+// transfer up at Airwallex and settles/fails/parks the withdrawal
+// server-side. A withdrawal no longer in Processing by the time the reconcile
+// lands is rejected by zinc with the same InvalidWithdrawalOperation error —
+// benign, someone else already resolved it (see Reconcile).
+//
+// SINGLE REPLICA ONLY. The sweeps assume they are the only approver: two
 // replicas would race to approve the same Pending withdrawal. zinc guards the
 // Pending -> Processing transition server-side (so a duplicate approve fails
 // rather than double-pays), but concurrent replicas would still produce noisy
@@ -67,37 +75,57 @@ func (c *Client) Start(ctx context.Context) error {
 		}
 	}()
 
-	ch := make(chan struct{}, 1)
+	approveCh := make(chan struct{}, 1)
+	reconcileCh := make(chan struct{}, 1)
 
-	// robfig/cron v1 evaluates specs in the runner's location; force UTC so the
-	// nightly sweep fires at 00:00 UTC regardless of the pod's timezone.
+	// robfig/cron v1 evaluates specs in the runner's location; force UTC so
+	// both sweeps fire on UTC wall time regardless of the pod's timezone.
 	cr := cron.NewWithLocation(time.UTC)
 	if err = cr.AddFunc(c.config.Cron, func() {
 		select {
-		case ch <- struct{}{}:
+		case approveCh <- struct{}{}:
 		default:
 		}
 	}); err != nil {
-		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.Cron).Msg("Failed to schedule withdrawer cron")
+		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.Cron).Msg("Failed to schedule withdrawer approve cron")
+		return err
+	}
+	if err = cr.AddFunc(c.config.ReconcileCron, func() {
+		select {
+		case reconcileCh <- struct{}{}:
+		default:
+		}
+	}); err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Str("cron", c.config.ReconcileCron).Msg("Failed to schedule withdrawer reconcile cron")
 		return err
 	}
 	cr.Start()
 	defer cr.Stop()
 
-	// nightly only: unlike the recoverer, do NOT sweep on startup — a redeploy
-	// must not approve withdrawals off-schedule. Just log readiness.
-	c.logger.Info().Ctx(ctx).Str("cron", c.config.Cron).Msg("Withdrawer scheduled, waiting for cron (UTC); no sweep on startup")
+	// cron only: unlike the recoverer, do NOT sweep on startup — a redeploy
+	// must not approve or reconcile withdrawals off-schedule. Just log which
+	// cron drives which sweep.
+	c.logger.Info().Ctx(ctx).
+		Str("approveCron", c.config.Cron).
+		Str("reconcileCron", c.config.ReconcileCron).
+		Msg("Withdrawer scheduled (UTC): approve sweep of Pending+Processing on approveCron, reconcile sweep of Processing on reconcileCron; no sweep on startup")
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ch:
-			c.logger.Info().Ctx(ctx).Msg("Withdrawer sweep starting")
+		case <-approveCh:
+			c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep starting")
 			if sweepErr := c.Sweep(ctx); sweepErr != nil {
-				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Withdrawer sweep failed")
+				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Withdrawer approve sweep failed")
 			}
-			c.logger.Info().Ctx(ctx).Msg("Withdrawer sweep complete")
+			c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep complete")
+		case <-reconcileCh:
+			c.logger.Info().Ctx(ctx).Msg("Withdrawer reconcile sweep starting")
+			if sweepErr := c.Reconcile(ctx); sweepErr != nil {
+				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Withdrawer reconcile sweep failed")
+			}
+			c.logger.Info().Ctx(ctx).Msg("Withdrawer reconcile sweep complete")
 		}
 	}
 }
@@ -182,6 +210,65 @@ func (c *Client) sweep(ctx context.Context) (sweepSummary, error) {
 	return summary, nil
 }
 
+// Reconcile lists every Processing withdrawal from zinc and POSTs each to
+// zinc's reconcile endpoint, which looks the transfer up at Airwallex and
+// settles/fails/parks the withdrawal server-side. Per-item failures are
+// logged and skipped — the sweep never aborts midway — and a summary tally is
+// logged at the end. Reconcile is safe to repeat: zinc responds 200 on any
+// conclusive-or-counted outcome and rejects withdrawals no longer in
+// Processing with an InvalidWithdrawalOperation error, which the sweep treats
+// as a benign skip (someone else already resolved it).
+func (c *Client) Reconcile(ctx context.Context) error {
+	summary, err := c.reconcileSweep(ctx)
+	if err != nil {
+		return err
+	}
+	c.logger.Info().Ctx(ctx).
+		Int("total", summary.total).
+		Int("succeeded", summary.succeeded).
+		Int("skipped", summary.skipped).
+		Int("failed", summary.failed).
+		Msg("Withdrawer reconcile summary")
+	return nil
+}
+
+func (c *Client) reconcileSweep(ctx context.Context) (sweepSummary, error) {
+	processing, err := c.listByStatus(ctx, "Processing")
+	if err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to list processing withdrawals")
+		return sweepSummary{}, err
+	}
+
+	withdrawals := dedupeById(processing)
+	if len(withdrawals) == 0 {
+		c.logger.Info().Ctx(ctx).Msg("No withdrawals to reconcile")
+		return sweepSummary{}, nil
+	}
+
+	c.logger.Info().Ctx(ctx).Int("count", len(withdrawals)).Msg("Reconciling withdrawals")
+	summary := sweepSummary{total: len(withdrawals)}
+	for _, w := range withdrawals {
+		id := w.Id.String()
+		reconcileErr := c.reconcile(ctx, id)
+		switch {
+		case reconcileErr == nil:
+			summary.succeeded++
+			c.logger.Info().Ctx(ctx).Str("withdrawalId", id).Msg("Reconciled withdrawal")
+		case errors.Is(reconcileErr, errNotReconcilable):
+			// benign: zinc's state guard rejected the reconcile because the
+			// withdrawal is no longer in Processing — someone else (an admin, the
+			// webhook, a concurrent sweep) already resolved it. Nothing to do and
+			// nothing failed.
+			summary.skipped++
+			c.logger.Info().Ctx(ctx).Str("withdrawalId", id).Str("reason", reconcileErr.Error()).Msg("Skipped withdrawal not in a reconcilable state")
+		default:
+			summary.failed++
+			c.logger.Error().Ctx(ctx).Err(reconcileErr).Str("withdrawalId", id).Msg("Failed to reconcile withdrawal")
+		}
+	}
+	return summary, nil
+}
+
 // dedupeById drops repeated withdrawal ids, keeping first occurrences in
 // order. Skip/Limit paging in listByStatus runs over a set that shrinks while
 // paging (users cancel, admins reject mid-sweep), so an id can come back
@@ -254,8 +341,14 @@ func (c *Client) listByStatus(ctx context.Context, status string) ([]zinc.Withdr
 // Sweep treats it as a benign skip, never a failure.
 var errNotApprovable = errors.New("withdrawal is not in an approvable state")
 
-// isInvalidWithdrawalOperation reports whether a failed approve response is
-// zinc's InvalidWithdrawalOperation domain problem. zinc serialises domain
+// errNotReconcilable is the reconcile counterpart of errNotApprovable: zinc
+// rejects a reconcile with InvalidWithdrawalOperation when the withdrawal is
+// no longer in Processing (someone else already resolved it). Reconcile
+// treats it as a benign skip, never a failure.
+var errNotReconcilable = errors.New("withdrawal is not in a reconcilable state")
+
+// isInvalidWithdrawalOperation reports whether a failed approve or reconcile
+// response is zinc's InvalidWithdrawalOperation domain problem. zinc serialises domain
 // problems as RFC 7807 problem details whose type URL ends in the problem id
 // ("invalid_withdrawal_operation") when the error portal is enabled; match
 // the title too so detection survives the portal being disabled.
@@ -275,14 +368,27 @@ func isInvalidWithdrawalOperation(status int, body []byte) bool {
 }
 
 // approve calls zinc's POST /api/v1.0/Withdrawal/{id}/approve (same version segment as the generated SDK calls).
+func (c *Client) approve(ctx context.Context, id string) error {
+	return c.postWithdrawalAction(ctx, id, "approve", errNotApprovable)
+}
+
+// reconcile calls zinc's POST /api/v1.0/Withdrawal/{id}/reconcile.
+func (c *Client) reconcile(ctx context.Context, id string) error {
+	return c.postWithdrawalAction(ctx, id, "reconcile", errNotReconcilable)
+}
+
+// postWithdrawalAction calls zinc's POST /api/v1.0/Withdrawal/{id}/{action}
+// with an empty JSON body, mapping zinc's InvalidWithdrawalOperation problem
+// onto the given benign sentinel so callers can tally it as a skip.
 //
 // TODO: hand-rolled because lib/zinc/main.go (generated by oapi-codegen from a
 // running zinc instance, see scripts/local/gen-sdk.sh) predates the approve
-// endpoint. Replace this with the generated SDK method at the next regen. It
-// reuses the zinc client's exported Server, Doer and RequestEditors so auth
-// and otel instrumentation match the generated calls exactly.
-func (c *Client) approve(ctx context.Context, id string) error {
-	url := fmt.Sprintf("%s/api/v1.0/Withdrawal/%s/approve", strings.TrimSuffix(c.zinc.Server, "/"), id)
+// and reconcile endpoints. Replace this with the generated SDK methods at the
+// next regen. It reuses the zinc client's exported Server, Doer and
+// RequestEditors so auth and otel instrumentation match the generated calls
+// exactly.
+func (c *Client) postWithdrawalAction(ctx context.Context, id, action string, benign error) error {
+	url := fmt.Sprintf("%s/api/v1.0/Withdrawal/%s/%s", strings.TrimSuffix(c.zinc.Server, "/"), id, action)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader([]byte("{}")))
 	if err != nil {
 		return err
@@ -301,9 +407,9 @@ func (c *Client) approve(ctx context.Context, id string) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		if isInvalidWithdrawalOperation(resp.StatusCode, body) {
-			return fmt.Errorf("withdrawal %s: %w: status %d: %s", id, errNotApprovable, resp.StatusCode, string(body))
+			return fmt.Errorf("withdrawal %s: %w: status %d: %s", id, benign, resp.StatusCode, string(body))
 		}
-		return fmt.Errorf("failed to approve withdrawal %s: status %d: %s", id, resp.StatusCode, string(body))
+		return fmt.Errorf("failed to %s withdrawal %s: status %d: %s", action, id, resp.StatusCode, string(body))
 	}
 	return nil
 }
