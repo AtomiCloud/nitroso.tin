@@ -78,9 +78,9 @@ func (s *zincStub) server() *httptest.Server {
 				s.t.Fatal(err)
 			}
 		case r.Method == http.MethodPost &&
-			strings.HasPrefix(r.URL.Path, "/api/v1/Withdrawal/") &&
+			strings.HasPrefix(r.URL.Path, "/api/v1.0/Withdrawal/") &&
 			strings.HasSuffix(r.URL.Path, "/approve"):
-			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/Withdrawal/"), "/approve")
+			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1.0/Withdrawal/"), "/approve")
 			s.approved = append(s.approved, id)
 			if res, ok := s.approve[id]; ok {
 				w.WriteHeader(res.status)
