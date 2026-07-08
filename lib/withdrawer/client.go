@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,12 +14,22 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
 )
 
 // Client sweeps zinc nightly for Pending withdrawals and approves each one
 // (Pending -> Processing) via zinc's approve endpoint, one by one.
+//
+// The sweep also RE-DRIVES stuck Processing withdrawals: zinc can leave a
+// withdrawal in Processing with no payout confirmation when an approve's
+// gateway call failed ambiguously or the pod died mid-flight. Re-approving
+// such a withdrawal is safe and expected — zinc re-drives the payout
+// idempotently with the same gateway request id. Processing withdrawals that
+// already have a payout confirmation are rejected by zinc's state guard with
+// an InvalidWithdrawalOperation error, which the sweep treats as a benign
+// skip (see Sweep).
 //
 // SINGLE REPLICA ONLY. The sweep assumes it is the only approver: two
 // replicas would race to approve the same Pending withdrawal. zinc guards the
@@ -91,46 +102,108 @@ func (c *Client) Start(ctx context.Context) error {
 	}
 }
 
-// Sweep lists every Pending withdrawal from zinc and approves each in turn.
-// Per-item failures are logged and skipped — the sweep never aborts midway —
-// and a summary tally is logged at the end. Approve is idempotent server-side
-// (zinc guards Pending -> Processing), so a crash mid-sweep is safe: the next
-// sweep re-lists whatever is still Pending.
+// sweepSummary tallies one sweep's per-item outcomes.
+type sweepSummary struct {
+	total     int
+	succeeded int
+	skipped   int
+	failed    int
+}
+
+// Sweep lists every Pending withdrawal plus every Processing withdrawal from
+// zinc and approves each in turn. Per-item failures are logged and skipped —
+// the sweep never aborts midway — and a summary tally is logged at the end.
+// Approve is idempotent server-side (zinc guards the state transitions), so a
+// crash mid-sweep is safe: the next sweep re-lists whatever is still
+// approvable.
+//
+// Processing withdrawals are swept for the re-drive described on Client. We
+// cannot tell stuck (no payout confirmation) from confirmed ones client-side:
+// the generated zinc.WithdrawalPrincipalRes predates zinc's payout field, so
+// confirmationNumber is not readable through the SDK. Instead we approve
+// EVERY Processing withdrawal and rely on zinc's guard: stuck ones are
+// re-driven idempotently, confirmed ones are rejected with a 4xx
+// InvalidWithdrawalOperation, which we treat as a benign skip (info log, not
+// counted as failed). This self-corrects once the SDK is regenerated — the
+// guard keeps rejecting the confirmed ones we could then filter out locally.
 func (c *Client) Sweep(ctx context.Context) error {
-	withdrawals, err := c.listPending(ctx)
+	summary, err := c.sweep(ctx)
 	if err != nil {
-		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to list pending withdrawals")
 		return err
 	}
-	if len(withdrawals) == 0 {
-		c.logger.Info().Ctx(ctx).Msg("No pending withdrawals to approve")
-		return nil
-	}
-
-	c.logger.Info().Ctx(ctx).Int("count", len(withdrawals)).Msg("Approving pending withdrawals")
-	succeeded, failed := 0, 0
-	for _, w := range withdrawals {
-		id := w.Id.String()
-		if approveErr := c.approve(ctx, id); approveErr != nil {
-			failed++
-			c.logger.Error().Ctx(ctx).Err(approveErr).Str("withdrawalId", id).Msg("Failed to approve withdrawal")
-			continue
-		}
-		succeeded++
-		c.logger.Info().Ctx(ctx).Str("withdrawalId", id).Msg("Approved withdrawal")
-	}
 	c.logger.Info().Ctx(ctx).
-		Int("total", len(withdrawals)).
-		Int("succeeded", succeeded).
-		Int("failed", failed).
+		Int("total", summary.total).
+		Int("succeeded", summary.succeeded).
+		Int("skipped", summary.skipped).
+		Int("failed", summary.failed).
 		Msg("Withdrawer sweep summary")
 	return nil
 }
 
-// listPending fetches every withdrawal currently in Pending status,
+func (c *Client) sweep(ctx context.Context) (sweepSummary, error) {
+	pending, err := c.listByStatus(ctx, "Pending")
+	if err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to list pending withdrawals")
+		return sweepSummary{}, err
+	}
+	processing, err := c.listByStatus(ctx, "Processing")
+	if err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to list processing withdrawals")
+		return sweepSummary{}, err
+	}
+
+	withdrawals := dedupeById(append(pending, processing...))
+	if len(withdrawals) == 0 {
+		c.logger.Info().Ctx(ctx).Msg("No withdrawals to approve")
+		return sweepSummary{}, nil
+	}
+
+	c.logger.Info().Ctx(ctx).Int("count", len(withdrawals)).Msg("Approving withdrawals")
+	summary := sweepSummary{total: len(withdrawals)}
+	for _, w := range withdrawals {
+		id := w.Id.String()
+		approveErr := c.approve(ctx, id)
+		switch {
+		case approveErr == nil:
+			summary.succeeded++
+			c.logger.Info().Ctx(ctx).Str("withdrawalId", id).Msg("Approved withdrawal")
+		case errors.Is(approveErr, errNotApprovable):
+			// benign: zinc's state guard rejected the approve because the
+			// withdrawal is no longer approvable — a Processing one whose payout
+			// is already confirmed, or one cancelled/rejected mid-sweep. Nothing
+			// to do and nothing failed.
+			summary.skipped++
+			c.logger.Info().Ctx(ctx).Str("withdrawalId", id).Str("reason", approveErr.Error()).Msg("Skipped withdrawal not in an approvable state")
+		default:
+			summary.failed++
+			c.logger.Error().Ctx(ctx).Err(approveErr).Str("withdrawalId", id).Msg("Failed to approve withdrawal")
+		}
+	}
+	return summary, nil
+}
+
+// dedupeById drops repeated withdrawal ids, keeping first occurrences in
+// order. Skip/Limit paging in listByStatus runs over a set that shrinks while
+// paging (users cancel, admins reject mid-sweep), so an id can come back
+// twice — or be skipped, in which case the next nightly sweep picks it up.
+// TODO: keyset pagination would be better once the SDK is regenerated with a
+// cursor-capable listing.
+func dedupeById(withdrawals []zinc.WithdrawalPrincipalRes) []zinc.WithdrawalPrincipalRes {
+	seen := make(map[openapi_types.UUID]struct{}, len(withdrawals))
+	deduped := make([]zinc.WithdrawalPrincipalRes, 0, len(withdrawals))
+	for _, w := range withdrawals {
+		if _, ok := seen[w.Id]; ok {
+			continue
+		}
+		seen[w.Id] = struct{}{}
+		deduped = append(deduped, w)
+	}
+	return deduped
+}
+
+// listByStatus fetches every withdrawal currently in the given status,
 // paginating with the configured page size until a short page.
-func (c *Client) listPending(ctx context.Context) ([]zinc.WithdrawalPrincipalRes, error) {
-	pending := "Pending"
+func (c *Client) listByStatus(ctx context.Context, status string) ([]zinc.WithdrawalPrincipalRes, error) {
 	limit := int32(c.config.Limit)
 	if limit <= 0 {
 		limit = 100
@@ -139,7 +212,7 @@ func (c *Client) listPending(ctx context.Context) ([]zinc.WithdrawalPrincipalRes
 	for skip := int32(0); ; skip += limit {
 		s := skip
 		resp, err := c.zinc.GetApiVVersionWithdrawal(ctx, "1.0", &zinc.GetApiVVersionWithdrawalParams{
-			Status: &pending,
+			Status: &status,
 			Limit:  &limit,
 			Skip:   &s,
 		})
@@ -149,7 +222,7 @@ func (c *Client) listPending(ctx context.Context) ([]zinc.WithdrawalPrincipalRes
 		content, readErr := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to list pending withdrawals: status %d: %s", resp.StatusCode, string(content))
+			return nil, fmt.Errorf("failed to list %s withdrawals: status %d: %s", status, resp.StatusCode, string(content))
 		}
 		if readErr != nil {
 			return nil, readErr
@@ -164,6 +237,32 @@ func (c *Client) listPending(ctx context.Context) ([]zinc.WithdrawalPrincipalRes
 		}
 	}
 	return all, nil
+}
+
+// errNotApprovable marks zinc's InvalidWithdrawalOperation rejection: the
+// withdrawal's current state does not allow an approve (e.g. Processing with
+// a payout confirmation already recorded, or Cancelled/Rejected mid-sweep).
+// Sweep treats it as a benign skip, never a failure.
+var errNotApprovable = errors.New("withdrawal is not in an approvable state")
+
+// isInvalidWithdrawalOperation reports whether a failed approve response is
+// zinc's InvalidWithdrawalOperation domain problem. zinc serialises domain
+// problems as RFC 7807 problem details whose type URL ends in the problem id
+// ("invalid_withdrawal_operation") when the error portal is enabled; match
+// the title too so detection survives the portal being disabled.
+func isInvalidWithdrawalOperation(status int, body []byte) bool {
+	if status < 400 || status >= 500 {
+		return false
+	}
+	var problem struct {
+		Type  string `json:"type"`
+		Title string `json:"title"`
+	}
+	if err := json.Unmarshal(body, &problem); err != nil {
+		return false
+	}
+	return strings.HasSuffix(problem.Type, "/invalid_withdrawal_operation") ||
+		strings.EqualFold(problem.Title, "Invalid Withdrawal Operation")
 }
 
 // approve calls zinc's POST /api/v1/Withdrawal/{id}/approve.
@@ -192,6 +291,9 @@ func (c *Client) approve(ctx context.Context, id string) error {
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
+		if isInvalidWithdrawalOperation(resp.StatusCode, body) {
+			return fmt.Errorf("withdrawal %s: %w: status %d: %s", id, errNotApprovable, resp.StatusCode, string(body))
+		}
 		return fmt.Errorf("failed to approve withdrawal %s: status %d: %s", id, resp.StatusCode, string(body))
 	}
 	return nil

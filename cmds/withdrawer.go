@@ -25,7 +25,8 @@ func (state *State) buildWithdrawer() (*withdrawer.Client, error) {
 	return client, nil
 }
 
-// Withdrawer runs the nightly daemon that approves Pending withdrawals
+// Withdrawer runs the nightly daemon that approves Pending withdrawals and
+// re-drives Processing withdrawals stuck without a payout confirmation
 func (state *State) Withdrawer(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Withdrawer")
 
