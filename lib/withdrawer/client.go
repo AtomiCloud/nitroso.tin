@@ -201,15 +201,22 @@ func dedupeById(withdrawals []zinc.WithdrawalPrincipalRes) []zinc.WithdrawalPrin
 	return deduped
 }
 
+// maxListPages bounds a single sweep's paging: if withdrawals are created as
+// fast as they are paged, the short-page exit may never trigger and an
+// unbounded loop would block the sweep while growing memory without limit.
+// Anything past the cap is simply picked up by the next nightly sweep.
+const maxListPages = 50
+
 // listByStatus fetches every withdrawal currently in the given status,
-// paginating with the configured page size until a short page.
+// paginating with the configured page size until a short page (or the
+// maxListPages safety cap).
 func (c *Client) listByStatus(ctx context.Context, status string) ([]zinc.WithdrawalPrincipalRes, error) {
 	limit := int32(c.config.Limit)
 	if limit <= 0 {
 		limit = 100
 	}
 	var all []zinc.WithdrawalPrincipalRes
-	for skip := int32(0); ; skip += limit {
+	for page, skip := 0, int32(0); page < maxListPages; page, skip = page+1, skip+limit {
 		s := skip
 		resp, err := c.zinc.GetApiVVersionWithdrawal(ctx, "1.0", &zinc.GetApiVVersionWithdrawalParams{
 			Status: &status,
@@ -220,22 +227,24 @@ func (c *Client) listByStatus(ctx context.Context, status string) ([]zinc.Withdr
 			return nil, err
 		}
 		content, readErr := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("failed to list %s withdrawals: status %d: %s", status, resp.StatusCode, string(content))
 		}
 		if readErr != nil {
 			return nil, readErr
 		}
-		var page []zinc.WithdrawalPrincipalRes
-		if err := json.Unmarshal(content, &page); err != nil {
+		var items []zinc.WithdrawalPrincipalRes
+		if err := json.Unmarshal(content, &items); err != nil {
 			return nil, err
 		}
-		all = append(all, page...)
-		if int32(len(page)) < limit {
-			break
+		all = append(all, items...)
+		if int32(len(items)) < limit {
+			return all, nil
 		}
 	}
+	c.logger.Warn().Str("status", status).Int("pages", maxListPages).
+		Msg("hit paging cap while listing withdrawals; remainder deferred to the next sweep")
 	return all, nil
 }
 
