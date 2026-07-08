@@ -8,14 +8,15 @@ Root Chart to a single Service
 
 | Repository | Name | Version |
 |------------|------|---------|
-| file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
+| file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | poller(golang-chart) | 0.1.0 |
 | file://../consumer_chart | terminator(golang-chart) | 0.1.0 |
 | file://../consumer_chart | enricher(golang-chart) | 0.1.0 |
 | file://../consumer_chart | loginer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
-| file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
+| file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
 | file://../consumer_chart | recoverer(golang-chart) | 0.1.0 |
+| file://../consumer_chart | withdrawer(golang-chart) | 0.1.0 |
 | oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.9.3 |
 | oci://ghcr.io/atomicloud/nitroso.zinc | zinc(root-chart) | 1.18.0 |
 | oci://ghcr.io/atomicloud/sulfoxide.bromine | bromine(sulfoxide-bromine) | 1.8.0 |
@@ -292,6 +293,33 @@ Root Chart to a single Service
 | terminator.stateful | bool | `false` |  |
 | terminator.tolerations | list | `[]` |  |
 | terminator.topologySpreadConstraints | object | `{}` |  |
+| withdrawer.affinity | object | `{}` |  |
+| withdrawer.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| withdrawer.appSettings.app.module | string | `"withdrawer"` |  |
+| withdrawer.autoscaling | object | `{}` |  |
+| withdrawer.configMountPath | string | `"/app/config"` |  |
+| withdrawer.envFromSecret | string | `"tin"` |  |
+| withdrawer.image.pullPolicy | string | `"IfNotPresent"` |  |
+| withdrawer.image.repository | string | `"nitroso-tin-withdrawer"` |  |
+| withdrawer.image.tag | string | `""` |  |
+| withdrawer.imagePullSecrets | list | `[]` |  |
+| withdrawer.jobRbac.create | bool | `false` |  |
+| withdrawer.nameOverride | string | `"tin-withdrawer"` |  |
+| withdrawer.nodeSelector | object | `{}` |  |
+| withdrawer.podAnnotations | object | `{}` |  |
+| withdrawer.podSecurityContext | object | `{}` |  |
+| withdrawer.replicaCount | int | `1` |  |
+| withdrawer.resources | object | `{}` |  |
+| withdrawer.securityContext | object | `{}` |  |
+| withdrawer.serviceAccount.create | bool | `false` |  |
+| withdrawer.serviceTree.<<.landscape | string | `"lapras"` |  |
+| withdrawer.serviceTree.<<.layer | string | `"2"` |  |
+| withdrawer.serviceTree.<<.platform | string | `"nitroso"` |  |
+| withdrawer.serviceTree.<<.service | string | `"tin"` |  |
+| withdrawer.serviceTree.module | string | `"withdrawer"` |  |
+| withdrawer.stateful | bool | `false` |  |
+| withdrawer.tolerations | list | `[]` |  |
+| withdrawer.topologySpreadConstraints | object | `{}` |  |
 | zinc.api.configMountPath | string | `"/app/Config"` |  |
 | zinc.api.image.repository | string | `"ghcr.io/atomicloud/nitroso.zinc/api"` |  |
 | zinc.migration.enabled | bool | `false` |  |
