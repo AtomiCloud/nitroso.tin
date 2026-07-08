@@ -1,3 +1,23 @@
+## [1.47.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.46.0...v1.47.0) (2026-07-08)
+
+
+### 📜 Documentation 📜
+
+* **helm:** regenerate root chart README for the withdrawer module ([c16fde8](https://github.com/AtomiCloud/nitroso.tin/commit/c16fde8a85b566db8df671aa18f27d3c2c7716f9))
+
+
+### ✨ Features ✨
+
+* **withdrawer:** nightly cron approving pending withdrawals via zinc ([8558777](https://github.com/AtomiCloud/nitroso.tin/commit/8558777d7ad1546d0eaddda7b45f14386e77099b))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **withdrawer:** align approve path version segment with the SDK ([3884c8e](https://github.com/AtomiCloud/nitroso.tin/commit/3884c8e1b4ab44606c87c2c1fe703acffe20abb1))
+* **withdrawer:** cap listing pages per sweep ([4b19e21](https://github.com/AtomiCloud/nitroso.tin/commit/4b19e2109a7091baca3c12f847dc23bacc5d516f))
+* **withdrawer:** re-drive stuck Processing and harden the sweep ([f24ada5](https://github.com/AtomiCloud/nitroso.tin/commit/f24ada567e69b953a6a6648a05322239ca9bb69c))
+* **helm:** sync Chart.lock after adding withdrawer dependency ([8f13594](https://github.com/AtomiCloud/nitroso.tin/commit/8f135941b821531dd8950439e2bdb227227cc96d)), closes [#31](https://github.com/AtomiCloud/nitroso.tin/issues/31)
+
 ## [1.46.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.45.0...v1.46.0) (2026-07-06)
 
 
