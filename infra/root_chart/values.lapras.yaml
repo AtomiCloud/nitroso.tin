@@ -42,6 +42,18 @@ recoverer:
 
   configMountPath: /app/config
 
+withdrawer:
+  serviceTree:
+    landscape: *landscape
+
+  imagePullSecrets: []
+
+  fullnameOverride: 'tin-withdrawer'
+
+  replicaCount: 1
+
+  configMountPath: /app/config
+
 cdc:
   serviceTree:
     landscape: *landscape

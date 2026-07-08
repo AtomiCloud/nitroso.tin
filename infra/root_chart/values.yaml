@@ -133,6 +133,61 @@ recoverer:
 
   topologySpreadConstraints: {}
 
+# single replica only: concurrent withdrawers would race to approve the same
+# Pending withdrawal (see lib/withdrawer/client.go). Do not add an HPA.
+withdrawer:
+  stateful: false
+  annotations:
+    argocd.argoproj.io/sync-wave: '4'
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: 'tin-withdrawer'
+
+  serviceTree:
+    <<: *serviceTree
+    module: withdrawer
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings:
+    app:
+      module: withdrawer
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-withdrawer
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ''
+
+  serviceAccount:
+    create: false
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  autoscaling: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  topologySpreadConstraints: {}
+
 cdc:
   stateful: false
   annotations:

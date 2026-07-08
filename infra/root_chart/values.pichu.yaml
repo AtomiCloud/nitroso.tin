@@ -96,6 +96,30 @@ recoverer:
       memory: '256Mi'
       cpu: '250m'
 
+withdrawer:
+  enabled: true
+
+  fullnameOverride: 'tin-withdrawer'
+  command: ['/app/nitroso-tin', 'withdrawer']
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 1
+  configMountPath: /app/config
+  resources:
+    requests:
+      memory: '25Mi'
+      cpu: '5m'
+    limits:
+      memory: '256Mi'
+      cpu: '250m'
+
 enricher:
   enabled: true
 
