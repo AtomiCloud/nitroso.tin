@@ -67,6 +67,9 @@ withdrawer:
   # robfig/cron v1 spec with a leading seconds field, evaluated in UTC:
   # '0 0 0 * * *' = every day at 00:00:00 UTC
   cron: '0 0 0 * * *'
+  # reconcile sweep of Processing withdrawals against Airwallex:
+  # '0 0 */6 * * *' = every 6 hours at 00/06/12/18 UTC
+  reconcileCron: '0 0 */6 * * *'
   limit: 100
 
 app:

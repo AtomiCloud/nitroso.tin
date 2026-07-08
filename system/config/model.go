@@ -97,6 +97,11 @@ type WithdrawerConfig struct {
 	// syntax with a leading SECONDS field (6 fields, dow optional), evaluated
 	// in UTC — e.g. '0 0 0 * * *' for every day at 00:00 UTC.
 	Cron string
+	// ReconcileCron is when Processing withdrawals are swept and reconciled
+	// against Airwallex via zinc's reconcile endpoint. Same robfig/cron v1
+	// syntax as Cron, evaluated in UTC — e.g. '0 0 */6 * * *' for every 6
+	// hours at 00/06/12/18 UTC.
+	ReconcileCron string
 	// Limit is the page size used when listing Pending withdrawals from zinc
 	Limit int
 }
