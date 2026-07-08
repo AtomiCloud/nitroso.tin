@@ -15,6 +15,7 @@ type RootConfig struct {
 	Buyer      BuyerConfig
 	Terminator TerminatorConfig
 	Recoverer  RecovererConfig
+	Withdrawer WithdrawerConfig
 	Buffer     BufferConfig
 	Pool       PoolConfig
 }
@@ -88,6 +89,16 @@ type RecovererConfig struct {
 	// MaxAttempts is how many drain cycles an item may fail before it is
 	// parked as RequireManualIntervention
 	MaxAttempts int
+}
+
+// Withdrawer Config
+type WithdrawerConfig struct {
+	// Cron is when Pending withdrawals are swept and approved. robfig/cron v1
+	// syntax with a leading SECONDS field (6 fields, dow optional), evaluated
+	// in UTC — e.g. '0 0 0 * * *' for every day at 00:00 UTC.
+	Cron string
+	// Limit is the page size used when listing Pending withdrawals from zinc
+	Limit int
 }
 
 // KTMB Config

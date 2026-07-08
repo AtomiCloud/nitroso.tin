@@ -128,6 +128,10 @@ func main() {
 				Action: state.Recover,
 			},
 			{
+				Name:   "withdrawer",
+				Action: state.Withdrawer,
+			},
+			{
 				Name: "manual-buy",
 				Action: func(context *cli.Context) error {
 					buyerCfg := state.Config.Buyer

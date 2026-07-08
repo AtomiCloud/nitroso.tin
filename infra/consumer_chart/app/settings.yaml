@@ -63,6 +63,12 @@ recoverer:
   sweepCron: '@every 1h'
   maxAttempts: 5
 
+withdrawer:
+  # robfig/cron v1 spec with a leading seconds field, evaluated in UTC:
+  # '0 0 0 * * *' = every day at 00:00:00 UTC
+  cron: '0 0 0 * * *'
+  limit: 100
+
 app:
   landscape: lapras
   platform: nitroso
