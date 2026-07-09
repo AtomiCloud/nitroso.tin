@@ -1,3 +1,10 @@
+## [1.49.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.48.0...v1.49.0) (2026-07-09)
+
+
+### ✨ Features ✨
+
+* **cli:** add print-ticket command to re-download a ticket PDF from KTMB ([#38](https://github.com/AtomiCloud/nitroso.tin/issues/38)) ([98a32e5](https://github.com/AtomiCloud/nitroso.tin/commit/98a32e5985f656a5fd7dbf70e2d6770ce49f95c4))
+
 ## [1.48.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.47.0...v1.48.0) (2026-07-08)
 
 
