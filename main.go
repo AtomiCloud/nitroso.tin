@@ -132,6 +132,10 @@ func main() {
 				Action: state.Withdrawer,
 			},
 			{
+				Name:   "print-ticket",
+				Action: state.PrintTicket,
+			},
+			{
 				Name: "manual-buy",
 				Action: func(context *cli.Context) error {
 					buyerCfg := state.Config.Buyer
