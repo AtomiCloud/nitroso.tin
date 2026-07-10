@@ -125,6 +125,13 @@ func (c *Client) Start(ctx context.Context) error {
 				if sweepErr := c.Sweep(ctx, handled); sweepErr != nil {
 					c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Recoverer sweep failed")
 				}
+				// second safety net: Completed bookings whose ticket file is
+				// missing (lost from storage or completed without an upload) are
+				// repaired by re-downloading the PDF from KTMB. Idempotent and
+				// read-mostly, so the sweep cadence is a fine fit.
+				if repairErr := c.Repair(ctx); repairErr != nil {
+					c.logger.Error().Ctx(ctx).Err(repairErr).Msg("Recoverer ticket repair failed")
+				}
 			}
 			c.logger.Info().Ctx(ctx).Str("trigger", trigger).Msg("Recoverer cycle complete")
 		}
