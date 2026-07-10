@@ -64,6 +64,11 @@ type BookingPrincipalRes struct {
 	TicketLink  *string             `json:"ticketLink"`
 	TicketNo    *string             `json:"ticketNo"`
 	Time        *string             `json:"time"`
+	// RecoveryRetries is how many times zinc has recycled this booking from
+	// Recovering back to Pending (counter held zinc-side, capped by config).
+	// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35);
+	// regenerate via `pls sdk:gen` against a zinc carrying that PR to reconcile.
+	RecoveryRetries *int32 `json:"recoveryRetries,omitempty"`
 }
 
 // BookingRes defines model for BookingRes.
@@ -433,6 +438,10 @@ type GetApiVVersionBookingParams struct {
 	PassportNumber *string `form:"PassportNumber,omitempty" json:"PassportNumber,omitempty"`
 	Limit          *int32  `form:"Limit,omitempty" json:"Limit,omitempty"`
 	Skip           *int32  `form:"Skip,omitempty" json:"Skip,omitempty"`
+	// MissingTicket filters to bookings that carry no ticket file reference.
+	// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35);
+	// regenerate via `pls sdk:gen` against a zinc carrying that PR to reconcile.
+	MissingTicket *bool `form:"MissingTicket,omitempty" json:"MissingTicket,omitempty"`
 }
 
 // PostApiVVersionBookingCancelIdParams defines parameters for PostApiVVersionBookingCancelId.
@@ -452,6 +461,14 @@ type PostApiVVersionBookingCompleteIdMultipartBody struct {
 
 // PostApiVVersionBookingCompleteIdParams defines parameters for PostApiVVersionBookingCompleteId.
 type PostApiVVersionBookingCompleteIdParams struct {
+	BookingNo *string `form:"bookingNo,omitempty" json:"bookingNo,omitempty"`
+	TicketNo  *string `form:"ticketNo,omitempty" json:"ticketNo,omitempty"`
+}
+
+// PostApiVVersionBookingTicketIdParams defines parameters for PostApiVVersionBookingTicketId.
+// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35);
+// regenerate via `pls sdk:gen` against a zinc carrying that PR to reconcile.
+type PostApiVVersionBookingTicketIdParams struct {
 	BookingNo *string `form:"bookingNo,omitempty" json:"bookingNo,omitempty"`
 	TicketNo  *string `form:"ticketNo,omitempty" json:"ticketNo,omitempty"`
 }
@@ -753,6 +770,22 @@ type ClientInterface interface {
 	// revert endpoint; only the raw method is provided, no WithResponse variant.
 	// Regenerate via `pls sdk:gen` against zinc >= 1.36 to reconcile this file.
 	PostApiVVersionBookingRevertId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionBookingRecoverRevertId request
+	// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35):
+	// recycles a Recovering booking back to Pending, bumping zinc's retry
+	// counter. 409 (problem type recovery_retries_exhausted) means the cap is
+	// reached. Only the raw method is provided, no WithResponse variant.
+	// Regenerate via `pls sdk:gen` against a zinc carrying that PR to reconcile.
+	PostApiVVersionBookingRecoverRevertId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiVVersionBookingTicketIdWithBody request with any body
+	// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35):
+	// attaches/replaces the ticket PDF (multipart `file`) on a Completed
+	// booking. Only the raw with-body method is provided, no WithResponse
+	// variant. Regenerate via `pls sdk:gen` against a zinc carrying that PR to
+	// reconcile.
+	PostApiVVersionBookingTicketIdWithBody(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingTicketIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostApiVVersionBookingCancelId request
 	PostApiVVersionBookingCancelId(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingCancelIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1094,6 +1127,30 @@ func (c *Client) PostApiVVersionBookingBuyingId(ctx context.Context, version str
 
 func (c *Client) PostApiVVersionBookingRevertId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostApiVVersionBookingRevertIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingRecoverRevertId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingRecoverRevertIdRequest(c.Server, version, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingTicketIdWithBody(ctx context.Context, version string, id openapi_types.UUID, params *PostApiVVersionBookingTicketIdParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingTicketIdRequestWithBody(c.Server, version, id, params, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2434,6 +2491,22 @@ func NewGetApiVVersionBookingRequest(server string, version string, params *GetA
 
 		}
 
+		if params.MissingTicket != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "MissingTicket", runtime.ParamLocationQuery, *params.MissingTicket); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -2523,6 +2596,130 @@ func NewPostApiVVersionBookingRevertIdRequest(server string, version string, id 
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingRecoverRevertIdRequest generates requests for PostApiVVersionBookingRecoverRevertId.
+// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35).
+func NewPostApiVVersionBookingRecoverRevertIdRequest(server string, version string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/recover-revert/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostApiVVersionBookingTicketIdRequestWithBody generates requests for PostApiVVersionBookingTicketId with any type of body.
+// NOTE: manually added for the zinc recovery-retry contract (zinc PR #35).
+func NewPostApiVVersionBookingTicketIdRequestWithBody(server string, version string, id openapi_types.UUID, params *PostApiVVersionBookingTicketIdParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "version", runtime.ParamLocationPath, version)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v%s/Booking/ticket/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.BookingNo != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "bookingNo", runtime.ParamLocationQuery, *params.BookingNo); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TicketNo != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ticketNo", runtime.ParamLocationQuery, *params.TicketNo); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }

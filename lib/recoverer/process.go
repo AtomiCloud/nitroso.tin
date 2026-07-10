@@ -14,6 +14,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 const zincDateTimeLayout = "02-01-2006 15:04:05"
@@ -129,12 +130,77 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 
 	// not on our account: the passenger holds this seat via another channel
 	// (KTMB rejected our purchase as a duplicate passport, and a definitive scan
-	// shows the ticket is not ours) — a true duplicate. Refund it. Only a
-	// DEFINITIVE absence reaches here: an inconclusive scan (empty/mutated list,
-	// unparseable row) returned an error above and is retried, never refunded, so
-	// this can never refund a booking whose ticket we actually hold.
-	l.Warn().Msg("Ticket not on our KTMB account, marking duplicate")
-	return c.markDuplicate(ctx, dto.BookingId)
+	// shows the ticket is not ours). Only a DEFINITIVE absence reaches here: an
+	// inconclusive scan (empty/mutated list, unparseable row) returned an error
+	// above and is retried, never refunded, so this can never act on a booking
+	// whose ticket we actually hold. Before refunding as a duplicate, ask zinc
+	// to recycle the booking back to Pending so the pipeline re-buys it — the
+	// "duplicate passport" rejection is often transient (e.g. the conflicting
+	// KTMB booking lapses); zinc holds the retry counter, and only once its cap
+	// is exhausted (409) do we refund as a true duplicate.
+	l.Warn().Msg("Ticket not on our KTMB account, requesting recycle before duplicate")
+	return c.recycleOrDuplicate(ctx, l, dto.BookingId)
+}
+
+// recycleOrDuplicate asks zinc to recycle a Recovering booking back to Pending
+// (POST Booking/recover-revert/{id}). zinc owns the retry counter:
+//   - 200 → booking is Pending again; the pipeline re-reserves it (subject to
+//     the normal release cooldown). Done.
+//   - 409 (recovery_retries_exhausted) → the retry budget is spent and nothing
+//     changed; fall back to markDuplicate (refund, terminal) exactly as before.
+//   - 400 → the booking state changed under us; drop the item — the sweep
+//     re-derives from zinc if anything is still stuck.
+//   - anything else (404 on an old zinc without the endpoint, 5xx, network)
+//     → error, normal requeue path.
+func (c *Client) recycleOrDuplicate(ctx context.Context, l zerolog.Logger, bookingId string) error {
+	id, err := uuid.Parse(bookingId)
+	if err != nil {
+		return err
+	}
+	resp, err := c.zinc.PostApiVVersionBookingRecoverRevertId(ctx, "1.0", id)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		ev := l.Info()
+		var b zinc.BookingPrincipalRes
+		if json.Unmarshal(body, &b) == nil && b.RecoveryRetries != nil {
+			ev = ev.Int32("recoveryRetries", *b.RecoveryRetries)
+		}
+		ev.Msg("Booking recycled Recovering -> Pending for another purchase attempt")
+		return nil
+	case http.StatusConflict:
+		// the recycle budget is spent — this is a true duplicate now; refund.
+		// Sniff the problem type purely for logging: any 409 on this endpoint
+		// means the cap (zinc changed nothing, the booking is still Recovering).
+		l.Warn().Str("problem", problemTypeOf(body)).
+			Msg("Recovery retries exhausted, marking duplicate")
+		return c.markDuplicate(ctx, bookingId)
+	case http.StatusBadRequest:
+		// state changed under us (no longer Recovering) — drop the item; the
+		// sweep re-derives from zinc if the booking still needs attention
+		l.Warn().Str("body", string(body)).
+			Msg("Recycle rejected: booking state changed under us, dropping recover item")
+		return nil
+	default:
+		return fmt.Errorf("failed to recycle booking: status %d: %s", resp.StatusCode, string(body))
+	}
+}
+
+// problemTypeOf extracts the RFC-7807 problem "type" from a zinc error body,
+// tolerating any malformed payload (logging-only, never load-bearing).
+func problemTypeOf(body []byte) string {
+	var problem struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(body, &problem); err != nil {
+		return ""
+	}
+	return problem.Type
 }
 
 // forceComplete downloads the ticket PDF from KTMB and reports it to zinc

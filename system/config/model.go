@@ -89,6 +89,20 @@ type RecovererConfig struct {
 	// MaxAttempts is how many drain cycles an item may fail before it is
 	// parked as RequireManualIntervention
 	MaxAttempts int
+	// RepairEnable turns on the missing-ticket repair sweep: each sweep tick
+	// also lists Completed bookings whose ticket file is missing and restores
+	// them by re-downloading the PDF from KTMB and re-attaching it to zinc.
+	// Read-mostly and idempotent.
+	RepairEnable bool
+	// RepairLimit bounds how many missing-ticket bookings one repair sweep
+	// processes (a single zinc page; leftovers are picked up next sweep).
+	RepairLimit int
+	// RepairNotFoundPatterns are case-insensitive substrings of KTMB
+	// PrintTicket error messages that DEFINITIVELY mean the booking/ticket is
+	// unknown to KTMB (same matching style as Buyer.ConflictPatterns). A match
+	// parks the booking as RequireManualIntervention; any other error is
+	// treated as transient and retried next sweep. An empty list never parks.
+	RepairNotFoundPatterns []string
 }
 
 // Withdrawer Config
