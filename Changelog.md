@@ -1,3 +1,10 @@
+## [1.50.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.49.0...v1.50.0) (2026-07-10)
+
+
+### ✨ Features ✨
+
+* **recoverer:** retry-before-duplicate via zinc recycle + missing-ticket repair sweep ([#39](https://github.com/AtomiCloud/nitroso.tin/issues/39)) ([fb56231](https://github.com/AtomiCloud/nitroso.tin/commit/fb56231aa31797f0a881199a19f340c087838141)), closes [#35](https://github.com/AtomiCloud/nitroso.tin/issues/35) [#35](https://github.com/AtomiCloud/nitroso.tin/issues/35)
+
 ## [1.49.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.48.0...v1.49.0) (2026-07-09)
 
 
