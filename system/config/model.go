@@ -107,6 +107,11 @@ type RecovererConfig struct {
 
 // Withdrawer Config
 type WithdrawerConfig struct {
+	// ApproveEnable gates the approve sweep. When false, Pending withdrawals
+	// are never auto-approved — each pays out only when a human clicks approve
+	// in zinc — while the reconcile sweep keeps running so in-flight
+	// Processing payouts still settle.
+	ApproveEnable bool
 	// Cron is when Pending withdrawals are swept and approved. robfig/cron v1
 	// syntax with a leading SECONDS field (6 fields, dow optional), evaluated
 	// in UTC — e.g. '0 0 0 * * *' for every day at 00:00 UTC.
