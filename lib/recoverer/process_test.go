@@ -223,13 +223,18 @@ func TestRecycleOrDuplicateOtherStatusErrors(t *testing.T) {
 	}
 }
 
-// problemTypeOf is logging-only and must tolerate garbage.
+// problemTypeOf is logging-only and must tolerate garbage. zinc's real
+// problem-details payload carries "type" as an error-portal URL ending in the
+// problem id (or omits it when the portal is disabled) — pin the
+// last-segment extraction against that shape.
 func TestProblemTypeOf(t *testing.T) {
 	cases := []struct {
 		body string
 		want string
 	}{
+		{`{"type":"https://errors.example.com/v1/recovery_retries_exhausted","title":"conflict","status":409}`, "recovery_retries_exhausted"},
 		{`{"type":"recovery_retries_exhausted"}`, "recovery_retries_exhausted"},
+		{`{"title":"conflict","status":409}`, ""},
 		{`not json`, ""},
 		{``, ""},
 	}

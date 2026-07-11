@@ -122,12 +122,33 @@ sweep drains first). Per booking (`ProcessItem`):
    - found + unclaimed → force complete;
    - found + claimed by another `Completed` booking → `duplicate` (refund);
    - inconclusive (empty in-range page, mutated list) → **retry** (never refund);
-   - **not found → `duplicate` (refund).** A conclusive absence means the passenger holds this
-     seat via another channel (KTMB rejected our purchase as a duplicate passport, and the
-     ticket is not on our account). The recoverer does **not** attempt a re-buy — only a
-     _definitive_ not-found reaches here (an inconclusive scan errored out above and retries),
-     so this can never refund a booking whose ticket we actually hold.
+   - **not found → recycle via `recover-revert/{id}`** (zinc: `Recovering → Pending`,
+     persisted `RecoveryRetries` counter, cap `Recovery:MaxRetries`, default 10). A
+     conclusive absence usually means a transient/incorrect KTMB duplicate-passport
+     rejection, so the booking gets another ride through the normal buy pipeline
+     (subject to the usual release cooldown) instead of an immediate refund. Only a
+     _definitive_ not-found reaches here (an inconclusive scan errored out above and
+     retries), so this can never recycle a booking whose ticket we actually hold.
+     Responses: 200 → recycled (drop item); **409 `recovery_retries_exhausted` →
+     `duplicate` (refund)** — the retry budget is spent, this is a true duplicate;
+     400 (state changed under us) → drop, the sweep re-derives; anything else →
+     transient, requeue.
 7. Item fails `maxAttempts` cycles → `manual-intervention`.
+
+### Missing-ticket repair sweep (`Repair`, after each `Sweep`)
+
+Consistency backstop for **`Completed` bookings whose ticket file is missing** (lost from
+object storage, or completed via a path that never uploaded one). Each sweep, one page
+(`repairLimit`, default 100) of `MissingTicket=true` bookings is fetched from zinc and each is:
+
+- **identifiers present** (`BookingNo` + `TicketNo`) → KTMB `PrintTicket` → upload via
+  `POST Booking/ticket/{id}` (attach/replace on a Completed booking; no money, no status);
+- **identifiers missing** → `manual-intervention` (nothing to re-download with);
+- **KTMB definitively unknown** (a semantic 400/404/410 whose body matches
+  `repairNotFoundPatterns`; a 5xx/gateway/auth error is never definitive) →
+  `manual-intervention`;
+- anything inconclusive (network, 5xx, session expiry, empty PDF, upload failure) → log and
+  move on; the next sweep retries for free. Gated by `repairEnable`.
 
 ### Durability model (queue + sweep)
 

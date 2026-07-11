@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/buyer"
+	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/google/uuid"
 )
@@ -83,6 +85,16 @@ func (c *Client) repairOne(ctx context.Context, b zinc.BookingPrincipalRes, prin
 	bookingNo := lib.Deref(b.BookingNo)
 	ticketNo := lib.Deref(b.TicketNo)
 	l := c.logger.With().Ctx(ctx).Str("bookingId", bookingId).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Logger()
+
+	// defense-in-depth: the list query already filters Status=Completed, but
+	// both actions below (ticket upload, and especially the terminal
+	// manual-intervention park) are consequential — never trust a filter
+	// regression on the zinc side (mirrors ProcessItem's terminalStatuses
+	// re-check)
+	if lib.Deref(b.Status) != "Completed" {
+		l.Warn().Str("status", lib.Deref(b.Status)).Msg("Missing-ticket listing returned a non-Completed booking, skipping")
+		return
+	}
 
 	if bookingNo == "" || ticketNo == "" {
 		// nothing to re-download with — only a human can source this ticket
@@ -182,15 +194,31 @@ func (c *Client) uploadTicket(ctx context.Context, bookingId, bookingNo, ticketN
 }
 
 // matchesNotFound reports whether a KTMB PrintTicket error DEFINITIVELY means
-// the booking/ticket is unknown to KTMB, by case-insensitive substring match
-// against the configured patterns (same style as the buyer's
-// conflictPatterns). No match — including an empty pattern list — reads as
-// inconclusive, so misconfiguration degrades to "retry forever", never to a
-// wrongful manual-intervention park.
+// the booking/ticket is unknown to KTMB. Two gates must BOTH pass:
+//
+//  1. the error is a ktmb.HttpStatusError with a semantic client-rejection
+//     status (400/404/410) — a 5xx, gateway page, WAF block, auth failure
+//     (401/403) or plain transport error is never definitive, no matter what
+//     its body says (an upstream outage page routinely contains "not found");
+//  2. the KTMB response body matches a configured pattern, case-insensitive
+//     substring (same style as the buyer's conflictPatterns).
+//
+// Anything else — including an empty pattern list — reads as inconclusive, so
+// misconfiguration degrades to "retry forever", never to a wrongful
+// manual-intervention park.
 func matchesNotFound(patterns []string, err error) bool {
-	msg := strings.ToLower(err.Error())
+	var httpErr *ktmb.HttpStatusError
+	if !errors.As(err, &httpErr) {
+		return false
+	}
+	switch httpErr.StatusCode {
+	case http.StatusBadRequest, http.StatusNotFound, http.StatusGone:
+	default:
+		return false
+	}
+	body := strings.ToLower(httpErr.Body)
 	for _, p := range patterns {
-		if p != "" && strings.Contains(msg, strings.ToLower(p)) {
+		if p != "" && strings.Contains(body, strings.ToLower(p)) {
 			return true
 		}
 	}

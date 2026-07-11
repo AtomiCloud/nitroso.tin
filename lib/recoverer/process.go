@@ -191,14 +191,20 @@ func (c *Client) recycleOrDuplicate(ctx context.Context, l zerolog.Logger, booki
 	}
 }
 
-// problemTypeOf extracts the RFC-7807 problem "type" from a zinc error body,
-// tolerating any malformed payload (logging-only, never load-bearing).
+// problemTypeOf extracts the RFC-7807 problem id from a zinc error body,
+// tolerating any malformed payload (logging-only, never load-bearing). zinc
+// sets "type" to an error-portal URL ending in the problem id (e.g.
+// ".../v1/recovery_retries_exhausted") — or omits it entirely when the portal
+// is disabled — so take the last path segment.
 func problemTypeOf(body []byte) string {
 	var problem struct {
 		Type string `json:"type"`
 	}
 	if err := json.Unmarshal(body, &problem); err != nil {
 		return ""
+	}
+	if i := strings.LastIndex(problem.Type, "/"); i >= 0 {
+		return problem.Type[i+1:]
 	}
 	return problem.Type
 }

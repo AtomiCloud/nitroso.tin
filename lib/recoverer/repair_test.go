@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/google/uuid"
@@ -150,7 +151,7 @@ func TestRepairOneKtmbNotFoundParks(t *testing.T) {
 	defer closeSrv()
 
 	print := func(string, string) ([]byte, error) {
-		return nil, fmt.Errorf("status code 400, body Booking Not Found")
+		return nil, &ktmb.HttpStatusError{StatusCode: 400, Body: "Booking Not Found"}
 	}
 	c.repairOne(context.Background(), completedBooking(t, "KTMB-K1", "T-1"), print)
 
@@ -237,23 +238,38 @@ func TestRepairBookingsContinuesPastFailures(t *testing.T) {
 	}
 }
 
-// matchesNotFound is the definitive-vs-transient classifier; pin its matching
-// semantics (case-insensitive substring, empty patterns never match).
+// matchesNotFound is the definitive-vs-transient classifier; pin its double
+// gate: only a semantic KTMB client rejection (HttpStatusError 400/404/410)
+// whose BODY matches a pattern is definitive. Transport errors, 5xx/gateway
+// pages and auth failures are never definitive no matter what their body
+// says, and empty patterns never match.
 func TestMatchesNotFound(t *testing.T) {
 	cases := []struct {
+		name     string
 		patterns []string
-		err      string
+		err      error
 		want     bool
 	}{
-		{[]string{"not found"}, "status code 400, body Booking NOT FOUND", true},
-		{[]string{"no record"}, "No Record Exists", true},
-		{[]string{"not found"}, "connection refused", false},
-		{nil, "booking not found", false},
-		{[]string{""}, "anything", false},
+		{"semantic 400 with matching body", []string{"not found"},
+			&ktmb.HttpStatusError{StatusCode: 400, Body: "Booking NOT FOUND"}, true},
+		{"semantic 404 with matching body", []string{"no record"},
+			&ktmb.HttpStatusError{StatusCode: 404, Body: "No Record Exists"}, true},
+		{"5xx outage page containing pattern is NOT definitive", []string{"not found"},
+			&ktmb.HttpStatusError{StatusCode: 502, Body: "<html>404 not found - nginx</html>"}, false},
+		{"auth failure containing pattern is NOT definitive", []string{"not found"},
+			&ktmb.HttpStatusError{StatusCode: 401, Body: "session not found"}, false},
+		{"plain transport error is NOT definitive", []string{"not found"},
+			fmt.Errorf("booking not found: connection refused"), false},
+		{"semantic 400 without matching body", []string{"not found"},
+			&ktmb.HttpStatusError{StatusCode: 400, Body: "internal error"}, false},
+		{"nil patterns never match", nil,
+			&ktmb.HttpStatusError{StatusCode: 400, Body: "booking not found"}, false},
+		{"empty pattern never matches", []string{""},
+			&ktmb.HttpStatusError{StatusCode: 400, Body: "anything"}, false},
 	}
 	for _, tc := range cases {
-		if got := matchesNotFound(tc.patterns, fmt.Errorf("%s", tc.err)); got != tc.want {
-			t.Errorf("matchesNotFound(%v, %q) = %t, want %t", tc.patterns, tc.err, got, tc.want)
+		if got := matchesNotFound(tc.patterns, tc.err); got != tc.want {
+			t.Errorf("%s: matchesNotFound(%v, %v) = %t, want %t", tc.name, tc.patterns, tc.err, got, tc.want)
 		}
 	}
 }
