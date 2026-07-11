@@ -20,6 +20,20 @@ type HttpConfig struct {
 	client *http.Client
 }
 
+// HttpStatusError is a non-2xx KTMB response, carrying the status code and
+// raw body so callers can classify semantic rejections (4xx with a known
+// message) separately from transport/infrastructure noise (5xx, gateway
+// pages). It formats identically to the previous flat fmt.Errorf string so
+// existing log/message matching is unaffected.
+type HttpStatusError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *HttpStatusError) Error() string {
+	return fmt.Sprintf("status code %d, body %s", e.StatusCode, e.Body)
+}
+
 type HttpClient[T any, Y any] struct {
 	Url    string
 	Header map[string]string
@@ -261,7 +275,7 @@ func (k HttpClient[T, Y]) BinarySendWith(method string, path string, payload T, 
 
 	if res.StatusCode > 399 {
 		k.logger.Error().Str("body", string(bin)).Int("status", res.StatusCode).Msg("HTTP request failed")
-		return nil, fmt.Errorf("status code %d, body %s", res.StatusCode, string(bin))
+		return nil, &HttpStatusError{StatusCode: res.StatusCode, Body: string(bin)}
 	}
 
 	return bin, nil
