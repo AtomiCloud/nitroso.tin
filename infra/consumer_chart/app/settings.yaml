@@ -79,6 +79,10 @@ recoverer:
     - 'invalid booking'
 
 withdrawer:
+  # gate for the approve sweep: false = withdrawals pay out only when a human
+  # clicks approve in zinc (the reconcile sweep below keeps running either way
+  # so in-flight payouts still settle)
+  approveEnable: false
   # robfig/cron v1 spec with a leading seconds field, evaluated in UTC:
   # '0 0 0 * * *' = every day at 00:00:00 UTC
   cron: '0 0 0 * * *'

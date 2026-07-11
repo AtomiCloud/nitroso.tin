@@ -115,6 +115,13 @@ func (c *Client) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-approveCh:
+			// approvals can be turned off (withdrawals then only pay out when a
+			// human clicks approve in zinc) while the reconcile sweep keeps
+			// running — in-flight Processing payouts must still settle
+			if !c.config.ApproveEnable {
+				c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep disabled by config, skipping")
+				continue
+			}
 			c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep starting")
 			if sweepErr := c.Sweep(ctx); sweepErr != nil {
 				c.logger.Error().Ctx(ctx).Err(sweepErr).Msg("Withdrawer approve sweep failed")
