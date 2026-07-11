@@ -1,3 +1,10 @@
+## [1.50.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.50.0...v1.50.1) (2026-07-11)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **recoverer:** gate KTMB not-found on semantic status, harden repair ([#40](https://github.com/AtomiCloud/nitroso.tin/issues/40)) ([7dcd0de](https://github.com/AtomiCloud/nitroso.tin/commit/7dcd0de2c087bfb2943d8731bf6a97c81a3718c1))
+
 ## [1.50.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.49.0...v1.50.0) (2026-07-10)
 
 
