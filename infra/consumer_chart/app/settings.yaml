@@ -159,6 +159,33 @@ poller:
     secretRef: ''
     configRef: ''
 
+# Probe-by-reserving pipeline. Dry-run acquires then immediately releases a hold;
+# keep it enabled until the response patterns are verified per landscape.
+prober:
+  epochMinutes: 1
+  jobMinutes: 2
+  slotsPerJob: 500
+  fanout: 1
+  paceMs: 0
+  dryRun: true
+  errorLimit: 5
+  errorBackoffMs: 100
+  soldOutPatterns:
+    - 'sold out'
+    - 'no seat'
+    - 'not available'
+  staleDataPatterns:
+    - 'search data'
+    - 'trip data'
+    - 'expired'
+  sessionPatterns:
+    - 'session'
+    - 'login'
+    - 'unauthorized'
+  rateLimitPatterns:
+    - 'too many requests'
+    - 'rate limit'
+
 otel:
   metric:
     enable: false

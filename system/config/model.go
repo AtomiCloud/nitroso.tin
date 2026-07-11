@@ -8,6 +8,7 @@ type RootConfig struct {
 	Stream     StreamConfig
 	Auth       AuthConfig
 	Poller     PollerConfig
+	Prober     ProberConfig
 	Reserver   ReserverConfig
 	Encryptor  EncryptorConfig
 	Enricher   EnricherConfig
@@ -206,6 +207,26 @@ type PollerConfig struct {
 	MaxStreams int
 
 	Pollee PolleeConfig
+}
+
+// Prober configures the probe-by-reserving fleet. The spawner uses the epoch,
+// sharding and fanout fields; each short-lived prober Job uses the remaining
+// fields. DryRun must remain enabled until the KTMB response patterns have been
+// validated in the target landscape.
+type ProberConfig struct {
+	EpochMinutes   int
+	JobMinutes     int
+	SlotsPerJob    int
+	Fanout         int
+	PaceMs         int
+	DryRun         bool
+	ErrorLimit     int
+	ErrorBackoffMs int
+
+	SoldOutPatterns   []string
+	StaleDataPatterns []string
+	SessionPatterns   []string
+	RateLimitPatterns []string
 }
 
 type PolleeConfig struct {

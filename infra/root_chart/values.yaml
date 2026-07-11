@@ -298,6 +298,56 @@ poller:
 
   topologySpreadConstraints: {}
 
+spawner:
+  enabled: false
+  stateful: false
+  command: ['/app/nitroso-tin', 'spawner']
+  annotations:
+    argocd.argoproj.io/sync-wave: '4'
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: true
+    annotations:
+      argocd.argoproj.io/sync-wave: '4'
+
+  nameOverride: 'tin-spawner'
+
+  serviceTree:
+    <<: *serviceTree
+    module: spawner
+
+  imagePullSecrets: []
+
+  replicaCount: 1
+
+  appSettings:
+    app:
+      module: spawner
+
+  configMountPath: /app/config
+
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+    pullPolicy: IfNotPresent
+    tag: ''
+
+  serviceAccount:
+    create: true
+    annotations:
+      argocd.argoproj.io/sync-wave: '4'
+
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  resources: {}
+  autoscaling: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: {}
+
 enricher:
   stateful: false
   annotations:
