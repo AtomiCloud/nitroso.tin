@@ -78,6 +78,17 @@ poller:
 
   configMountPath: /app/config
 
+spawner:
+  enabled: false
+  fullnameOverride: 'tin-spawner'
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  replicaCount: 1
+  configMountPath: /app/config
+
 enricher:
   serviceTree:
     landscape: *landscape

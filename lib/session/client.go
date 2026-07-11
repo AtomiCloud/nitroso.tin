@@ -53,8 +53,8 @@ func (s *Session) Login(ctx context.Context, email, password string) (string, er
 		l.Info().Str("token", tokenEnc).Msg("Decrypting login session token...")
 		token, er := s.encryptor.Decrypt(tokenEnc)
 		if er != nil {
-			l.Error().Str("token", tokenEnc).Err(err).Msg("Failed to decrypt login session token")
-			return "", err
+			l.Error().Err(er).Msg("Failed to decrypt login session token")
+			return "", er
 		}
 		l.Info().Msg("Successfully decrypted login session")
 		return token, nil

@@ -92,6 +92,20 @@ func main() {
 		Name: "nitroso-tin",
 		Commands: []*cli.Command{
 			{
+				Name:   "spawner",
+				Action: state.Spawner,
+			},
+			{
+				Name:   "prober",
+				Action: state.Prober,
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "data", Aliases: []string{"d"}, Required: true},
+					&cli.IntFlag{Name: "interval", Aliases: []string{"i"}, Required: true},
+					&cli.Int64Flag{Name: "epoch", Required: true},
+					&cli.StringFlag{Name: "job", Required: true},
+				},
+			},
+			{
 				Name:   "cdc",
 				Action: state.Cdc,
 			},
