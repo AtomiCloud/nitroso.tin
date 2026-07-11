@@ -1,6 +1,7 @@
 package enricher
 
 import (
+	"context"
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/session"
@@ -28,6 +29,10 @@ func New(ktmb ktmb.Ktmb, session *session.Session, logger *zerolog.Logger) Clien
 }
 
 func (c *Client) Find(userData, dir string, date string, time string) (FindRes, error) {
+	return c.FindContext(context.Background(), userData, dir, date, time)
+}
+
+func (c *Client) FindContext(ctx context.Context, userData, dir string, date string, time string) (FindRes, error) {
 	c.logger.Info().Msg("Initializing enricher")
 	c.logger.Info().Msgf("Date: %s", date)
 	c.logger.Info().Msgf("Dir: %s", dir)
@@ -35,7 +40,7 @@ func (c *Client) Find(userData, dir string, date string, time string) (FindRes, 
 	d := fmt.Sprintf("%sT00:00:00", date)
 	dt := fmt.Sprintf("%sT%s", date, time)
 
-	all, err := c.ktmb.StationsAll(userData)
+	all, err := c.ktmb.StationsAllContext(ctx, userData)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to get all station")
 		return FindRes{}, err
@@ -77,8 +82,10 @@ func (c *Client) Find(userData, dir string, date string, time string) (FindRes, 
 		tData = jData
 	}
 
-	ti.Sleep(2 * ti.Second)
-	stations, err := c.ktmb.SearchStations(userData, fId, fData, tId, tData, d, 1)
+	if err := sleepContext(ctx, 2*ti.Second); err != nil {
+		return FindRes{}, err
+	}
+	stations, err := c.ktmb.SearchStationsContext(ctx, userData, fId, fData, tId, tData, d, 1)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to search station")
 		return FindRes{}, err
@@ -89,8 +96,10 @@ func (c *Client) Find(userData, dir string, date string, time string) (FindRes, 
 		return FindRes{}, fmt.Errorf("failed to search station: %v", stations.Messages)
 	}
 
-	ti.Sleep(2 * ti.Second)
-	trip, err := c.ktmb.Trip(userData, d, stations.Data.SearchData)
+	if err := sleepContext(ctx, 2*ti.Second); err != nil {
+		return FindRes{}, err
+	}
+	trip, err := c.ktmb.TripContext(ctx, userData, d, stations.Data.SearchData)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to get trips")
 		return FindRes{}, err
@@ -118,4 +127,15 @@ func (c *Client) Find(userData, dir string, date string, time string) (FindRes, 
 		TripData:   td,
 	}, nil
 
+}
+
+func sleepContext(ctx context.Context, duration ti.Duration) error {
+	timer := ti.NewTimer(duration)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

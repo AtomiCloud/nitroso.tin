@@ -23,7 +23,10 @@ func (state *State) Prober(c *cli.Context) error {
 	if interval <= 0 {
 		return cli.Exit("interval must be positive", 1)
 	}
-	ctx, cancel := context.WithTimeout(c.Context, time.Duration(interval)*time.Second)
+	probeUntil := time.Now().Add(time.Duration(interval) * time.Second)
+	// Reserve may consume its full 60-second timeout and compensation may need
+	// another 60 seconds. Keep the process alive for cleanup after probing stops.
+	ctx, cancel := context.WithTimeout(c.Context, time.Duration(interval+120)*time.Second)
 	defer cancel()
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
@@ -39,11 +42,12 @@ func (state *State) Prober(c *cli.Context) error {
 	sessionEncryptor := encryptor.NewSymEncryptor[ktmb.LoginRes](state.Config.Encryptor.Key, state.Logger)
 	sharedSession := session.New(&k, &mainRedis, state.Logger, ktmbConfig.LoginKey, sessionEncryptor)
 	finder := enricher.New(k, &sharedSession, state.Logger)
-	store := prober.NewStore(&mainRedis, &sharedSession, &finder, storeEncryptor, state.Config.Enricher, state.Logger)
+	store := prober.NewStore(&mainRedis, &sharedSession, &finder, storeEncryptor, state.Config.Enricher,
+		ktmbConfig.LoginKey, state.Ps+":prober:session-dead", state.Logger)
 	reserveEncryptor := encryptor.NewSymEncryptor[reserver.ReserveDto](state.Config.Encryptor.Key, state.Logger)
 	runner := prober.NewRunner(&k, store, &mainRedis, &streamRedis, reserveEncryptor, state.Config.Prober,
 		state.Config.Stream, ktmbAppInfo, state.Ps, state.Psm, state.Location, state.Logger)
 	state.Logger.Info().Int("slots", len(targets)).Int64("epoch", c.Int64("epoch")).Bool("dryRun", state.Config.Prober.DryRun).
 		Msg("Starting epoch prober Job")
-	return runner.Run(ctx, targets, c.Int64("epoch"), c.String("job"))
+	return runner.Run(ctx, targets, c.Int64("epoch"), c.String("job"), probeUntil)
 }

@@ -162,6 +162,13 @@ prober:
   dryRun: true
   errorLimit: 5
   errorBackoffMs: 100
+  # Bound durable hold cleanup so expired entries cannot starve fresh probing.
+  releaseDrainLimit: 10
+  releaseDrainBudgetMs: 5000
+  releaseTerminalPatterns:
+    - 'not found'
+    - 'expired'
+    - 'invalid booking'
   soldOutPatterns:
     - 'sold out'
     - 'no seat'

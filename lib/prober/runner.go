@@ -2,6 +2,7 @@ package prober
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,37 +20,36 @@ import (
 )
 
 type ktmbClient interface {
-	Reserve(userData, appInformation, searchData, tripData string) (ktmb.GenericRes[ktmb.ReserveRes], error)
-	Cancel(userData, bookingData string) (ktmb.GenericRes[*interface{}], error)
+	ReserveContext(context.Context, string, string, string, string) (ktmb.GenericRes[ktmb.ReserveRes], error)
+	CancelContext(context.Context, string, string) (ktmb.GenericRes[*interface{}], error)
 }
 
-type cacheStore interface {
+type probeStore interface {
 	Load(context.Context) (string, enricher.FindStore, error)
 	Refresh(context.Context, string, Target) (enricher.FindRes, error)
 }
 
 type Runner struct {
-	ktmb        ktmbClient
-	store       cacheStore
-	mainRedis   *otelredis.OtelRedis
-	streamRedis *otelredis.OtelRedis
-	encryptor   encryptor.Encryptor[reserver.ReserveDto]
-	config      config.ProberConfig
-	streams     config.StreamConfig
-	appInfo     string
-	ps          string
-	psm         string
-	location    *time.Location
-	logger      *zerolog.Logger
-	writeTally  func(context.Context, JobTally) error
-	enqueue     func(context.Context, string) error
+	ktmb              ktmbClient
+	store             probeStore
+	encryptor         encryptor.Encryptor[reserver.ReserveDto]
+	config            config.ProberConfig
+	appInfo           string
+	location          *time.Location
+	logger            *zerolog.Logger
+	writeTally        func(context.Context, JobTally) error
+	enqueue           func(context.Context, string) error
+	persistRelease    func(context.Context, string) error
+	listReleases      func(context.Context, int) ([]string, error)
+	removeRelease     func(context.Context, string) error
+	signalSessionDead func(context.Context, string) error
 }
 
 func NewRunner(k ktmbClient, store *Store, mainRedis, streamRedis *otelredis.OtelRedis,
 	encr encryptor.Encryptor[reserver.ReserveDto], cfg config.ProberConfig, streams config.StreamConfig,
 	appInfo, ps, psm string, location *time.Location, logger *zerolog.Logger) *Runner {
-	runner := &Runner{ktmb: k, store: store, mainRedis: mainRedis, streamRedis: streamRedis, encryptor: encr,
-		config: cfg, streams: streams, appInfo: appInfo, ps: ps, psm: psm, location: location, logger: logger}
+	runner := &Runner{ktmb: k, store: store, encryptor: encr,
+		config: cfg, appInfo: appInfo, location: location, logger: logger}
 	runner.writeTally = func(ctx context.Context, tally JobTally) error {
 		return WriteTally(ctx, mainRedis, ps, tally)
 	}
@@ -57,10 +57,31 @@ func NewRunner(k ktmbClient, store *Store, mainRedis, streamRedis *otelredis.Ote
 		_, err := streamRedis.QueuePush(ctx, otel.Tracer(psm), streams.Reserver, encrypted)
 		return err
 	}
+	releaseKey := ps + ":prober:release"
+	runner.persistRelease = func(ctx context.Context, encrypted string) error {
+		return mainRedis.LPush(ctx, releaseKey, encrypted).Err()
+	}
+	runner.listReleases = func(ctx context.Context, limit int) ([]string, error) {
+		return mainRedis.LRange(ctx, releaseKey, 0, int64(limit-1)).Result()
+	}
+	runner.removeRelease = func(ctx context.Context, encrypted string) error {
+		return mainRedis.LRem(ctx, releaseKey, 1, encrypted).Err()
+	}
+	runner.signalSessionDead = func(ctx context.Context, fingerprint string) error {
+		key := ps + ":prober:session-dead"
+		pipe := mainRedis.TxPipeline()
+		pipe.SAdd(ctx, key, fingerprint)
+		pipe.Expire(ctx, key, 15*time.Minute)
+		_, err := pipe.Exec(ctx)
+		return err
+	}
 	return runner
 }
 
-func (r *Runner) Run(ctx context.Context, targets []Target, epoch int64, job string) error {
+func (r *Runner) Run(ctx context.Context, targets []Target, epoch int64, job string, probeUntil time.Time) error {
+	if err := r.drainReleases(ctx); err != nil {
+		r.logger.Error().Err(err).Msg("Failed to drain durable prober hold releases")
+	}
 	userData, store, err := r.store.Load(ctx)
 	if err != nil {
 		tallies := make([]SlotTally, len(targets))
@@ -78,7 +99,7 @@ func (r *Runner) Run(ctx context.Context, targets []Target, epoch int64, job str
 		wg.Add(1)
 		go func(index int, target Target) {
 			defer wg.Done()
-			tallies[index] = r.probeSlot(ctx, cancel, userData, store, target)
+			tallies[index] = r.probeSlot(ctx, cancel, userData, store, target, probeUntil)
 		}(index, target)
 	}
 	wg.Wait()
@@ -94,7 +115,7 @@ func (r *Runner) Run(ctx context.Context, targets []Target, epoch int64, job str
 }
 
 func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, userData string,
-	store enricher.FindStore, target Target) SlotTally {
+	store enricher.FindStore, target Target, probeUntil time.Time) SlotTally {
 	tally := SlotTally{Slot: target.Key()}
 	find := findSlot(store, target)
 	if find.TripData == "" {
@@ -119,6 +140,9 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 	errorsSeen := 0
 	refreshed := false
 	for tally.Holds < int64(target.Needed) {
+		if !time.Now().Before(probeUntil) {
+			return tally
+		}
 		if err := r.waitForMaintenance(ctx); err != nil {
 			return tally
 		}
@@ -128,9 +152,46 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 		default:
 		}
 
-		response, err := r.ktmb.Reserve(userData, r.appInfo, find.SearchData, find.TripData)
+		requestCtx, requestCancel := context.WithTimeout(ctx, 60*time.Second)
+		response, err := r.ktmb.ReserveContext(requestCtx, userData, r.appInfo, find.SearchData, find.TripData)
+		requestCancel()
 		tally.Polls++
 		if err != nil {
+			var statusErr *ktmb.HttpStatusError
+			if errors.As(err, &statusErr) {
+				messages := []string{statusErr.Body}
+				switch {
+				case statusErr.StatusCode == 401 || statusErr.StatusCode == 403 || Matches(messages, r.config.SessionPatterns):
+					tally.SessionDead++
+					r.markSessionDead(ctx, cancelEpoch, userData, target, messages)
+					return tally
+				case Matches(messages, r.config.StaleDataPatterns):
+					tally.Stale++
+					if refreshed {
+						tally.Errors++
+						return tally
+					}
+					refreshed = true
+					find, err = r.store.Refresh(ctx, userData, target)
+					if err != nil {
+						tally.Errors++
+						return tally
+					}
+					continue
+				case statusErr.StatusCode == 429 || Matches(messages, r.config.RateLimitPatterns):
+					tally.RateLimited++
+					continue
+				case Matches(messages, r.config.SoldOutPatterns):
+					tally.SoldOut++
+					if !sleepContext(ctx, pace) {
+						return tally
+					}
+					continue
+				default:
+					r.logger.Warn().Str("slot", target.Key()).Int("status", statusErr.StatusCode).
+						Str("body", statusErr.Body).Msg("Unclassified KTMB HTTP response")
+				}
+			}
 			tally.Errors++
 			errorsSeen++
 			if errorsSeen >= errorLimit || !sleepContext(ctx, exponential(baseBackoff, errorsSeen)) {
@@ -139,8 +200,19 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 			continue
 		}
 		if response.Status {
-			if err := r.acceptHold(ctx, userData, response.Data.BookingData, target); err != nil {
+			if response.Data.BookingData == "" {
 				tally.Errors++
+				r.logger.Error().Str("slot", target.Key()).Msg("KTMB Reserve success omitted bookingData")
+				return tally
+			}
+			releaseFailed, acceptErr := r.acceptHold(ctx, userData, response.Data.BookingData, target)
+			if acceptErr != nil {
+				tally.Errors++
+				if releaseFailed {
+					tally.ReleaseFailed++
+				}
+				r.logger.Error().Err(acceptErr).Str("slot", target.Key()).Bool("releaseFailed", releaseFailed).
+					Msg("Failed to deliver or release acquired KTMB hold")
 				// A real hold now exists. If it cannot be delivered or released,
 				// stop this slot rather than risk accumulating orphan holds.
 				return tally
@@ -153,7 +225,7 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 		switch {
 		case Matches(response.Messages, r.config.SessionPatterns):
 			tally.SessionDead++
-			cancelEpoch()
+			r.markSessionDead(ctx, cancelEpoch, userData, target, response.Messages)
 			return tally
 		case Matches(response.Messages, r.config.StaleDataPatterns):
 			tally.Stale++
@@ -177,6 +249,8 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 			}
 		default:
 			tally.Errors++
+			r.logger.Warn().Str("slot", target.Key()).Strs("messages", response.Messages).
+				Msg("Unclassified KTMB Reserve response")
 			errorsSeen++
 			if errorsSeen >= errorLimit || !sleepContext(ctx, exponential(baseBackoff, errorsSeen)) {
 				return tally
@@ -186,26 +260,101 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 	return tally
 }
 
-func (r *Runner) acceptHold(ctx context.Context, userData, bookingData string, target Target) error {
-	if r.config.DryRun {
-		response, err := r.ktmb.Cancel(userData, bookingData)
-		if err != nil {
-			return fmt.Errorf("release dry-run hold: %w", err)
-		}
-		if !response.Status {
-			return fmt.Errorf("release dry-run hold: %v", response.Messages)
-		}
-		return nil
+func (r *Runner) markSessionDead(ctx context.Context, cancelEpoch context.CancelFunc, userData string, target Target, messages []string) {
+	if err := r.signalSessionDead(context.WithoutCancel(ctx), SessionFingerprint(userData)); err != nil {
+		r.logger.Error().Err(err).Str("slot", target.Key()).Strs("messages", messages).
+			Msg("Failed to persist dead KTMB session signal")
 	}
+	cancelEpoch()
+}
+
+func (r *Runner) acceptHold(ctx context.Context, userData, bookingData string, target Target) (bool, error) {
 	dto := reserver.ReserveDto{UserData: userData, BookingData: bookingData, Direction: target.Direction, Date: target.Date, Time: target.Time}
+	if r.config.DryRun {
+		return r.compensateHold(ctx, dto, errors.New("dry-run hold must be released"))
+	}
 	encrypted, err := r.encryptor.EncryptAny(dto)
 	if err != nil {
-		_, _ = r.ktmb.Cancel(userData, bookingData)
-		return err
+		return r.compensateHold(ctx, dto, fmt.Errorf("encrypt hold DTO: %w", err))
 	}
 	if err = r.enqueue(ctx, encrypted); err != nil {
-		_, _ = r.ktmb.Cancel(userData, bookingData)
+		return r.compensateHold(ctx, dto, fmt.Errorf("enqueue hold DTO: %w", err))
+	}
+	return false, nil
+}
+
+// compensateHold confirms cancellation or durably records the encrypted hold
+// for retry by this and subsequent prober Jobs. Returning releaseFailed=true
+// means immediate cancellation was not confirmed, even if persistence worked.
+func (r *Runner) compensateHold(ctx context.Context, dto reserver.ReserveDto, cause error) (bool, error) {
+	cancelCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
+	defer cancel()
+	response, cancelErr := r.ktmb.CancelContext(cancelCtx, dto.UserData, dto.BookingData)
+	if cancelErr == nil && response.Status {
+		if r.config.DryRun {
+			return false, nil
+		}
+		return false, cause
+	}
+	if cancelErr == nil {
+		cancelErr = fmt.Errorf("KTMB cancel rejected: %v", response.Messages)
+	}
+	encrypted, encryptErr := r.encryptor.EncryptAny(dto)
+	if encryptErr != nil {
+		return true, errors.Join(cause, cancelErr, fmt.Errorf("encrypt durable release: %w", encryptErr))
+	}
+	persistErr := r.persistRelease(context.WithoutCancel(ctx), encrypted)
+	if persistErr != nil {
+		return true, errors.Join(cause, cancelErr, fmt.Errorf("persist durable release: %w", persistErr))
+	}
+	return true, errors.Join(cause, cancelErr, errors.New("hold queued for durable release retry"))
+}
+
+func (r *Runner) drainReleases(ctx context.Context) error {
+	limit := r.config.ReleaseDrainLimit
+	if limit <= 0 {
+		limit = 10
+	}
+	budget := time.Duration(r.config.ReleaseDrainBudgetMs) * time.Millisecond
+	if budget <= 0 {
+		budget = 5 * time.Second
+	}
+	cleanupCtx, cancel := context.WithTimeout(ctx, budget)
+	defer cancel()
+	values, err := r.listReleases(cleanupCtx, limit)
+	if err != nil {
 		return err
+	}
+	for index, encrypted := range values {
+		if index >= limit || cleanupCtx.Err() != nil {
+			break
+		}
+		dto, decryptErr := r.encryptor.DecryptAny(encrypted)
+		if decryptErr != nil {
+			r.logger.Error().Err(decryptErr).Msg("Unreadable durable prober release entry")
+			if removeErr := r.removeRelease(cleanupCtx, encrypted); removeErr != nil {
+				return removeErr
+			}
+			continue
+		}
+		response, cancelErr := r.ktmb.CancelContext(cleanupCtx, dto.UserData, dto.BookingData)
+		if cancelErr != nil || !response.Status {
+			if cancelErr == nil && Matches(response.Messages, r.config.ReleaseTerminalPatterns) {
+				if removeErr := r.removeRelease(cleanupCtx, encrypted); removeErr != nil {
+					return removeErr
+				}
+				r.logger.Warn().Strs("messages", response.Messages).Msg("Removed terminal durable prober release")
+				continue
+			}
+			r.logger.Error().Err(cancelErr).Strs("messages", response.Messages).
+				Msg("Durable prober hold release remains pending")
+			continue
+		}
+		if removeErr := r.removeRelease(cleanupCtx, encrypted); removeErr != nil {
+			return removeErr
+		}
+		r.logger.Info().Str("slot", Target{Direction: dto.Direction, Date: dto.Date, Time: dto.Time}.Key()).
+			Msg("Released durable prober hold")
 	}
 	return nil
 }
@@ -276,5 +425,9 @@ func (r *Runner) logTally(tally SlotTally, epoch int64, job, message string) {
 	r.logger.Info().Str("slot", tally.Slot).Int64("polls", tally.Polls).Int64("holds", tally.Holds).
 		Int64("soldOut", tally.SoldOut).Int64("stale", tally.Stale).Int64("errors", tally.Errors).
 		Int64("rateLimited", tally.RateLimited).Int64("sessionDead", tally.SessionDead).Int64("skipped", tally.Skipped).
-		Int64("epoch", epoch).Str("job", job).Msg(message)
+		Int64("releaseFailed", tally.ReleaseFailed).Int64("epoch", epoch).Str("job", job).Msg(message)
+}
+
+func SessionFingerprint(userData string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(userData)))
 }

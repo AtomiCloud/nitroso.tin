@@ -13,15 +13,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
 type JobCreator struct {
 	kube       kubernetes.Interface
 	namespace  string
-	podName    string
-	podUID     types.UID
 	container  corev1.Container
 	volumes    []corev1.Volume
 	app        config.AppConfig
@@ -29,11 +26,11 @@ type JobCreator struct {
 	logger     *zerolog.Logger
 }
 
-func NewJobCreator(kube kubernetes.Interface, namespace, podName string, podUID types.UID,
-	container corev1.Container, volumes []corev1.Volume, app config.AppConfig, jobMinutes int,
+func NewJobCreator(kube kubernetes.Interface, namespace string, container corev1.Container,
+	volumes []corev1.Volume, app config.AppConfig, jobMinutes int,
 	logger *zerolog.Logger) *JobCreator {
-	return &JobCreator{kube: kube, namespace: namespace, podName: podName, podUID: podUID,
-		container: container, volumes: volumes, app: app, jobMinutes: jobMinutes, logger: logger}
+	return &JobCreator{kube: kube, namespace: namespace, container: container,
+		volumes: volumes, app: app, jobMinutes: jobMinutes, logger: logger}
 }
 
 func JobName(epoch int64, shard, fanout int) string {
@@ -71,11 +68,11 @@ func (c *JobCreator) Create(ctx context.Context, epoch int64, shard, fanout int,
 	}
 	backoff := int32(0)
 	ttl := int32(300)
+	activeDeadline := int64(c.jobMinutes*60 + 125)
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: c.namespace, Labels: labels,
-			OwnerReferences: []metav1.OwnerReference{{APIVersion: "v1", Kind: "Pod", Name: c.podName, UID: c.podUID}}},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: c.namespace, Labels: labels},
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backoff, TTLSecondsAfterFinished: &ttl,
+			BackoffLimit: &backoff, TTLSecondsAfterFinished: &ttl, ActiveDeadlineSeconds: &activeDeadline,
 			Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: labels}, Spec: corev1.PodSpec{
 				RestartPolicy:   corev1.RestartPolicyNever,
 				SecurityContext: &corev1.PodSecurityContext{RunAsNonRoot: boolPtr(true)},

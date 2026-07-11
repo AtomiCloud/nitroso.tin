@@ -206,14 +206,17 @@ type PollerConfig struct {
 // fields. DryRun must remain enabled until the KTMB response patterns have been
 // validated in the target landscape.
 type ProberConfig struct {
-	EpochMinutes   int
-	JobMinutes     int
-	SlotsPerJob    int
-	Fanout         int
-	PaceMs         int
-	DryRun         bool
-	ErrorLimit     int
-	ErrorBackoffMs int
+	EpochMinutes            int
+	JobMinutes              int
+	SlotsPerJob             int
+	Fanout                  int
+	PaceMs                  int
+	DryRun                  bool
+	ErrorLimit              int
+	ErrorBackoffMs          int
+	ReleaseDrainLimit       int
+	ReleaseDrainBudgetMs    int
+	ReleaseTerminalPatterns []string
 
 	SoldOutPatterns   []string
 	StaleDataPatterns []string

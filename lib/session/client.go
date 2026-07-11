@@ -3,11 +3,15 @@ package session
 import (
 	"context"
 	"errors"
+	"strings"
+	"time"
+
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"strings"
 )
 
 type Session struct {
@@ -29,38 +33,40 @@ func New(ktmb *ktmb.Ktmb, main *otelredis.OtelRedis, logger *zerolog.Logger, key
 }
 
 func (s *Session) Login(ctx context.Context, email, password string) (string, error) {
-	// check cache
 	l := s.logger.With().Ctx(ctx).Str("redisKey", s.key).Logger()
-
-	l.Info().Msgf("Checking cache for existing login using key %s...", s.key)
-
-	exists, err := s.main.Exists(ctx, s.key).Result()
-	if err != nil {
-		l.Error().
-			Err(err).
-			Msgf("Failed to check if key %s for login session exists", s.key)
-		return "", err
+	if token, found, err := s.cached(ctx); err != nil || found {
+		return token, err
 	}
 
-	// cache hit
-	if exists != 0 {
-		l.Info().Msgf("Login session found in cache, retrieving token...")
-		tokenEnc, er := s.main.Get(ctx, s.key).Result()
-		if er != nil {
-			l.Error().Err(er).Msgf("Failed to get login session with key %s", s.key)
-			return "", er
+	// Every module sharing the funded account uses this Redis lock. It prevents
+	// concurrent cache-miss logins from invalidating each other's KTMB session.
+	lockKey := s.key + ":login-lock"
+	owner := uuid.NewString()
+	for {
+		acquired, err := s.main.SetNX(ctx, lockKey, owner, 90*time.Second).Result()
+		if err != nil {
+			return "", err
 		}
-		l.Info().Str("token", tokenEnc).Msg("Decrypting login session token...")
-		token, er := s.encryptor.Decrypt(tokenEnc)
-		if er != nil {
-			l.Error().Err(er).Msg("Failed to decrypt login session token")
-			return "", er
+		if acquired {
+			break
 		}
-		l.Info().Msg("Successfully decrypted login session")
-		return token, nil
-
+		if token, found, err := s.cached(ctx); err != nil || found {
+			return token, err
+		}
+		timer := time.NewTimer(100 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return "", ctx.Err()
+		case <-timer.C:
+		}
 	}
-	// cache miss
+	defer s.releaseLock(context.WithoutCancel(ctx), lockKey, owner)
+
+	// A lock waiter may have filled the cache immediately before we acquired it.
+	if token, found, err := s.cached(ctx); err != nil || found {
+		return token, err
+	}
 	l.Info().Msg("Login session not found in cache, logging in...")
 	login, err := s.ktmb.Login(email, password)
 	if err != nil {
@@ -78,9 +84,6 @@ func (s *Session) Login(ctx context.Context, email, password string) (string, er
 		l.Error().Err(err).Msg("Failed to encrypt login session token")
 		return "", err
 	}
-	l.Info().Str("token", enc).Msg("Successfully encrypted login session token")
-
-	l.Info().Str("token", enc).Msg("Saving login session token to cache...")
 	result, err := s.main.Set(ctx, s.key, enc, 0).Result()
 	if err != nil {
 		l.Error().Err(err).
@@ -91,4 +94,27 @@ func (s *Session) Login(ctx context.Context, email, password string) (string, er
 
 	l.Info().Msg("Successfully save login session to cache")
 	return token, nil
+}
+
+func (s *Session) cached(ctx context.Context) (string, bool, error) {
+	encrypted, err := s.main.Get(ctx, s.key).Result()
+	if err == redis.Nil {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	token, err := s.encryptor.Decrypt(encrypted)
+	return token, err == nil, err
+}
+
+func (s *Session) releaseLock(ctx context.Context, lockKey, owner string) {
+	const script = `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end
+return 0`
+	if err := s.main.Eval(ctx, script, []string{lockKey}, owner).Err(); err != nil {
+		s.logger.Error().Err(err).Msg("Failed to release KTMB login lock")
+	}
 }

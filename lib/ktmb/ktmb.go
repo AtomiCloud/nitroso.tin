@@ -110,8 +110,12 @@ func (k *Ktmb) Logout(userData string) (GenericRes[*interface{}], error) {
 }
 
 func (k *Ktmb) StationsAll(userData string) (GenericRes[StationsAllRes], error) {
+	return k.StationsAllContext(context.Background(), userData)
+}
+
+func (k *Ktmb) StationsAllContext(ctx context.Context, userData string) (GenericRes[StationsAllRes], error) {
 	client := NewHttp[string, GenericRes[StationsAllRes]](k.NewApp())
-	r, err := client.Send("POST", "/v1/shuttletrip/Station", apiHost, map[string]string{
+	r, err := client.SendContext(ctx, "POST", "/v1/shuttletrip/Station", apiHost, map[string]string{
 		"userData": userData,
 	})
 	if err != nil {
@@ -122,6 +126,10 @@ func (k *Ktmb) StationsAll(userData string) (GenericRes[StationsAllRes], error) 
 }
 
 func (k *Ktmb) SearchStations(userData, fromStationId, fromStationData, toStationId, toStationData, onwardDate string, passengerCount int64) (GenericRes[SearchStationsRes], error) {
+	return k.SearchStationsContext(context.Background(), userData, fromStationId, fromStationData, toStationId, toStationData, onwardDate, passengerCount)
+}
+
+func (k *Ktmb) SearchStationsContext(ctx context.Context, userData, fromStationId, fromStationData, toStationId, toStationData, onwardDate string, passengerCount int64) (GenericRes[SearchStationsRes], error) {
 	client := NewHttp[SearchReq, GenericRes[SearchStationsRes]](k.NewApp())
 	req := SearchReq{
 		FromStationData: fromStationData,
@@ -131,7 +139,7 @@ func (k *Ktmb) SearchStations(userData, fromStationId, fromStationData, toStatio
 		ToStationData:   toStationData,
 		ToStationID:     toStationId,
 	}
-	r, err := client.SendWith("POST", "/v1/shuttletrip/Search", req, apiHost, map[string]string{
+	r, err := client.SendWithContext(ctx, "POST", "/v1/shuttletrip/Search", req, apiHost, map[string]string{
 		"userData": userData,
 	})
 	if err != nil {
@@ -142,13 +150,17 @@ func (k *Ktmb) SearchStations(userData, fromStationId, fromStationData, toStatio
 }
 
 func (k *Ktmb) Trip(userData, departDate, searchData string) (GenericRes[TripAllRes], error) {
+	return k.TripContext(context.Background(), userData, departDate, searchData)
+}
+
+func (k *Ktmb) TripContext(ctx context.Context, userData, departDate, searchData string) (GenericRes[TripAllRes], error) {
 	client := NewHttp[TripReq, GenericRes[TripAllRes]](k.NewApp())
 	req := TripReq{
 		BookingTripSequenceNo: 1,
 		DepartDate:            departDate,
 		SearchData:            searchData,
 	}
-	r, err := client.SendWith("POST", "/v1/shuttletrip/Trip", req, apiHost, map[string]string{
+	r, err := client.SendWithContext(ctx, "POST", "/v1/shuttletrip/Trip", req, apiHost, map[string]string{
 		"userData": userData,
 	})
 	if err != nil {
@@ -159,6 +171,10 @@ func (k *Ktmb) Trip(userData, departDate, searchData string) (GenericRes[TripAll
 }
 
 func (k *Ktmb) Reserve(userData, appInformation, searchData, tripData string) (GenericRes[ReserveRes], error) {
+	return k.ReserveContext(context.Background(), userData, appInformation, searchData, tripData)
+}
+
+func (k *Ktmb) ReserveContext(ctx context.Context, userData, appInformation, searchData, tripData string) (GenericRes[ReserveRes], error) {
 	client := NewHttp[ReserveReq, GenericRes[ReserveRes]](k.NewApp())
 	req := ReserveReq{
 		AppInformation: appInformation,
@@ -169,7 +185,7 @@ func (k *Ktmb) Reserve(userData, appInformation, searchData, tripData string) (G
 			},
 		},
 	}
-	r, err := client.SendWith("POST", "/v1/shuttletrip/Reserve", req, apiHost, map[string]string{
+	r, err := client.SendWithContext(ctx, "POST", "/v1/shuttletrip/Reserve", req, apiHost, map[string]string{
 		"userData": userData,
 	})
 	if err != nil {
@@ -275,12 +291,16 @@ func (k *Ktmb) PrintTicket(userData, bookingNo, ticketNo string) ([]byte, error)
 }
 
 func (k *Ktmb) Cancel(userData, bookingData string) (GenericRes[*interface{}], error) {
+	return k.CancelContext(context.Background(), userData, bookingData)
+}
+
+func (k *Ktmb) CancelContext(ctx context.Context, userData, bookingData string) (GenericRes[*interface{}], error) {
 	client := NewHttp[CancelReserveReq, GenericRes[*interface{}]](k.NewApp())
 
 	req := CancelReserveReq{
 		BookingData: bookingData,
 	}
-	r, err := client.SendWith("POST", "/v1/bookshuttle/Cancel", req, apiHost, map[string]string{
+	r, err := client.SendWithContext(ctx, "POST", "/v1/bookshuttle/Cancel", req, apiHost, map[string]string{
 		"userData": userData,
 	})
 	if err != nil {

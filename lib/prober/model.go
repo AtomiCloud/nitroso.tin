@@ -20,15 +20,16 @@ func (t Target) Key() string {
 }
 
 type SlotTally struct {
-	Slot        string `json:"slot"`
-	Polls       int64  `json:"polls"`
-	Holds       int64  `json:"holds"`
-	SoldOut     int64  `json:"soldOut"`
-	Stale       int64  `json:"stale"`
-	Errors      int64  `json:"errors"`
-	RateLimited int64  `json:"rateLimited"`
-	SessionDead int64  `json:"sessionDead"`
-	Skipped     int64  `json:"skipped"`
+	Slot          string `json:"slot"`
+	Polls         int64  `json:"polls"`
+	Holds         int64  `json:"holds"`
+	SoldOut       int64  `json:"soldOut"`
+	Stale         int64  `json:"stale"`
+	Errors        int64  `json:"errors"`
+	RateLimited   int64  `json:"rateLimited"`
+	SessionDead   int64  `json:"sessionDead"`
+	Skipped       int64  `json:"skipped"`
+	ReleaseFailed int64  `json:"releaseFailed"`
 }
 
 type JobTally struct {
@@ -103,6 +104,7 @@ func SumTallies(epoch int64, job string, slots []SlotTally) JobTally {
 		total.RateLimited += slot.RateLimited
 		total.SessionDead += slot.SessionDead
 		total.Skipped += slot.Skipped
+		total.ReleaseFailed += slot.ReleaseFailed
 	}
 	return JobTally{Epoch: epoch, Job: job, Slots: slots, Total: total}
 }

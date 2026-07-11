@@ -18,23 +18,132 @@ import (
 )
 
 // Store owns the encrypted session and trip-data references shared between the
-// spawner and prober Jobs. Probers call Load only; only the spawner may Ensure.
+// spawner and prober Jobs. Probers Load and may perform an in-memory Refresh;
+// only the spawner mutates the shared cache through RecoverSession and Ensure.
 type Store struct {
-	redis     *otelredis.OtelRedis
-	session   *session.Session
-	finder    *enricher.Client
-	encryptor encryptor.Encryptor[enricher.FindStore]
-	config    config.EnricherConfig
-	logger    *zerolog.Logger
+	redis          storeCache
+	session        sessionProvider
+	finder         finderProvider
+	encryptor      encryptor.Encryptor[enricher.FindStore]
+	config         config.EnricherConfig
+	loginKey       string
+	sessionDeadKey string
+	logger         *zerolog.Logger
+}
+
+type storeCache interface {
+	Get(context.Context, string) (string, error)
+	SetPair(context.Context, string, string, string, string) error
+	SessionDeathFingerprints(context.Context, string) ([]string, error)
+	RemoveSessionDeathFingerprints(context.Context, string, []string) error
+	CompareAndDeleteSession(context.Context, string, string, string, string) (bool, error)
+}
+
+type redisStoreCache struct{ redis *otelredis.OtelRedis }
+
+func (r redisStoreCache) Get(ctx context.Context, key string) (string, error) {
+	return r.redis.Get(ctx, key).Result()
+}
+
+func (r redisStoreCache) SetPair(ctx context.Context, firstKey, firstValue, secondKey, secondValue string) error {
+	pipe := r.redis.TxPipeline()
+	pipe.Set(ctx, firstKey, firstValue, 0)
+	pipe.Set(ctx, secondKey, secondValue, 0)
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+func (r redisStoreCache) SessionDeathFingerprints(ctx context.Context, signalKey string) ([]string, error) {
+	return r.redis.SMembers(ctx, signalKey).Result()
+}
+
+func (r redisStoreCache) RemoveSessionDeathFingerprints(ctx context.Context, signalKey string, fingerprints []string) error {
+	if len(fingerprints) == 0 {
+		return nil
+	}
+	values := make([]interface{}, len(fingerprints))
+	for i, fingerprint := range fingerprints {
+		values[i] = fingerprint
+	}
+	return r.redis.SRem(ctx, signalKey, values...).Err()
+}
+
+func (r redisStoreCache) CompareAndDeleteSession(ctx context.Context, signalKey, loginKey, userDataKey, expectedEncrypted string) (bool, error) {
+	const script = `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  redis.call("DEL", KEYS[1], KEYS[2], KEYS[3])
+  return 1
+end
+return 0`
+	result, err := r.redis.Eval(ctx, script, []string{loginKey, userDataKey, signalKey}, expectedEncrypted).Int()
+	return result == 1, err
+}
+
+type sessionProvider interface {
+	Login(context.Context, string, string) (string, error)
+}
+
+type finderProvider interface {
+	FindContext(context.Context, string, string, string, string) (enricher.FindRes, error)
 }
 
 func NewStore(redis *otelredis.OtelRedis, session *session.Session, finder *enricher.Client,
-	encr encryptor.Encryptor[enricher.FindStore], cfg config.EnricherConfig, logger *zerolog.Logger) *Store {
-	return &Store{redis: redis, session: session, finder: finder, encryptor: encr, config: cfg, logger: logger}
+	encr encryptor.Encryptor[enricher.FindStore], cfg config.EnricherConfig, loginKey, sessionDeadKey string, logger *zerolog.Logger) *Store {
+	return &Store{redis: redisStoreCache{redis: redis}, session: session, finder: finder, encryptor: encr,
+		config: cfg, loginKey: loginKey, sessionDeadKey: sessionDeadKey, logger: logger}
+}
+
+// RecoverSession is spawner-only. Prober Jobs merely signal session death; the
+// single spawner consumes that signal and removes the shared cached token before
+// Ensure performs the next cache-miss login.
+func (s *Store) RecoverSession(ctx context.Context) error {
+	fingerprints, err := s.redis.SessionDeathFingerprints(ctx, s.sessionDeadKey)
+	if err != nil {
+		return fmt.Errorf("consume dead session signal: %w", err)
+	}
+	if len(fingerprints) == 0 {
+		return nil
+	}
+	encrypted, err := s.redis.Get(ctx, s.loginKey)
+	if err == redis.Nil {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read signalled KTMB session: %w", err)
+	}
+	current, err := s.encryptor.Decrypt(encrypted)
+	if err != nil {
+		return fmt.Errorf("decrypt signalled KTMB session: %w", err)
+	}
+	currentFingerprint := SessionFingerprint(current)
+	matched := false
+	for _, fingerprint := range fingerprints {
+		if fingerprint == currentFingerprint {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		if err := s.redis.RemoveSessionDeathFingerprints(ctx, s.sessionDeadKey, fingerprints); err != nil {
+			return fmt.Errorf("remove stale dead-session signals: %w", err)
+		}
+		s.logger.Info().Msg("Ignored stale dead-session signal from an older prober generation")
+		return nil
+	}
+	deleted, err := s.redis.CompareAndDeleteSession(ctx, s.sessionDeadKey, s.loginKey, s.config.UserDataKey, encrypted)
+	if err != nil {
+		return fmt.Errorf("invalidate dead KTMB session: %w", err)
+	}
+	if !deleted {
+		s.logger.Info().Msg("KTMB session changed during recovery; preserved the newer token")
+		return nil
+	}
+	s.logger.Warn().Msg("Invalidated dead shared KTMB session for next epoch")
+	return nil
 }
 
 func (s *Store) Load(ctx context.Context) (string, enricher.FindStore, error) {
-	userDataEncrypted, err := s.redis.Get(ctx, s.config.UserDataKey).Result()
+	userDataEncrypted, err := s.redis.Get(ctx, s.config.UserDataKey)
 	if err != nil {
 		return "", nil, fmt.Errorf("read cached userData: %w", err)
 	}
@@ -42,7 +151,7 @@ func (s *Store) Load(ctx context.Context) (string, enricher.FindStore, error) {
 	if err != nil {
 		return "", nil, fmt.Errorf("decrypt cached userData: %w", err)
 	}
-	storeEncrypted, err := s.redis.Get(ctx, s.config.StoreKey).Result()
+	storeEncrypted, err := s.redis.Get(ctx, s.config.StoreKey)
 	if err != nil {
 		return "", nil, fmt.Errorf("read cached trip store: %w", err)
 	}
@@ -62,7 +171,7 @@ func (s *Store) Ensure(ctx context.Context, targets []Target) error {
 		return fmt.Errorf("ensure shared KTMB session: %w", err)
 	}
 	cached := make(enricher.FindStore)
-	if encrypted, getErr := s.redis.Get(ctx, s.config.StoreKey).Result(); getErr == nil {
+	if encrypted, getErr := s.redis.Get(ctx, s.config.StoreKey); getErr == nil {
 		if existing, decryptErr := s.encryptor.DecryptAny(encrypted); decryptErr == nil {
 			cached = existing
 		} else {
@@ -86,7 +195,7 @@ func (s *Store) Ensure(ctx context.Context, targets []Target) error {
 		wg.Add(1)
 		go func(target Target) {
 			defer wg.Done()
-			found, findErr := s.finder.Find(userData, target.Direction, lib.ZincToHeliumDate(target.Date), target.Time)
+			found, findErr := s.finder.FindContext(ctx, userData, target.Direction, lib.ZincToHeliumDate(target.Date), target.Time)
 			if findErr != nil {
 				s.logger.Error().Err(findErr).Str("slot", target.Key()).Msg("Failed to seed prober slot")
 				return
@@ -106,17 +215,14 @@ func (s *Store) Ensure(ctx context.Context, targets []Target) error {
 	if err != nil {
 		return fmt.Errorf("encrypt trip store: %w", err)
 	}
-	pipe := s.redis.TxPipeline()
-	pipe.Set(ctx, s.config.UserDataKey, userDataEncrypted, 0)
-	pipe.Set(ctx, s.config.StoreKey, storeEncrypted, 0)
-	if _, err = pipe.Exec(ctx); err != nil {
+	if err = s.redis.SetPair(ctx, s.config.UserDataKey, userDataEncrypted, s.config.StoreKey, storeEncrypted); err != nil {
 		return fmt.Errorf("write prober cache: %w", err)
 	}
 	return nil
 }
 
 func (s *Store) Refresh(ctx context.Context, userData string, target Target) (enricher.FindRes, error) {
-	found, err := s.finder.Find(userData, target.Direction, lib.ZincToHeliumDate(target.Date), target.Time)
+	found, err := s.finder.FindContext(ctx, userData, target.Direction, lib.ZincToHeliumDate(target.Date), target.Time)
 	if err != nil {
 		return enricher.FindRes{}, err
 	}

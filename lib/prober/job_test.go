@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -21,7 +20,7 @@ func TestJobCreatorBuildsDeterministicCacheOnlyJob(t *testing.T) {
 		EnvFrom:      []corev1.EnvFromSource{{SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: "tin"}}}},
 		VolumeMounts: []corev1.VolumeMount{{Name: "config", MountPath: "/app/config"}},
 	}
-	creator := NewJobCreator(kube, "nitroso", "tin-spawner-abc", types.UID("pod-uid"), container,
+	creator := NewJobCreator(kube, "nitroso", container,
 		[]corev1.Volume{{Name: "config"}}, config.AppConfig{Landscape: "pichu", Platform: "nitroso", Service: "tin"}, 2, &logger)
 	targets := []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 2}}
 
@@ -40,8 +39,11 @@ func TestJobCreatorBuildsDeterministicCacheOnlyJob(t *testing.T) {
 	if *job.Spec.BackoffLimit != 0 || *job.Spec.TTLSecondsAfterFinished != 300 {
 		t.Fatalf("unsafe lifecycle config: %#v", job.Spec)
 	}
-	if len(job.OwnerReferences) != 1 || job.OwnerReferences[0].UID != "pod-uid" {
-		t.Fatalf("missing spawner owner reference: %#v", job.OwnerReferences)
+	if job.Spec.ActiveDeadlineSeconds == nil || *job.Spec.ActiveDeadlineSeconds != 245 {
+		t.Fatalf("active deadline = %v, want 245 seconds", job.Spec.ActiveDeadlineSeconds)
+	}
+	if len(job.OwnerReferences) != 0 {
+		t.Fatalf("Jobs must survive spawner Pod replacement: %#v", job.OwnerReferences)
 	}
 	got := job.Spec.Template.Spec.Containers[0]
 	if got.Image != container.Image || strings.Join(got.Command, " ") != "/app/nitroso-tin prober" {
