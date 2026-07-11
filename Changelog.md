@@ -1,3 +1,10 @@
+## [1.51.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.50.1...v1.51.0) (2026-07-11)
+
+
+### ✨ Features ✨
+
+* **withdrawer:** config gate to disable the auto-approve sweep ([#42](https://github.com/AtomiCloud/nitroso.tin/issues/42)) ([9875fea](https://github.com/AtomiCloud/nitroso.tin/commit/9875fea0f015df3135cb1e984f1258cdb988c211))
+
 ## [1.50.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.50.0...v1.50.1) (2026-07-11)
 
 
