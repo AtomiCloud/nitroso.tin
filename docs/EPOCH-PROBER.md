@@ -78,7 +78,7 @@ group) — and each Job expires by its own deadline:
           cmd: /app/nitroso-tin prober
                -d '[{dir,date,time,needed}, ...]'      (THIS shard's slots ONLY)
                -i <jobMinutes × 60>                    (probe deadline; default 120 s)
-          backoffLimit: 0, TTLSecondsAfterFinished: 300, ownerRef → spawner pod
+          backoffLimit: 0, TTLSecondsAfterFinished: 300, no ephemeral ownerRef
    (e.g. 3000 slots, slotsPerJob=500, fanout=1 → 6 Jobs/epoch; fanout=2 → 12.
     breadth = coverage (every slot gets a dedicated prober); fanout = aggression
     (each slot group hammered by N Jobs = N× the Reserve attempts/slot). Jobs live
@@ -89,10 +89,10 @@ group) — and each Job expires by its own deadline:
     args are plaintext in the pod spec, and the current poller leaks pool tokens that
     way (lib/poller/job.go:134); the funded account's session must not repeat that.)
 
- tin-prober Job (Go, one shard's slots; pure consumer)
-   read session + SearchData/TripData from MAIN (never logs in, never enriches —
-     a missing/stale slot is skipped and tallied; the spawner fixes it next epoch,
-     or the prober self-seeds, §7)
+ tin-prober Job (Go, one shard's slots; cache/session consumer)
+   read session + SearchData/TripData from MAIN; never logs in and never mutates
+     the shared cache, but may self-seed or refresh one missing/stale slot in memory
+     through the context-aware enrichment path (§7)
    goroutine per slot: ktmb.Reserve loop until deadline or budget met
      (paceMs default 0 = unthrottled; X-Real-IP rotated per request — §7)
      ├─ Status=true → hold acquired → LPUSH STREAM "reserver" ReserveDto  (unchanged)
@@ -185,8 +185,13 @@ slotsPerJob)` groups (`prober.slotsPerJob`, default 500), then creates `fanout`
 - **TTLSecondsAfterFinished**: 300 (long enough to scrape logs; short enough to keep
   the namespace clean). `backoffLimit: 0` — a crashed prober is NOT retried by k8s;
   the next tick replaces it (crash-loops burn accounts, clean ticks don't).
-- **OwnerReference → spawner pod**, as today (`lib/poller/job.go:158-169`): a deleted
-  spawner GCs its in-flight Jobs.
+  `activeDeadlineSeconds = jobMinutes × 60 + 125` is the hard pod lifetime: probing
+  stops at `jobMinutes`, then the pod retains enough cleanup grace for a 60-second
+  Reserve plus a 60-second compensating Cancel. KTMB requests are context-aware
+  and also have a 60-second HTTP-client timeout.
+- **No spawner-Pod OwnerReference**: Jobs must survive a spawner restart or outage.
+  Deterministic names prevent duplicates and the 300-second completion TTL handles
+  cleanup without coupling Job lifetime to an ephemeral Deployment Pod.
 - **Demand snapshot**: reuse `count.Client.GetPollerCount` window filter
   (`lib/count/client.go:33-39`, `[now+closing, now+6mo]`). Each slot's entry carries
   `needed` (tickets still Pending) so the prober can stop early (§7 hold budget).
@@ -205,11 +210,17 @@ replaced.
   invalidates everyone else's session. Rules:
   - The prober only ever **reuses** the cached session; it never force re-logins.
     Overlapping Job generations and fanout siblings all read the same token safely.
-  - On a session-invalid error, the prober bails the epoch (logged in the tally);
-    the existing `session.Login` cache-miss path re-establishes the session on the
-    next module that needs it. (Today nothing refreshes a _stale but present_
-    cache entry either — this design does not regress that; a shared
-    delete-then-relogin helper is a possible later hardening.)
+    All cache-miss login callers (including the legacy enricher during Phase 1)
+    share the Redis `login-session:login-lock`, so only one KTMB login can create
+    the replacement token.
+  - On a session-invalid error, the prober bails the epoch and writes the durable
+    token's SHA-256 fingerprint into the `{ps}:prober:session-dead` Redis set; it
+    never deletes or refreshes the shared token. The single spawner consumes all
+    pending fingerprints next tick and atomically deletes the cache only when one
+    matches the exact encrypted token it read. Late failures from overlapping
+    old-token Jobs cannot delete a newer healthy session or overwrite a current-token
+    failure. A matching dead token is re-established through the existing cache-miss
+    `session.Login`.
 - **Funding**: the account must hold e-wallet balance ≥ (max holds per epoch ×
   ticket price). With fanout, max holds per epoch scales with `breadth × fanout ×
 needed`; size the wallet accordingly. Operational runbook item, not code. The
@@ -301,6 +312,15 @@ loop until deadline or holds == needed:
   extra holds per slot can land before CDC catches up; these are absorbed by §3.2
   (buyer 404→release + hold expiry + zinc Buying guard). Tighter coordination via a
   shared per-slot redis decrement is possible later if over-hold volume warrants it.
+- **Failed delivery/release safety**: if a hold cannot be enqueued, or a dry-run
+  hold cannot be cancelled immediately, persist its encrypted `ReserveDto` in
+  MAIN `{ps}:prober:release`. Every Job retries these cancellations before probing
+  and removes an entry only after KTMB confirms success. `releaseFailed` is tallied
+  and logged loudly; session and booking blobs never appear in plaintext. Cleanup
+  fetches and attempts at most 10 entries within 5 seconds per Job so the queue
+  cannot starve new probing. Unreadable encrypted entries are removed with a loud
+  error, and KTMB responses matching `releaseTerminalPatterns` (expired/not-found)
+  are removed as conclusively no longer releasable.
 - **Warm pool**: construct `ktmb.New` with `WarmConfig{PoolSize: ~slot count, ...}`
   (`lib/ktmb/warmpool.go`) so TLS/DNS are pre-warmed at Job start — the mechanism
   already exists for the reserver, the pollee never had it.
@@ -318,20 +338,26 @@ loop until deadline or holds == needed:
   `{"slot":"JToW:26-12-2026:08:30", "polls":213, "holds":2, "soldOut":209,
 "stale":1, "errors":1, "rateLimited":0}` + one totals line per Job.
 - **Epoch tally in MAIN redis**: each Job LPUSHes its tally to
-  `{ps}:prober:tally:<E>` (a list); the spawner aggregates the list before spawning
-  epoch E+1, `EXPIRE` 24 h:
+  `{ps}:prober:tally:<E>` (a list), `EXPIRE` 24 h. Because generations overlap,
+  the spawner aggregates E only after `ceil(jobMinutes/epochMinutes) + 1` ticks,
+  when every Job has crossed its deadline and flushed its tally:
   - zero-polls across the whole batch ⇒ log loud error (KTMB down, session dead, or
     patterns broken);
   - rate-limit / 4xx-throttle responses are tallied for visibility but NOT acted
     on — probing continues uncapped (X-Real-IP rotation is the mitigation, §7);
-  - tally missing ⇒ that Job died; spawn normally (ticks self-heal).
+  - the spawner stores every expected deterministic Job name in
+    `{ps}:prober:expected:<E>` and logs the exact missing names when only part of a
+    fleet reports; spawn normally (ticks self-heal).
 - Prometheus stays out of scope for v1; logs + redis tally are sufficient and
   match the fleet's existing observability posture.
 
 ## 9. Migration plan (each phase independently shippable / revertible)
 
-- **Phase 0 — validate (§10)** on pichu with a throwaway `prober validate` run. (The
-  rate-limit axis, §10.2, is already verified.)
+- **Phase 0 — validate (§10)** on pichu by enabling only `spawner.enabled` while
+  `prober.dryRun: true` remains set. Inspect the spawned `tin-prober-*` Job logs for
+  verbatim `Unclassified KTMB Reserve response` messages and the per-slot tallies;
+  use those messages to tighten the response patterns before enabling queue pushes.
+  (The rate-limit axis, §10.2, is already verified.)
 - **Phase 1 — build behind a mode flag.** `reserver.mode: delta | probe` is NOT
   needed — instead the spawner and prober ship as new modules while the old
   pipeline keeps running untouched. New: `cmds/spawner.go`, `cmds/prober.go`,

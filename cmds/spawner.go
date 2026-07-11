@@ -47,9 +47,10 @@ func (state *State) Spawner(c *cli.Context) error {
 	sessionEncryptor := encryptor.NewSymEncryptor[ktmb.LoginRes](state.Config.Encryptor.Key, state.Logger)
 	sharedSession := session.New(&k, &mainRedis, state.Logger, ktmbConfig.LoginKey, sessionEncryptor)
 	finder := enricher.New(k, &sharedSession, state.Logger)
-	store := prober.NewStore(&mainRedis, &sharedSession, &finder, storeEncryptor, state.Config.Enricher, state.Logger)
+	store := prober.NewStore(&mainRedis, &sharedSession, &finder, storeEncryptor, state.Config.Enricher,
+		ktmbConfig.LoginKey, state.Ps+":prober:session-dead", state.Logger)
 	counts := count.New(state.Config.Buffer, &mainRedis, state.Logger, state.Ps, state.Location)
-	jobs := prober.NewJobCreator(kube, namespace, podName, pod.UID, container, pod.Spec.Volumes,
+	jobs := prober.NewJobCreator(kube, namespace, container, pod.Spec.Volumes,
 		state.Config.App, state.Config.Prober.JobMinutes, state.Logger)
 	spawner := prober.NewSpawner(counts, store, jobs, &mainRedis, state.Config.Prober, state.Ps, state.Logger)
 	state.Logger.Info().Msg("Starting epoch prober spawner")

@@ -2,6 +2,7 @@ package ktmb
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog"
@@ -115,17 +116,24 @@ func newHTTPClient(proxy *string, dc *dnsCache, maxIdlePerHost int) *http.Client
 			return u.Parse(strings.TrimSpace(proxies[rand.Intn(len(proxies))]))
 		}
 	}
-	return &http.Client{Transport: transport}
+	// Bound the complete exchange, including body reads. Individual callers do
+	// not currently attach contexts to requests, so without a client timeout a
+	// stalled peer could keep a short-lived prober Job alive indefinitely.
+	return &http.Client{Transport: transport, Timeout: 60 * time.Second}
 }
 
 func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string]string) (Y, error) {
+	return k.SendContext(context.Background(), method, path, headers...)
+}
+
+func (k HttpClient[T, Y]) SendContext(ctx context.Context, method string, path string, headers ...map[string]string) (Y, error) {
 	url := fmt.Sprintf("%s/%s", k.Url, path)
 
 	var y Y
 
 	body := strings.NewReader("")
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to create request")
 		return y, err
@@ -155,9 +163,9 @@ func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string
 		resp, e := io.ReadAll(res.Body)
 		if e != nil {
 			k.logger.Error().Err(err).Msg("Failed to read response")
-			return y, fmt.Errorf("status code %d", res.StatusCode)
+			return y, &HttpStatusError{StatusCode: res.StatusCode}
 		} else {
-			return y, fmt.Errorf("status code %d, body %s", res.StatusCode, string(resp))
+			return y, &HttpStatusError{StatusCode: res.StatusCode, Body: string(resp)}
 		}
 
 	}
@@ -177,6 +185,10 @@ func (k HttpClient[T, Y]) Send(method string, path string, headers ...map[string
 }
 
 func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, headers ...map[string]string) (Y, error) {
+	return k.SendWithContext(context.Background(), method, path, payload, headers...)
+}
+
+func (k HttpClient[T, Y]) SendWithContext(ctx context.Context, method string, path string, payload T, headers ...map[string]string) (Y, error) {
 	url := fmt.Sprintf("%s/%s", k.Url, path)
 
 	var y Y
@@ -188,7 +200,7 @@ func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, header
 	}
 
 	body := bytes.NewReader(marshal)
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to create request")
 		return y, err
@@ -221,7 +233,7 @@ func (k HttpClient[T, Y]) SendWith(method string, path string, payload T, header
 
 	if res.StatusCode > 399 {
 		k.logger.Error().Str("body", string(resp)).Int("status", res.StatusCode).Msg("HTTP request failed")
-		return y, fmt.Errorf("status code %d, body %s", res.StatusCode, string(resp))
+		return y, &HttpStatusError{StatusCode: res.StatusCode, Body: string(resp)}
 	}
 
 	err = json.Unmarshal(resp, &y)
