@@ -1,3 +1,10 @@
+## [1.52.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.51.0...v1.52.0) (2026-07-12)
+
+
+### ✨ Features ✨
+
+* **withdrawer:** runtime sweep gate from zinc settings ([#43](https://github.com/AtomiCloud/nitroso.tin/issues/43)) ([302cac3](https://github.com/AtomiCloud/nitroso.tin/commit/302cac3a8e3a82098a313fd54c7e7cc23104bc08))
+
 ## [1.51.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.50.1...v1.51.0) (2026-07-11)
 
 
