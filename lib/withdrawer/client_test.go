@@ -358,6 +358,102 @@ func TestReconcileSkipsBenignNotProcessingRejection(t *testing.T) {
 	}
 }
 
+// The two-gate decision: the static config killswitch AND zinc's runtime
+// sweepEnabled switch must both be on, and any failure to read the runtime
+// switch fails closed (404 = disabled, transient error = skip this tick).
+func TestSweepGateDecisionTable(t *testing.T) {
+	cases := []struct {
+		name         string
+		configEnable bool
+		settings     settingsResult
+		want         gateDecision
+	}{
+		{
+			name:         "config killswitch off skips regardless of zinc",
+			configEnable: false,
+			settings:     settingsResult{enabled: true},
+			want:         gateSkipConfig,
+		},
+		{
+			name:         "config on and zinc enabled runs the sweep",
+			configEnable: true,
+			settings:     settingsResult{enabled: true},
+			want:         gateRun,
+		},
+		{
+			name:         "config on but zinc disabled skips",
+			configEnable: true,
+			settings:     settingsResult{enabled: false},
+			want:         gateSkipDisabled,
+		},
+		{
+			name:         "settings endpoint 404 (old zinc) treated as disabled",
+			configEnable: true,
+			settings:     settingsResult{notFound: true},
+			want:         gateSkipNotFound,
+		},
+		{
+			name:         "transient fetch error fails closed and skips the tick",
+			configEnable: true,
+			settings:     settingsResult{err: context.DeadlineExceeded},
+			want:         gateSkipFetchError,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := sweepGate(tc.configEnable, tc.settings); got != tc.want {
+				t.Errorf("sweepGate(%v, %+v) = %v, want %v", tc.configEnable, tc.settings, got, tc.want)
+			}
+		})
+	}
+}
+
+// fetchSweepSettings maps zinc's settings responses onto settingsResult:
+// 200 passes sweepEnabled through, 404 flags notFound (old zinc), and any
+// other failure — non-2xx status or a malformed body — surfaces as err.
+func TestFetchSweepSettingsMapsResponses(t *testing.T) {
+	cases := []struct {
+		name   string
+		status int
+		body   string
+		want   settingsResult
+	}{
+		{"enabled", http.StatusOK, `{"cardRefundEnabled":true,"payNowMode":"Enabled","sweepEnabled":true}`, settingsResult{enabled: true}},
+		{"disabled", http.StatusOK, `{"cardRefundEnabled":false,"payNowMode":"Disabled","sweepEnabled":false}`, settingsResult{enabled: false}},
+		{"old zinc 404", http.StatusNotFound, `not found`, settingsResult{notFound: true}},
+		{"server error", http.StatusInternalServerError, `boom`, settingsResult{err: context.DeadlineExceeded}}, // err: any non-nil
+		{"malformed body", http.StatusOK, `{"sweepEnabled":`, settingsResult{err: context.DeadlineExceeded}},    // err: any non-nil
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet || r.URL.Path != "/api/v1.0/Withdrawal/settings/current" {
+					t.Errorf("unexpected zinc call: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.WriteHeader(tc.status)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+			zc, err := zinc.NewClient(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			l := zerolog.Nop()
+			c := &Client{zinc: zc, logger: &l}
+
+			got := c.fetchSweepSettings(context.Background())
+			if (got.err != nil) != (tc.want.err != nil) {
+				t.Fatalf("err = %v, want err? %v", got.err, tc.want.err != nil)
+			}
+			if got.enabled != tc.want.enabled || got.notFound != tc.want.notFound {
+				t.Errorf("got %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
 // One failing reconcile must not abort the sweep: the remaining withdrawals
 // are still attempted and the tallies attribute exactly one failure — and a
 // 4xx that is NOT InvalidWithdrawalOperation stays a real failure.

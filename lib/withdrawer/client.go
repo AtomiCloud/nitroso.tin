@@ -115,12 +115,28 @@ func (c *Client) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-approveCh:
-			// approvals can be turned off (withdrawals then only pay out when a
-			// human clicks approve in zinc) while the reconcile sweep keeps
-			// running — in-flight Processing payouts must still settle
-			if !c.config.ApproveEnable {
+			// TWO-GATE MODEL: the static config flag (withdrawer.approveEnable) is
+			// the deploy-level killswitch, and zinc's runtime sweepEnabled setting
+			// (admin-flippable in the zinc UI) is the operative switch — both must
+			// be on for a sweep tick to run. Failures reading the zinc switch fail
+			// CLOSED: never sweep when the switch cannot be read. The reconcile
+			// sweep below is NOT gated and keeps running either way — in-flight
+			// Processing payouts must still settle.
+			decision, settings := c.approveSweepDecision(ctx)
+			switch decision {
+			case gateSkipConfig:
 				c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep disabled by config, skipping")
 				continue
+			case gateSkipDisabled:
+				c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep disabled by zinc settings, skipping")
+				continue
+			case gateSkipNotFound:
+				c.logger.Warn().Ctx(ctx).Msg("Withdrawer settings endpoint not found on zinc (old zinc), treating sweep as disabled, skipping")
+				continue
+			case gateSkipFetchError:
+				c.logger.Error().Ctx(ctx).Err(settings.err).Msg("Failed to fetch zinc withdrawal settings, skipping this approve sweep tick (fail-closed)")
+				continue
+			case gateRun:
 			}
 			c.logger.Info().Ctx(ctx).Msg("Withdrawer approve sweep starting")
 			if sweepErr := c.Sweep(ctx); sweepErr != nil {
@@ -382,6 +398,106 @@ func (c *Client) approve(ctx context.Context, id string) error {
 // reconcile calls zinc's POST /api/v1.0/Withdrawal/{id}/reconcile.
 func (c *Client) reconcile(ctx context.Context, id string) error {
 	return c.postWithdrawalAction(ctx, id, "reconcile", errNotReconcilable)
+}
+
+// gateDecision is the outcome of the approve sweep's two-gate check: run the
+// sweep, or skip it for one specific reason (each reason logs differently).
+type gateDecision int
+
+const (
+	// gateRun: both gates passed — run the approve sweep.
+	gateRun gateDecision = iota
+	// gateSkipConfig: the static config killswitch (withdrawer.approveEnable)
+	// is off; zinc settings are not even fetched.
+	gateSkipConfig
+	// gateSkipDisabled: zinc's runtime sweepEnabled setting is off (an admin
+	// has not enabled sweeping in the zinc UI).
+	gateSkipDisabled
+	// gateSkipNotFound: zinc 404'd the settings endpoint — an old zinc without
+	// runtime settings. Treated as disabled.
+	gateSkipNotFound
+	// gateSkipFetchError: the settings fetch failed transiently. Fail-closed:
+	// skip this tick rather than sweep with an unreadable switch.
+	gateSkipFetchError
+)
+
+// settingsResult is the outcome of fetching zinc's runtime withdrawal
+// settings, reduced to what the sweep gate needs.
+type settingsResult struct {
+	enabled  bool  // zinc's sweepEnabled flag (meaningful only when notFound and err are zero)
+	notFound bool  // zinc 404'd the settings endpoint (old zinc)
+	err      error // transient fetch/decode failure
+}
+
+// sweepGate is the pure two-gate decision: the static config killswitch AND
+// zinc's runtime sweepEnabled switch must both be on for the approve sweep to
+// run. Any failure to read the runtime switch fails closed (404 = disabled,
+// transient error = skip this tick).
+func sweepGate(configEnable bool, s settingsResult) gateDecision {
+	switch {
+	case !configEnable:
+		return gateSkipConfig
+	case s.err != nil:
+		return gateSkipFetchError
+	case s.notFound:
+		return gateSkipNotFound
+	case !s.enabled:
+		return gateSkipDisabled
+	default:
+		return gateRun
+	}
+}
+
+// approveSweepDecision evaluates the two-gate check for one approve tick. The
+// config killswitch is checked first so a disabled deploy never calls zinc at
+// all; only then are the runtime settings fetched.
+func (c *Client) approveSweepDecision(ctx context.Context) (gateDecision, settingsResult) {
+	if !c.config.ApproveEnable {
+		return gateSkipConfig, settingsResult{}
+	}
+	s := c.fetchSweepSettings(ctx)
+	return sweepGate(true, s), s
+}
+
+// fetchSweepSettings calls zinc's GET /api/v1.0/Withdrawal/settings/current
+// and extracts the sweepEnabled flag. Hand-rolled for the same reason as
+// postWithdrawalAction: the generated SDK in lib/zinc/main.go predates the
+// settings endpoint. It reuses the zinc client's exported Server, Doer and
+// RequestEditors so auth and otel instrumentation match the generated calls
+// exactly; replace with the generated method at the next SDK regen.
+func (c *Client) fetchSweepSettings(ctx context.Context) settingsResult {
+	url := fmt.Sprintf("%s/api/v1.0/Withdrawal/settings/current", strings.TrimSuffix(c.zinc.Server, "/"))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return settingsResult{err: err}
+	}
+	for _, editor := range c.zinc.RequestEditors {
+		if err := editor(ctx, req); err != nil {
+			return settingsResult{err: err}
+		}
+	}
+	resp, err := c.zinc.Client.Do(req)
+	if err != nil {
+		return settingsResult{err: err}
+	}
+	defer resp.Body.Close()
+	body, readErr := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusNotFound {
+		return settingsResult{notFound: true}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return settingsResult{err: fmt.Errorf("failed to fetch withdrawal settings: status %d: %s", resp.StatusCode, string(body))}
+	}
+	if readErr != nil {
+		return settingsResult{err: readErr}
+	}
+	var settings struct {
+		SweepEnabled bool `json:"sweepEnabled"`
+	}
+	if err := json.Unmarshal(body, &settings); err != nil {
+		return settingsResult{err: fmt.Errorf("failed to decode withdrawal settings: %w", err)}
+	}
+	return settingsResult{enabled: settings.SweepEnabled}
 }
 
 // postWithdrawalAction calls zinc's POST /api/v1.0/Withdrawal/{id}/{action}

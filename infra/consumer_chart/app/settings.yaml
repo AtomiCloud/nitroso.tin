@@ -79,10 +79,14 @@ recoverer:
     - 'invalid booking'
 
 withdrawer:
-  # gate for the approve sweep: false = withdrawals pay out only when a human
-  # clicks approve in zinc (the reconcile sweep below keeps running either way
-  # so in-flight payouts still settle)
-  approveEnable: false
+  # deploy-level killswitch for the approve sweep. Two-gate model: this static
+  # flag AND zinc's runtime sweepEnabled setting (admin-flippable in the zinc
+  # UI, default off server-side) must BOTH be on for a sweep tick to run —
+  # flipping this to true does not start sweeping until an admin also enables
+  # it in zinc. false = withdrawals pay out only when a human clicks approve in
+  # zinc, regardless of the zinc setting (the reconcile sweep below keeps
+  # running either way so in-flight payouts still settle).
+  approveEnable: true
   # robfig/cron v1 spec with a leading seconds field, evaluated in UTC:
   # '0 0 0 * * *' = every day at 00:00:00 UTC
   cron: '0 0 0 * * *'

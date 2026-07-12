@@ -107,9 +107,12 @@ type RecovererConfig struct {
 
 // Withdrawer Config
 type WithdrawerConfig struct {
-	// ApproveEnable gates the approve sweep. When false, Pending withdrawals
-	// are never auto-approved — each pays out only when a human clicks approve
-	// in zinc — while the reconcile sweep keeps running so in-flight
+	// ApproveEnable is the deploy-level killswitch for the approve sweep.
+	// Two-gate model: this static flag AND zinc's runtime sweepEnabled setting
+	// (admin-flippable in the zinc UI) must both be on for a sweep tick to
+	// run. When false, Pending withdrawals are never auto-approved — each pays
+	// out only when a human clicks approve in zinc, regardless of the zinc
+	// setting — while the reconcile sweep keeps running so in-flight
 	// Processing payouts still settle.
 	ApproveEnable bool
 	// Cron is when Pending withdrawals are swept and approved. robfig/cron v1
