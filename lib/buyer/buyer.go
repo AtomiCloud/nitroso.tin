@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/rs/zerolog"
+	"strings"
 	"time"
 )
 
@@ -27,20 +28,28 @@ func NewBuyer(k ktmb.Ktmb, logger *zerolog.Logger, contactNumber string, sleepBu
 	}
 }
 
-func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, t string) ([]byte, string, string, error) {
+type PurchaseResult struct {
+	PDF          []byte
+	BookingNo    string
+	TicketNo     string
+	KtmbAmount   float32
+	KtmbCurrency string
+}
+
+func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, t string) (PurchaseResult, error) {
 
 	sd := time.Duration(c.sleepBuffer) * time.Second
 	c.logger.Info().Msg("Initialize booking...")
 	start, err := c.ktmb.BookStart(userData, bookingData)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to start booking process")
-		return nil, "", "", err
+		return PurchaseResult{}, err
 	}
 
 	if !start.Status {
 		e := fmt.Errorf("failed to start booking process: %+v", start.Messages)
 		c.logger.Error().Err(e).Strs("errors", start.Messages).Msg("Failed to start booking process")
-		return nil, "", "", e
+		return PurchaseResult{}, e
 	}
 
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Booking Complete. Sleeping to prevent overloading...")
@@ -51,7 +60,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		// pre-payment: no money moved yet, so a plain error (retry) is safe
 		e := fmt.Errorf("book start response carries no passengers: %+v", start.Messages)
 		c.logger.Error().Err(e).Msg("Malformed book start response")
-		return nil, "", "", e
+		return PurchaseResult{}, e
 	}
 	bd1 := start.Data.BookingData
 	ud1 := start.Data.UserData
@@ -80,18 +89,18 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	})
 	if err != nil {
 		c.logger.Error().Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to set passenger")
-		return nil, "", "", err
+		return PurchaseResult{}, err
 	}
 
 	if !passenger.Status {
 		if matchesConflict(c.conflictPatterns, passenger.Messages) {
 			e := &ConflictError{Messages: passenger.Messages}
 			c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Passenger conflict detected (duplicate passport)")
-			return nil, "", "", e
+			return PurchaseResult{}, e
 		}
 		e := fmt.Errorf("failed to set passenger: %+v", passenger.Messages)
 		c.logger.Error().Err(e).Strs("errors", passenger.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Failed to set passenger")
-		return nil, "", "", e
+		return PurchaseResult{}, e
 	}
 
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Passenger Set. Sleeping to prevent overloading...")
@@ -104,17 +113,17 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	pay, err := c.ktmb.Pay(ud2, bd2, "KtmbEWallet", passenger.Data.PaymentAmount)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to pay")
-		return nil, "", "", err
+		return PurchaseResult{}, err
 	}
 	if !pay.Status {
 		if matchesConflict(c.revertPatterns, pay.Messages) {
 			e := &RevertError{Messages: pay.Messages}
 			c.logger.Warn().Err(e).Strs("errors", pay.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Transient pay failure with no ticket bought (revertable)")
-			return nil, "", "", e
+			return PurchaseResult{}, e
 		}
 		e := fmt.Errorf("failed to pay: %+v", pay.Messages)
 		c.logger.Error().Err(e).Strs("errors", pay.Messages).Msg("Failed to pay")
-		return nil, "", "", e
+		return PurchaseResult{}, e
 	}
 
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Payment Complete. Sleeping to prevent overloading...")
@@ -126,12 +135,12 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	complete, err := c.ktmb.Complete(ud2, bd3)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("Failed to complete")
-		return nil, "", "", err
+		return PurchaseResult{}, err
 	}
 	if !complete.Status {
 		e := fmt.Errorf("failed to complete: %+v", complete.Messages)
 		c.logger.Error().Err(e).Strs("errors", complete.Messages).Msg("Failed to complete")
-		return nil, "", "", e
+		return PurchaseResult{}, e
 	}
 
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Purchase flow completed. Sleeping to prevent overloading...")
@@ -146,7 +155,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		// the only other record and it is already gone
 		e := &PurchasedError{BookingNo: bookingNo, TicketNo: ticketNo, Cause: idErr}
 		c.logger.Error().Err(idErr).Str("bookingNo", bookingNo).Msg("Purchase succeeded but complete response is malformed, parking for recovery")
-		return nil, bookingNo, ticketNo, e
+		return PurchaseResult{}, e
 	}
 
 	ticket, err := c.ktmb.PrintTicket(complete.Data.UserData, bookingNo, ticketNo)
@@ -155,14 +164,29 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		// caller can recover instead of treating this as a failed buy
 		e := &PurchasedError{BookingNo: bookingNo, TicketNo: ticketNo, Cause: err}
 		c.logger.Error().Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Purchase succeeded but failed to print ticket")
-		return nil, bookingNo, ticketNo, e
+		return PurchaseResult{}, e
 	}
 
 	// log ticket identifiers, not the passenger object — the latter carries the
 	// full name + passport number (PII) into the log stream
 	c.logger.Info().Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Str("date", date).Str("time", t).Str("dir", direction).Msg("Successfully purchased Ticket")
-	return ticket, bookingNo, ticketNo, nil
+	return PurchaseResult{
+		PDF:          ticket,
+		BookingNo:    bookingNo,
+		TicketNo:     ticketNo,
+		KtmbAmount:   passenger.Data.PaymentAmount,
+		KtmbCurrency: currencyOrDefault(passenger.Data.CurrencyCode, complete.Data.Booking.Payment.CurrencyCode, complete.Data.Booking.CurrencyCode),
+	}, nil
 
+}
+
+func currencyOrDefault(values ...string) string {
+	for _, value := range values {
+		if currency := strings.ToUpper(strings.TrimSpace(value)); currency != "" {
+			return currency
+		}
+	}
+	return "MYR"
 }
 
 // ticketIdsOf extracts the booking/ticket identifiers from a successful
