@@ -1,3 +1,10 @@
+## [1.53.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.52.0...v1.53.0) (2026-07-14)
+
+
+### ✨ Features ✨
+
+* **buyer:** report and backfill actual KTMB costs ([#44](https://github.com/AtomiCloud/nitroso.tin/issues/44)) ([0b0e470](https://github.com/AtomiCloud/nitroso.tin/commit/0b0e470565dd9ed5b7a6438ddae3112d77f8d411))
+
 ## [1.52.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.51.0...v1.52.0) (2026-07-12)
 
 
