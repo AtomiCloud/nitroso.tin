@@ -1,3 +1,10 @@
+## [1.53.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.53.0...v1.53.1) (2026-07-14)
+
+
+### 🐛 Bug Fixes 🐛
+
+* refresh rejected KTMB backfill sessions ([#45](https://github.com/AtomiCloud/nitroso.tin/issues/45)) ([0aab212](https://github.com/AtomiCloud/nitroso.tin/commit/0aab21263e25d432abb5cb84974c8afe2fafb00a))
+
 ## [1.53.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.52.0...v1.53.0) (2026-07-14)
 
 
