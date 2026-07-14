@@ -6,6 +6,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"strings"
 )
@@ -91,4 +92,44 @@ func (s *Session) Login(ctx context.Context, email, password string) (string, er
 
 	l.Info().Msg("Successfully save login session to cache")
 	return token, nil
+}
+
+// Invalidate removes token from the shared login cache only if it is still the
+// value stored there. The compare-and-delete protects a fresh token written by
+// another consumer between the rejected request and this invalidation.
+func (s *Session) Invalidate(ctx context.Context, token string) error {
+	l := s.logger.With().Ctx(ctx).Str("redisKey", s.key).Logger()
+
+	tokenEnc, err := s.main.Get(ctx, s.key).Result()
+	if errors.Is(err, redis.Nil) {
+		l.Info().Msg("Login session cache is already empty")
+		return nil
+	}
+	if err != nil {
+		l.Error().Err(err).Msg("Failed to read cached login session for invalidation")
+		return err
+	}
+
+	cached, err := s.encryptor.Decrypt(tokenEnc)
+	if err != nil {
+		l.Error().Err(err).Msg("Failed to decrypt cached login session for invalidation")
+		return err
+	}
+	if cached != token {
+		l.Info().Msg("Login session was already refreshed; keeping replacement token")
+		return nil
+	}
+
+	const compareAndDelete = `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end
+return 0`
+	deleted, err := s.main.Eval(ctx, compareAndDelete, []string{s.key}, tokenEnc).Int64()
+	if err != nil {
+		l.Error().Err(err).Msg("Failed to invalidate cached login session")
+		return err
+	}
+	l.Info().Bool("deleted", deleted != 0).Msg("Invalidated rejected login session")
+	return nil
 }

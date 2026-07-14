@@ -100,27 +100,47 @@ func (s *zincStub) server() *httptest.Server {
 }
 
 type fakeTickets struct {
-	results map[string]ktmb.GenericRes[ktmb.GetTicketRes]
-	errors  map[string]error
-	calls   []string
+	results   map[string]ktmb.GenericRes[ktmb.GetTicketRes]
+	sequences map[string][]ktmb.GenericRes[ktmb.GetTicketRes]
+	errors    map[string]error
+	calls     []string
+	userData  []string
 }
 
-func (f *fakeTickets) GetTicket(_ string, bookingNo, _ string) (ktmb.GenericRes[ktmb.GetTicketRes], error) {
+func (f *fakeTickets) GetTicket(userData, bookingNo, _ string) (ktmb.GenericRes[ktmb.GetTicketRes], error) {
 	f.calls = append(f.calls, bookingNo)
+	f.userData = append(f.userData, userData)
 	if err := f.errors[bookingNo]; err != nil {
 		return ktmb.GenericRes[ktmb.GetTicketRes]{}, err
+	}
+	if sequence := f.sequences[bookingNo]; len(sequence) > 0 {
+		result := sequence[0]
+		f.sequences[bookingNo] = sequence[1:]
+		return result, nil
 	}
 	return f.results[bookingNo], nil
 }
 
 type fakeSession struct {
-	calls int
-	err   error
+	calls         int
+	err           error
+	tokens        []string
+	invalidations []string
+	invalidateErr error
 }
 
 func (s *fakeSession) Login(context.Context, string, string) (string, error) {
 	s.calls++
+	if len(s.tokens) > 0 {
+		index := min(s.calls-1, len(s.tokens)-1)
+		return s.tokens[index], s.err
+	}
 	return "user-data", s.err
+}
+
+func (s *fakeSession) Invalidate(_ context.Context, userData string) error {
+	s.invalidations = append(s.invalidations, userData)
+	return s.invalidateErr
 }
 
 func workItem(t *testing.T, id, bookingNo string) zinc.BookingKtmbCostMissingRes {
@@ -145,6 +165,13 @@ func ticketResult(bookingNo string, amount float32, currency string) ktmb.Generi
 			TotalAmount:  amount,
 			CurrencyCode: currency,
 		}}},
+	}
+}
+
+func invalidSessionResult() ktmb.GenericRes[ktmb.GetTicketRes] {
+	return ktmb.GenericRes[ktmb.GetTicketRes]{
+		Status:   false,
+		Messages: []string{"Please login to continue."},
 	}
 }
 
@@ -289,7 +316,77 @@ func TestRunDryRunFetchesCostsWithoutPosting(t *testing.T) {
 	}
 }
 
+func TestRunReloginsAndRetriesInvalidSessionOnce(t *testing.T) {
+	item := workItem(t, idA, "B-A")
+	stub := &zincStub{t: t, pages: map[int][]zinc.BookingKtmbCostMissingRes{0: {item}}}
+	tickets := &fakeTickets{sequences: map[string][]ktmb.GenericRes[ktmb.GetTicketRes]{
+		"B-A": {invalidSessionResult(), ticketResult("B-A", 15, "MYR")},
+	}}
+	session := &fakeSession{tokens: []string{"stale-user-data", "fresh-user-data"}}
+	client, closeServer := testClient(t, stub, tickets, session, Options{Max: 10, PageSize: 10})
+	defer closeServer()
+
+	summary, err := client.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if got, want := tickets.userData, []string{"stale-user-data", "fresh-user-data"}; !equalStrings(got, want) {
+		t.Fatalf("GetTicket userData = %v, want %v", got, want)
+	}
+	if session.calls != 2 || !equalStrings(session.invalidations, []string{"stale-user-data"}) {
+		t.Fatalf("session calls = %d, invalidations = %v; want 2 logins and stale token invalidated", session.calls, session.invalidations)
+	}
+	if summary.Attempted != 1 || summary.Updated != 1 || summary.Failed != 0 {
+		t.Errorf("unexpected summary: %+v", summary)
+	}
+}
+
+func TestRunCountsFailureWhenRetriedSessionIsStillInvalid(t *testing.T) {
+	items := []zinc.BookingKtmbCostMissingRes{
+		workItem(t, idA, "B-A"),
+		workItem(t, idB, "B-B"),
+	}
+	stub := &zincStub{t: t, pages: map[int][]zinc.BookingKtmbCostMissingRes{0: items}}
+	tickets := &fakeTickets{
+		results: map[string]ktmb.GenericRes[ktmb.GetTicketRes]{
+			"B-B": ticketResult("B-B", 20, "MYR"),
+		},
+		sequences: map[string][]ktmb.GenericRes[ktmb.GetTicketRes]{
+			"B-A": {invalidSessionResult(), invalidSessionResult()},
+		},
+	}
+	session := &fakeSession{tokens: []string{"stale-user-data", "fresh-user-data"}}
+	client, closeServer := testClient(t, stub, tickets, session, Options{Max: 10, PageSize: 10})
+	defer closeServer()
+
+	summary, err := client.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if got, want := tickets.calls, []string{"B-A", "B-A", "B-B"}; !equalStrings(got, want) {
+		t.Fatalf("GetTicket calls = %v, want exactly one retry then continue with %v", got, want)
+	}
+	if session.calls != 2 || len(session.invalidations) != 1 {
+		t.Fatalf("session calls = %d, invalidations = %v; want one refresh only", session.calls, session.invalidations)
+	}
+	if summary.Attempted != 2 || summary.Updated != 1 || summary.Failed != 1 {
+		t.Errorf("unexpected summary: %+v", summary)
+	}
+}
+
 func equalInts(left, right []int) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func equalStrings(left, right []string) bool {
 	if len(left) != len(right) {
 		return false
 	}

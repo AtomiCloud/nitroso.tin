@@ -3,6 +3,7 @@ package ktmbcost
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 
 const defaultCurrency = "MYR"
 
+var errInvalidSession = errors.New("KTMB session is invalid")
+
 type zincClient interface {
 	GetApiVVersionBookingKtmbCostMissing(ctx context.Context, version string, params *zinc.GetApiVVersionBookingKtmbCostMissingParams, reqEditors ...zinc.RequestEditorFn) (*http.Response, error)
 	PostApiVVersionBookingIdKtmbCost(ctx context.Context, version string, id openapi_types.UUID, body zinc.PostApiVVersionBookingIdKtmbCostJSONBody, reqEditors ...zinc.RequestEditorFn) (*http.Response, error)
@@ -28,6 +31,7 @@ type ticketClient interface {
 
 type sessionProvider interface {
 	Login(ctx context.Context, email, password string) (string, error)
+	Invalidate(ctx context.Context, userData string) error
 }
 
 type Options struct {
@@ -100,7 +104,7 @@ func (c *Client) Run(ctx context.Context) (Summary, error) {
 			}
 		}
 		summary.Attempted++
-		if err := c.process(ctx, userData, item); err != nil {
+		if err := c.processWithSessionRetry(ctx, &userData, item); err != nil {
 			summary.Failed++
 			c.logger.Error().Err(err).
 				Str("bookingId", item.Id.String()).
@@ -116,6 +120,27 @@ func (c *Client) Run(ctx context.Context) (Summary, error) {
 		}
 	}
 	return summary, nil
+}
+
+func (c *Client) processWithSessionRetry(ctx context.Context, userData *string, item zinc.BookingKtmbCostMissingRes) error {
+	err := c.process(ctx, *userData, item)
+	if !errors.Is(err, errInvalidSession) {
+		return err
+	}
+
+	c.logger.Warn().
+		Str("bookingId", item.Id.String()).
+		Str("bookingNo", item.BookingNo).
+		Msg("KTMB rejected the cached session; invalidating it and retrying once")
+	if invalidateErr := c.session.Invalidate(ctx, *userData); invalidateErr != nil {
+		return fmt.Errorf("%w; invalidate cached session: %v", err, invalidateErr)
+	}
+	refreshed, loginErr := c.session.Login(ctx, c.email, c.password)
+	if loginErr != nil {
+		return fmt.Errorf("%w; refresh session: %v", err, loginErr)
+	}
+	*userData = refreshed
+	return c.process(ctx, refreshed, item)
 }
 
 func (c *Client) listMissing(ctx context.Context) ([]zinc.BookingKtmbCostMissingRes, error) {
@@ -173,6 +198,9 @@ func (c *Client) process(ctx context.Context, userData string, item zinc.Booking
 		return fmt.Errorf("get KTMB ticket: %w", err)
 	}
 	if !ticket.Status {
+		if isInvalidSession(ticket.Messages) {
+			return fmt.Errorf("%w: %s", errInvalidSession, strings.Join(ticket.Messages, ", "))
+		}
 		return fmt.Errorf("get KTMB ticket: %s", strings.Join(ticket.Messages, ", "))
 	}
 	booking, err := bookingFrom(ticket.Data, item.BookingNo)
@@ -207,6 +235,15 @@ func (c *Client) process(ctx context.Context, userData string, item zinc.Booking
 		return fmt.Errorf("post KTMB actual cost: status %d: %s", resp.StatusCode, string(body))
 	}
 	return nil
+}
+
+func isInvalidSession(messages []string) bool {
+	for _, message := range messages {
+		if strings.Contains(strings.ToLower(message), "please login to continue") {
+			return true
+		}
+	}
+	return false
 }
 
 func bookingFrom(ticket ktmb.GetTicketRes, bookingNo string) (ktmb.GetTicketBookingRes, error) {
