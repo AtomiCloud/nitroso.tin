@@ -457,6 +457,10 @@ type PostApiVVersionBookingCompleteIdJSONBody struct {
 // PostApiVVersionBookingCompleteIdMultipartBody defines parameters for PostApiVVersionBookingCompleteId.
 type PostApiVVersionBookingCompleteIdMultipartBody struct {
 	File *openapi_types.File `json:"file,omitempty"`
+	// KtmbAmount and KtmbCurrency are hand-added pending swagger regeneration.
+	// They report the actual KTMB eWallet charge alongside the ticket PDF.
+	KtmbAmount   *float32 `json:"ktmbAmount,omitempty"`
+	KtmbCurrency *string  `json:"ktmbCurrency,omitempty"`
 }
 
 // PostApiVVersionBookingCompleteIdParams defines parameters for PostApiVVersionBookingCompleteId.

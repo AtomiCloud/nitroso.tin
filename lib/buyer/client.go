@@ -21,6 +21,7 @@ import (
 	"math"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -59,7 +60,7 @@ func retryBackoff(retries int, op func(attempt int) error) error {
 	return lastErr
 }
 
-func CreateForm(values map[string]io.Reader) (s string, reader io.Reader, err error) {
+func CreateForm(values map[string]io.Reader, fields ...map[string]string) (s string, reader io.Reader, err error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	for key, r := range values {
@@ -72,7 +73,16 @@ func CreateForm(values map[string]io.Reader) (s string, reader io.Reader, err er
 		}
 
 	}
-	w.Close()
+	for _, formFields := range fields {
+		for key, value := range formFields {
+			if err = w.WriteField(key, value); err != nil {
+				return
+			}
+		}
+	}
+	if err = w.Close(); err != nil {
+		return
+	}
 
 	return w.FormDataContentType(), &b, nil
 }
@@ -232,7 +242,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 
 	// don't log the passenger object (full name + passport number are PII)
 	c.logger.Info().Str("date", date).Str("time", t).Str("dir", direction).Msg("Buying for reserved booking")
-	buy, bookingNo, ticketNo, err := c.buyer.Buy(userData, bookingData, p, direction, date, t)
+	purchase, err := c.buyer.Buy(userData, bookingData, p, direction, date, t)
 	if err != nil {
 		var conflictErr *ConflictError
 		var purchasedErr *PurchasedError
@@ -260,12 +270,12 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 		}
 	}
 
-	err = c.completeWithZinc(ctx, data.Id, bookingNo, ticketNo, buy)
+	err = c.completeWithZinc(ctx, data.Id, purchase.BookingNo, purchase.TicketNo, purchase.KtmbAmount, purchase.KtmbCurrency, purchase.PDF)
 	if err != nil {
 		// the ticket is bought and paid for; losing this item would strand it —
 		// park with the ticket identifiers instead of failing the queue handler
-		c.logger.Error().Ctx(ctx).Err(err).Str("bookingNo", bookingNo).Str("ticketNo", ticketNo).Msg("Failed to report completed ticket to zinc, parking booking for recovery")
-		return c.park(ctx, data.Id, direction, date, t, p, bookingNo, ticketNo, userData, bookingData, false)
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingNo", purchase.BookingNo).Str("ticketNo", purchase.TicketNo).Msg("Failed to report completed ticket to zinc, parking booking for recovery")
+		return c.park(ctx, data.Id, direction, date, t, p, purchase.BookingNo, purchase.TicketNo, userData, bookingData, false)
 	}
 
 	return nil
@@ -273,9 +283,9 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 
 // completeWithZinc reports a captured ticket to zinc, retrying with backoff:
 // the KTMB money is already spent, so this must not give up on a blip
-func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, pdf []byte) error {
+func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, ktmbAmount float32, ktmbCurrency string, pdf []byte) error {
 	return retryBackoff(c.buyerCfg.CompleteRetries, func(attempt int) error {
-		err := c.completeOnce(ctx, id, bookingNo, ticketNo, pdf)
+		err := c.completeOnce(ctx, id, bookingNo, ticketNo, ktmbAmount, ktmbCurrency, pdf)
 		if err != nil {
 			c.logger.Error().Ctx(ctx).Err(err).Int("attempt", attempt).Msg("Failed to mark booking as complete")
 		}
@@ -283,9 +293,12 @@ func (c *Client) completeWithZinc(ctx context.Context, id openapi_types.UUID, bo
 	})
 }
 
-func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, pdf []byte) error {
+func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookingNo, ticketNo string, ktmbAmount float32, ktmbCurrency string, pdf []byte) error {
 	contentType, rr, err := CreateForm(map[string]io.Reader{
 		"file": bytes.NewReader(pdf),
+	}, map[string]string{
+		"ktmbAmount":   strconv.FormatFloat(float64(ktmbAmount), 'f', -1, 32),
+		"ktmbCurrency": ktmbCurrency,
 	})
 	if err != nil {
 		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to create form")

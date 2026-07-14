@@ -92,6 +92,29 @@ func main() {
 		Name: "nitroso-tin",
 		Commands: []*cli.Command{
 			{
+				Name:   "ktmb-cost-backfill",
+				Action: state.KtmbCostBackfill,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "dry-run",
+						Usage:   "fetch and log KTMB costs without updating zinc",
+						EnvVars: []string{"KTMB_COST_BACKFILL_DRY_RUN"},
+					},
+					&cli.IntFlag{
+						Name:    "max",
+						Value:   200,
+						Usage:   "maximum number of missing bookings to process",
+						EnvVars: []string{"KTMB_COST_BACKFILL_MAX"},
+					},
+					&cli.IntFlag{
+						Name:    "page-size",
+						Value:   50,
+						Usage:   "number of missing bookings requested per zinc page",
+						EnvVars: []string{"KTMB_COST_BACKFILL_PAGE_SIZE"},
+					},
+				},
+			},
+			{
 				Name:   "cdc",
 				Action: state.Cdc,
 			},
