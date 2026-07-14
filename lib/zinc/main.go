@@ -457,8 +457,9 @@ type PostApiVVersionBookingCompleteIdJSONBody struct {
 // PostApiVVersionBookingCompleteIdMultipartBody defines parameters for PostApiVVersionBookingCompleteId.
 type PostApiVVersionBookingCompleteIdMultipartBody struct {
 	File *openapi_types.File `json:"file,omitempty"`
-	// KtmbAmount and KtmbCurrency are hand-added pending swagger regeneration.
-	// They report the actual KTMB eWallet charge alongside the ticket PDF.
+	// NOTE: KtmbAmount and KtmbCurrency are manually added for the KTMB
+	// actual-cost contract pending swagger regeneration. They report the exact
+	// KTMB eWallet charge alongside the ticket PDF.
 	KtmbAmount   *float32 `json:"ktmbAmount,omitempty"`
 	KtmbCurrency *string  `json:"ktmbCurrency,omitempty"`
 }
@@ -765,6 +766,12 @@ type ClientInterface interface {
 
 	// GetApiVVersionBooking request
 	GetApiVVersionBooking(ctx context.Context, version string, params *GetApiVVersionBookingParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApiVVersionBookingKtmbCostMissing and
+	// PostApiVVersionBookingIdKtmbCost are manually added for the KTMB
+	// actual-cost contract pending swagger regeneration.
+	GetApiVVersionBookingKtmbCostMissing(ctx context.Context, version string, params *GetApiVVersionBookingKtmbCostMissingParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostApiVVersionBookingIdKtmbCost(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingIdKtmbCostJSONBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostApiVVersionBookingBuyingId request
 	PostApiVVersionBookingBuyingId(ctx context.Context, version string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
