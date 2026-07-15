@@ -1,3 +1,10 @@
+## [1.54.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.54.0...v1.54.1) (2026-07-15)
+
+
+### 🐛 Bug Fixes 🐛
+
+* refund the requested ticket, scope refund-amount fallbacks ([#47](https://github.com/AtomiCloud/nitroso.tin/issues/47)) ([2ce94d6](https://github.com/AtomiCloud/nitroso.tin/commit/2ce94d65d9d238e36a3a26402e52da15f7754fe9))
+
 ## [1.54.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.53.1...v1.54.0) (2026-07-15)
 
 
