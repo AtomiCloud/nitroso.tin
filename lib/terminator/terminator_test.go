@@ -19,9 +19,14 @@ type fakeRefundClient struct {
 	policy      ktmb.GenericRes[ktmb.RefundPolicyRes]
 	refund      ktmb.GenericRes[*interface{}]
 	refundCalls int
+	list        *ktmb.GenericRes[ktmb.TicketListRes]
+	refunded    string
 }
 
 func (f *fakeRefundClient) ListTicket(string, int64) (ktmb.GenericRes[ktmb.TicketListRes], error) {
+	if f.list != nil {
+		return *f.list, nil
+	}
 	return ktmb.GenericRes[ktmb.TicketListRes]{Status: true, Data: ktmb.TicketListRes{
 		TotalPage: 1,
 		Bookings: []ktmb.TicketListBookingRes{{
@@ -38,8 +43,9 @@ func (f *fakeRefundClient) GetRefundPolicy(string, string, string) (ktmb.Generic
 	return f.policy, nil
 }
 
-func (f *fakeRefundClient) RefundTicket(string, string, string, string) (ktmb.GenericRes[*interface{}], error) {
+func (f *fakeRefundClient) RefundTicket(_, _, _, ticketData string) (ktmb.GenericRes[*interface{}], error) {
 	f.refundCalls++
+	f.refunded = ticketData
 	return f.refund, nil
 }
 
@@ -125,9 +131,63 @@ func TestTerminateDoesNotFailWhenZincRefundReportFails(t *testing.T) {
 	}
 }
 
+func TestTerminateRefundsTheRequestedTicketFromAMultiTicketPolicy(t *testing.T) {
+	listing := ktmb.GenericRes[ktmb.TicketListRes]{Status: true, Data: ktmb.TicketListRes{
+		TotalPage: 1,
+		Bookings: []ktmb.TicketListBookingRes{{
+			BookingNo:   "B-1",
+			BookingData: "booking-data",
+			Trips: []ktmb.TicketListTripRes{{Tickets: []ktmb.TicketListTicketRes{
+				{TicketNo: "T-1", TicketData: "list-ticket-data-1"},
+				{TicketNo: "T-2", TicketData: "list-ticket-data-2"},
+			}}},
+		}},
+	}}
+	ktmbClient := &fakeRefundClient{
+		list: &listing,
+		policy: ktmb.GenericRes[ktmb.RefundPolicyRes]{Status: true, Data: ktmb.RefundPolicyRes{
+			BookingData:  "policy-booking-data",
+			CurrencyCode: "MYR",
+			Trips: []ktmb.RefundPolicyTripRes{{Tickets: []ktmb.RefundPolicyTripTicketRes{
+				{TicketNo: "T-1", RefundAmount: 4, TicketData: "policy-ticket-data-1"},
+				{TicketNo: "T-2", RefundAmount: 8, TicketData: "policy-ticket-data-2"},
+			}}},
+		}},
+		refund: ktmb.GenericRes[*interface{}]{Status: true},
+	}
+	reporter := &fakeReporter{}
+	logger := zerolog.Nop()
+	term := NewTerminator(ktmbClient, &fakeTermSession{}, reporter, &logger, config.EnricherConfig{Email: "e", Password: "p"})
+
+	if err := term.Terminate(context.Background(), BookingTermination{Id: terminationID(t), BookingNo: "B-1", TicketNo: "T-2"}); err != nil {
+		t.Fatalf("Terminate returned error: %v", err)
+	}
+	if ktmbClient.refunded != "policy-ticket-data-2" {
+		t.Fatalf("RefundTicket ticketData = %q, want requested ticket's policy-ticket-data-2", ktmbClient.refunded)
+	}
+	if reporter.body.RefundAmount != 8 {
+		t.Fatalf("reported refund = %+v, want requested ticket's amount 8", reporter.body)
+	}
+}
+
 func TestRefundAmountFallsBackToPolicyTotal(t *testing.T) {
 	amount, currency, ok := refundAmount(ktmb.RefundPolicyRes{TotalRefundAmount: 12, CurrencyCode: "sgd"}, "T-1")
 	if !ok || amount != 12 || currency != "SGD" {
 		t.Fatalf("refundAmount = (%v, %q, %v), want (12, SGD, true)", amount, currency, ok)
+	}
+}
+
+func TestRefundAmountDoesNotAssignAMultiTicketTotalToOneTicket(t *testing.T) {
+	policy := ktmb.RefundPolicyRes{
+		TotalRefundAmount: 12,
+		CurrencyCode:      "MYR",
+		Trips: []ktmb.RefundPolicyTripRes{{Tickets: []ktmb.RefundPolicyTripTicketRes{
+			{TicketNo: "T-1"},
+			{TicketNo: "T-2", RefundAmount: 12},
+		}}},
+	}
+
+	if amount, currency, ok := refundAmount(policy, "T-1"); ok {
+		t.Fatalf("refundAmount = (%v, %q, true), want no exact amount for T-1", amount, currency)
 	}
 }
