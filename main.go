@@ -95,9 +95,20 @@ func main() {
 				Name:   "ktmb-cost-backfill",
 				Action: state.KtmbCostBackfill,
 				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "status",
+						Value:   "completed",
+						Usage:   "booking status whose purchase cost is backfilled: completed or terminated",
+						EnvVars: []string{"KTMB_COST_BACKFILL_STATUS"},
+					},
+					&cli.BoolFlag{
+						Name:    "refund",
+						Usage:   "probe and backfill exact refunds for terminated bookings",
+						EnvVars: []string{"KTMB_COST_BACKFILL_REFUND"},
+					},
 					&cli.BoolFlag{
 						Name:    "dry-run",
-						Usage:   "fetch and log KTMB costs without updating zinc",
+						Usage:   "fetch and log KTMB costs or refunds without updating zinc",
 						EnvVars: []string{"KTMB_COST_BACKFILL_DRY_RUN"},
 					},
 					&cli.IntFlag{

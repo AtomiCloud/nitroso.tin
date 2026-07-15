@@ -15,8 +15,21 @@ import (
 )
 
 func (state *State) KtmbCostBackfill(c *cli.Context) error {
+	status := ktmbcost.StatusCompleted
+	switch c.String("status") {
+	case "completed":
+	case "terminated":
+		status = ktmbcost.StatusTerminated
+	default:
+		return fmt.Errorf("status must be completed or terminated")
+	}
+	if c.Bool("refund") {
+		status = ktmbcost.StatusTerminated
+	}
 	state.Logger.Info().
 		Bool("dryRun", c.Bool("dry-run")).
+		Bool("refund", c.Bool("refund")).
+		Int("status", status).
 		Int("max", c.Int("max")).
 		Int("pageSize", c.Int("page-size")).
 		Msg("Starting KTMB actual-cost backfill")
@@ -38,6 +51,8 @@ func (state *State) KtmbCostBackfill(c *cli.Context) error {
 
 	client := ktmbcost.New(zClient, &k, &s, state.Logger, state.Config.Enricher.Email, state.Config.Enricher.Password, ktmbcost.Options{
 		DryRun:      c.Bool("dry-run"),
+		Refund:      c.Bool("refund"),
+		Status:      status,
 		Max:         c.Int("max"),
 		PageSize:    c.Int("page-size"),
 		SleepBuffer: time.Duration(buyerConfig.SleepBuffer) * time.Second,
@@ -49,6 +64,7 @@ func (state *State) KtmbCostBackfill(c *cli.Context) error {
 		Int("updated", summary.Updated).
 		Int("failed", summary.Failed).
 		Int("dryRun", summary.DryRun).
-		Msg("KTMB actual-cost backfill finished")
+		Bool("refund", c.Bool("refund")).
+		Msg("KTMB financial backfill finished")
 	return err
 }

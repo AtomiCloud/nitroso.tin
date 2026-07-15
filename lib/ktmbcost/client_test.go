@@ -29,6 +29,11 @@ type recordedCost struct {
 	body zinc.PostApiVVersionBookingIdKtmbCostJSONBody
 }
 
+type recordedRefund struct {
+	id   string
+	body zinc.PostApiVVersionBookingIdKtmbRefundJSONBody
+}
+
 type zincStub struct {
 	t            *testing.T
 	pages        map[int][]zinc.BookingKtmbCostMissingRes
@@ -36,13 +41,22 @@ type zincStub struct {
 	dynamic      bool
 	postStatuses map[string]int
 	listSkips    []int
+	listStatuses []int
 	posts        []recordedCost
+	refunds      []recordedRefund
 }
 
 func (s *zincStub) server() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1.0/Booking/ktmb-cost/missing":
+			status, err := strconv.Atoi(r.URL.Query().Get("Status"))
+			if err != nil {
+				s.t.Errorf("invalid Status %q", r.URL.Query().Get("Status"))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			s.listStatuses = append(s.listStatuses, status)
 			limit, err := strconv.Atoi(r.URL.Query().Get("Limit"))
 			if err != nil || limit <= 0 {
 				s.t.Errorf("invalid Limit %q", r.URL.Query().Get("Limit"))
@@ -78,6 +92,20 @@ func (s *zincStub) server() *httptest.Server {
 			if err := json.NewEncoder(w).Encode(page); err != nil {
 				s.t.Fatal(err)
 			}
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1.0/Booking/ktmb-refund/missing":
+			limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+			if err != nil || limit <= 0 {
+				s.t.Errorf("invalid refund limit %q", r.URL.Query().Get("limit"))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			page := s.missing
+			if len(page) > limit {
+				page = page[:limit]
+			}
+			if err := json.NewEncoder(w).Encode(page); err != nil {
+				s.t.Fatal(err)
+			}
 		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1.0/Booking/") && strings.HasSuffix(r.URL.Path, "/ktmb-cost"):
 			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1.0/Booking/"), "/ktmb-cost")
 			var body zinc.PostApiVVersionBookingIdKtmbCostJSONBody
@@ -92,6 +120,20 @@ func (s *zincStub) server() *httptest.Server {
 				return
 			}
 			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1.0/Booking/") && strings.HasSuffix(r.URL.Path, "/ktmb-refund"):
+			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1.0/Booking/"), "/ktmb-refund")
+			var body zinc.PostApiVVersionBookingIdKtmbRefundJSONBody
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				s.t.Errorf("decode refund body: %v", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			s.refunds = append(s.refunds, recordedRefund{id: id, body: body})
+			if status := s.postStatuses[id]; status != 0 {
+				w.WriteHeader(status)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
 		default:
 			s.t.Errorf("unexpected zinc call: %s %s", r.Method, r.URL.String())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -100,11 +142,14 @@ func (s *zincStub) server() *httptest.Server {
 }
 
 type fakeTickets struct {
-	results   map[string]ktmb.GenericRes[ktmb.GetTicketRes]
-	sequences map[string][]ktmb.GenericRes[ktmb.GetTicketRes]
-	errors    map[string]error
-	calls     []string
-	userData  []string
+	results     map[string]ktmb.GenericRes[ktmb.GetTicketRes]
+	sequences   map[string][]ktmb.GenericRes[ktmb.GetTicketRes]
+	errors      map[string]error
+	calls       []string
+	userData    []string
+	rawResults  map[string]ktmb.GenericRes[json.RawMessage]
+	policies    map[string]ktmb.GenericRes[ktmb.RefundPolicyRes]
+	policyCalls []string
 }
 
 func (f *fakeTickets) GetTicket(userData, bookingNo, _ string) (ktmb.GenericRes[ktmb.GetTicketRes], error) {
@@ -119,6 +164,20 @@ func (f *fakeTickets) GetTicket(userData, bookingNo, _ string) (ktmb.GenericRes[
 		return result, nil
 	}
 	return f.results[bookingNo], nil
+}
+
+func (f *fakeTickets) GetTicketRaw(userData, bookingNo, _ string) (ktmb.GenericRes[json.RawMessage], error) {
+	f.calls = append(f.calls, bookingNo)
+	f.userData = append(f.userData, userData)
+	if err := f.errors[bookingNo]; err != nil {
+		return ktmb.GenericRes[json.RawMessage]{}, err
+	}
+	return f.rawResults[bookingNo], nil
+}
+
+func (f *fakeTickets) GetRefundPolicy(_ string, bookingData, _ string) (ktmb.GenericRes[ktmb.RefundPolicyRes], error) {
+	f.policyCalls = append(f.policyCalls, bookingData)
+	return f.policies[bookingData], nil
 }
 
 type fakeSession struct {
@@ -173,6 +232,28 @@ func invalidSessionResult() ktmb.GenericRes[ktmb.GetTicketRes] {
 		Status:   false,
 		Messages: []string{"Please login to continue."},
 	}
+}
+
+func rawTicketResult(t *testing.T, bookingNo string, refundAmount *float32) ktmb.GenericRes[json.RawMessage] {
+	t.Helper()
+	ticket := map[string]any{
+		"ticketNo":   "T-" + bookingNo,
+		"ticketData": "ticket-data-" + bookingNo,
+	}
+	if refundAmount != nil {
+		ticket["refundAmount"] = *refundAmount
+		ticket["refundCurrency"] = "myr"
+	}
+	data, err := json.Marshal(map[string]any{"bookings": []any{map[string]any{
+		"bookingNo":    bookingNo,
+		"bookingData":  "booking-data-" + bookingNo,
+		"currencyCode": "MYR",
+		"trips":        []any{map[string]any{"tickets": []any{ticket}}},
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ktmb.GenericRes[json.RawMessage]{Status: true, Data: data}
 }
 
 func testClient(t *testing.T, stub *zincStub, tickets *fakeTickets, session *fakeSession, options Options) (*Client, func()) {
@@ -371,6 +452,104 @@ func TestRunCountsFailureWhenRetriedSessionIsStillInvalid(t *testing.T) {
 	}
 	if summary.Attempted != 2 || summary.Updated != 1 || summary.Failed != 1 {
 		t.Errorf("unexpected summary: %+v", summary)
+	}
+}
+
+func TestRunPassesTerminatedStatusAndRejectsMissingPurchaseAmount(t *testing.T) {
+	item := workItem(t, idA, "B-A")
+	stub := &zincStub{t: t, pages: map[int][]zinc.BookingKtmbCostMissingRes{0: {item}}}
+	tickets := &fakeTickets{results: map[string]ktmb.GenericRes[ktmb.GetTicketRes]{
+		"B-A": ticketResult("B-A", 0, "MYR"),
+	}}
+	client, closeServer := testClient(t, stub, tickets, &fakeSession{}, Options{Status: StatusTerminated, Max: 10, PageSize: 10})
+	defer closeServer()
+
+	summary, err := client.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if !equalInts(stub.listStatuses, []int{StatusTerminated}) {
+		t.Fatalf("Status queries = %v, want terminated (%d)", stub.listStatuses, StatusTerminated)
+	}
+	if summary.Failed != 1 || summary.Updated != 0 || len(stub.posts) != 0 {
+		t.Fatalf("missing cancelled-ticket amount must fail without posting: summary=%+v posts=%v", summary, stub.posts)
+	}
+}
+
+func TestRunRefundBackfillUsesExactPolicyAmount(t *testing.T) {
+	item := workItem(t, idA, "B-A")
+	stub := &zincStub{t: t, missing: []zinc.BookingKtmbCostMissingRes{item}}
+	tickets := &fakeTickets{
+		rawResults: map[string]ktmb.GenericRes[json.RawMessage]{"B-A": rawTicketResult(t, "B-A", nil)},
+		policies: map[string]ktmb.GenericRes[ktmb.RefundPolicyRes]{
+			"booking-data-B-A": {
+				Status: true,
+				Data: ktmb.RefundPolicyRes{
+					CurrencyCode: "MYR",
+					Trips: []ktmb.RefundPolicyTripRes{{
+						Tickets: []ktmb.RefundPolicyTripTicketRes{{
+							TicketNo: "T-B-A", RefundAmount: 7.5, CurrencyCode: "myr",
+						}},
+					}},
+				},
+			},
+		},
+	}
+	client, closeServer := testClient(t, stub, tickets, &fakeSession{}, Options{Refund: true, Status: StatusTerminated, Max: 10, PageSize: 10})
+	defer closeServer()
+
+	summary, err := client.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if len(stub.refunds) != 1 || stub.refunds[0].body.RefundAmount != 7.5 || stub.refunds[0].body.RefundCurrency != "MYR" {
+		t.Fatalf("refund posts = %+v, want exact 7.5 MYR", stub.refunds)
+	}
+	if !equalStrings(tickets.policyCalls, []string{"booking-data-B-A"}) || summary.Updated != 1 || summary.Failed != 0 {
+		t.Fatalf("policy calls=%v summary=%+v", tickets.policyCalls, summary)
+	}
+}
+
+func TestRunRefundDryRunFindsRawAmountAndDoesNotPost(t *testing.T) {
+	item := workItem(t, idA, "B-A")
+	amount := float32(6.25)
+	stub := &zincStub{t: t, missing: []zinc.BookingKtmbCostMissingRes{item}}
+	tickets := &fakeTickets{
+		rawResults: map[string]ktmb.GenericRes[json.RawMessage]{"B-A": rawTicketResult(t, "B-A", &amount)},
+		policies: map[string]ktmb.GenericRes[ktmb.RefundPolicyRes]{
+			"booking-data-B-A": {Status: false, Messages: []string{"Refund is no longer allowed"}},
+		},
+	}
+	client, closeServer := testClient(t, stub, tickets, &fakeSession{}, Options{DryRun: true, Refund: true, Status: StatusTerminated, Max: 10, PageSize: 10})
+	defer closeServer()
+
+	summary, err := client.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if len(stub.refunds) != 0 || summary.DryRun != 1 || summary.Failed != 0 {
+		t.Fatalf("dry-run refund summary=%+v posts=%+v", summary, stub.refunds)
+	}
+}
+
+func TestRunRefundLeavesMissingWhenKTMBHasNoExactAmount(t *testing.T) {
+	item := workItem(t, idA, "B-A")
+	stub := &zincStub{t: t, missing: []zinc.BookingKtmbCostMissingRes{item}}
+	tickets := &fakeTickets{
+		rawResults: map[string]ktmb.GenericRes[json.RawMessage]{"B-A": rawTicketResult(t, "B-A", nil)},
+		policies: map[string]ktmb.GenericRes[ktmb.RefundPolicyRes]{
+			"booking-data-B-A": {Status: false, Messages: []string{"Refund is no longer allowed"}},
+		},
+	}
+	client, closeServer := testClient(t, stub, tickets, &fakeSession{}, Options{Refund: true, Status: StatusTerminated, Max: 10, PageSize: 10})
+	defer closeServer()
+
+	summary, err := client.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if len(stub.refunds) != 0 || summary.Failed != 1 || summary.Updated != 0 {
+		t.Fatalf("unknown refund must remain missing: summary=%+v posts=%+v", summary, stub.refunds)
 	}
 }
 
