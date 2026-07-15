@@ -61,9 +61,11 @@ func (t *Terminator) find(userData, bookingNo, ticketNo string, page int64) (str
 
 	for _, booking := range first.Data.Bookings {
 		if booking.BookingNo == bookingNo {
-			for _, ticket := range booking.Trips[0].Tickets {
-				if ticket.TicketNo == ticketNo {
-					return booking.BookingData, ticket.TicketData, nil
+			for _, trip := range booking.Trips {
+				for _, ticket := range trip.Tickets {
+					if ticket.TicketNo == ticketNo {
+						return booking.BookingData, ticket.TicketData, nil
+					}
 				}
 			}
 		}
@@ -108,7 +110,12 @@ func (t *Terminator) Terminate(ctx context.Context, termination BookingTerminati
 	}
 	t.logger.Info().Msg("Refunding Tickets")
 
-	r, err := t.ktmb.RefundTicket(cred, t.enrichConfig.Password, refundPolicy.Data.BookingData, refundPolicy.Data.Trips[0].Tickets[0].TicketData)
+	policyTicket, err := refundTicket(refundPolicy.Data, termination.TicketNo)
+	if err != nil {
+		t.logger.Error().Err(err).Msg("Refund policy did not contain the requested ticket")
+		return err
+	}
+	r, err := t.ktmb.RefundTicket(cred, t.enrichConfig.Password, refundPolicy.Data.BookingData, policyTicket.TicketData)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("Failed to refund tickets")
 		return err
@@ -140,17 +147,53 @@ func (t *Terminator) Terminate(ctx context.Context, termination BookingTerminati
 }
 
 func refundAmount(policy ktmb.RefundPolicyRes, ticketNo string) (float32, string, bool) {
+	var matched *ktmb.RefundPolicyTripTicketRes
+	ticketCount := 0
 	for _, trip := range policy.Trips {
-		for _, ticket := range trip.Tickets {
-			if ticket.TicketNo == ticketNo && ticket.RefundAmount > 0 {
-				return ticket.RefundAmount, normalizeCurrency(ticket.CurrencyCode, policy.CurrencyCode), true
+		for i := range trip.Tickets {
+			ticketCount++
+			ticket := &trip.Tickets[i]
+			if ticket.TicketNo == ticketNo {
+				matched = ticket
 			}
 		}
 	}
-	if policy.TotalRefundAmount > 0 {
+	if matched != nil && matched.RefundAmount > 0 {
+		return matched.RefundAmount, normalizeCurrency(matched.CurrencyCode, policy.CurrencyCode), true
+	}
+	// TotalRefundAmount is an aggregate across the policy response. It is exact
+	// for this booking only when KTMB omitted ticket details, or when the target
+	// is the policy's sole ticket; using it for one ticket in a multi-ticket
+	// policy would overstate that booking's refund.
+	if policy.TotalRefundAmount > 0 && (ticketCount == 0 || (ticketCount == 1 && matched != nil)) {
 		return policy.TotalRefundAmount, normalizeCurrency(policy.CurrencyCode), true
 	}
 	return 0, "", false
+}
+
+func refundTicket(policy ktmb.RefundPolicyRes, ticketNo string) (ktmb.RefundPolicyTripTicketRes, error) {
+	var sole *ktmb.RefundPolicyTripTicketRes
+	ticketCount := 0
+	for _, trip := range policy.Trips {
+		for i := range trip.Tickets {
+			ticketCount++
+			ticket := &trip.Tickets[i]
+			if ticket.TicketNo == ticketNo {
+				if ticket.TicketData == "" {
+					return ktmb.RefundPolicyTripTicketRes{}, fmt.Errorf("refund policy ticket %q has no ticket data", ticketNo)
+				}
+				return *ticket, nil
+			}
+			sole = ticket
+		}
+	}
+	// Some KTMB responses omit TicketNo after the caller already selected one.
+	// A sole anonymous ticket is still unambiguous; an explicitly different or
+	// multi-ticket response is not.
+	if ticketCount == 1 && sole != nil && sole.TicketNo == "" && sole.TicketData != "" {
+		return *sole, nil
+	}
+	return ktmb.RefundPolicyTripTicketRes{}, fmt.Errorf("refund policy does not contain ticket %q", ticketNo)
 }
 
 func normalizeCurrency(currencies ...string) string {

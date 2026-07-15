@@ -553,6 +553,37 @@ func TestRunRefundLeavesMissingWhenKTMBHasNoExactAmount(t *testing.T) {
 	}
 }
 
+func TestRefundFromPolicyDoesNotAssignAMultiTicketTotalToOneTicket(t *testing.T) {
+	policy := ktmb.RefundPolicyRes{
+		TotalRefundAmount: 12,
+		CurrencyCode:      "MYR",
+		Trips: []ktmb.RefundPolicyTripRes{{Tickets: []ktmb.RefundPolicyTripTicketRes{
+			{TicketNo: "T-1"},
+			{TicketNo: "T-2", RefundAmount: 12},
+		}}},
+	}
+
+	if amount, currency, ok := refundFromPolicy(policy, "T-1"); ok {
+		t.Fatalf("refundFromPolicy = (%v, %q, true), want no exact amount for T-1", amount, currency)
+	}
+}
+
+func TestRefundFromRawDoesNotUseAnotherTicketsAmount(t *testing.T) {
+	raw := json.RawMessage(`{
+		"bookings": [{
+			"bookingNo": "B-1",
+			"trips": [{"tickets": [
+				{"ticketNo": "T-1"},
+				{"ticketNo": "T-2", "refundAmount": 7.5, "refundCurrency": "MYR"}
+			]}]
+		}]
+	}`)
+
+	if amount, currency, ok := refundFromRaw(raw, "T-1"); ok {
+		t.Fatalf("refundFromRaw = (%v, %q, true), want no exact amount for T-1", amount, currency)
+	}
+}
+
 func equalInts(left, right []int) bool {
 	if len(left) != len(right) {
 		return false

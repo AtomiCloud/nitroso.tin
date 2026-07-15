@@ -391,14 +391,21 @@ func ticketDataFrom(booking ktmb.GetTicketBookingRes, ticketNo string) (string, 
 }
 
 func refundFromPolicy(policy ktmb.RefundPolicyRes, ticketNo string) (float32, string, bool) {
+	var matched *ktmb.RefundPolicyTripTicketRes
+	ticketCount := 0
 	for _, trip := range policy.Trips {
-		for _, ticket := range trip.Tickets {
-			if ticket.TicketNo == ticketNo && ticket.RefundAmount > 0 {
-				return ticket.RefundAmount, normalizeCurrency(ticket.CurrencyCode, policy.CurrencyCode), true
+		for i := range trip.Tickets {
+			ticketCount++
+			ticket := &trip.Tickets[i]
+			if ticket.TicketNo == ticketNo {
+				matched = ticket
 			}
 		}
 	}
-	if policy.TotalRefundAmount > 0 {
+	if matched != nil && matched.RefundAmount > 0 {
+		return matched.RefundAmount, normalizeCurrency(matched.CurrencyCode, policy.CurrencyCode), true
+	}
+	if policy.TotalRefundAmount > 0 && (ticketCount == 0 || (ticketCount == 1 && matched != nil)) {
 		return policy.TotalRefundAmount, normalizeCurrency(policy.CurrencyCode), true
 	}
 	return 0, "", false
@@ -414,7 +421,35 @@ func refundFromRaw(raw json.RawMessage, ticketNo string) (float32, string, bool)
 	if amount, currency, ok := refundInTicketNode(root, ticketNo); ok {
 		return amount, currency, true
 	}
+	ticketCount, targetPresent := ticketNodeStats(root, ticketNo)
+	if ticketCount > 1 || (ticketCount > 0 && !targetPresent) {
+		return 0, "", false
+	}
 	return exactRefundInNode(root)
+}
+
+func ticketNodeStats(node any, ticketNo string) (int, bool) {
+	count := 0
+	found := false
+	switch value := node.(type) {
+	case map[string]any:
+		if _, ok := value["ticketNo"]; ok {
+			count++
+			found = stringField(value, "ticketNo") == ticketNo
+		}
+		for _, child := range value {
+			childCount, childFound := ticketNodeStats(child, ticketNo)
+			count += childCount
+			found = found || childFound
+		}
+	case []any:
+		for _, child := range value {
+			childCount, childFound := ticketNodeStats(child, ticketNo)
+			count += childCount
+			found = found || childFound
+		}
+	}
+	return count, found
 }
 
 func refundInTicketNode(node any, ticketNo string) (float32, string, bool) {
