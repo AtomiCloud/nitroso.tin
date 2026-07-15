@@ -1,3 +1,10 @@
+## [1.54.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.53.1...v1.54.0) (2026-07-15)
+
+
+### ✨ Features ✨
+
+* capture and backfill KTMB termination refunds ([#46](https://github.com/AtomiCloud/nitroso.tin/issues/46)) ([ae43a9c](https://github.com/AtomiCloud/nitroso.tin/commit/ae43a9ca01059a62737ee8d8a57812c0ae858508))
+
 ## [1.53.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.53.0...v1.53.1) (2026-07-14)
 
 
