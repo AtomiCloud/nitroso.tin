@@ -90,7 +90,7 @@ func (c *Client) loop(ctx context.Context) (bool, error) {
 		}
 
 		c.logger.Info().Any("termination", termMessage).Ctx(ctx).Msg("Termination message")
-		er := c.terminator.Terminate(termMessage)
+		er := c.terminator.Terminate(ctx, termMessage)
 		if er != nil {
 			c.logger.Error().Err(er).Msg("Failed to terminate")
 			return er

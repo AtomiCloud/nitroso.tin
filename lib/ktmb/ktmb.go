@@ -2,6 +2,7 @@ package ktmb
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/rs/zerolog"
@@ -307,6 +308,27 @@ func (k *Ktmb) GetTicket(userData, bookingNo, ticketNo string) (GenericRes[GetTi
 	if err != nil {
 		k.logger.Error().Err(err).Msg("Failed to print ticket")
 		return GenericRes[GetTicketRes]{}, err
+	}
+	return r, nil
+}
+
+// GetTicketRaw preserves KTMB fields that have not yet been modeled. It is
+// used by the refund backfill probe to inspect already-refunded tickets without
+// silently discarding potential refund metadata during JSON decoding.
+func (k *Ktmb) GetTicketRaw(userData, bookingNo, ticketNo string) (GenericRes[json.RawMessage], error) {
+	client := NewHttp[GetTicketReq, GenericRes[json.RawMessage]](k.NewApi())
+	req := GetTicketReq{
+		BookingNo: bookingNo,
+		Tickets: []GetTicketTicketReq{{
+			TicketNo: ticketNo,
+		}},
+	}
+	r, err := client.SendWith("POST", "v1/booking/PrintTicket", req, appHost, map[string]string{
+		"userData": userData,
+	})
+	if err != nil {
+		k.logger.Error().Err(err).Msg("Failed to get raw ticket response")
+		return GenericRes[json.RawMessage]{}, err
 	}
 	return r, nil
 }

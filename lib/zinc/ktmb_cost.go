@@ -22,13 +22,23 @@ type BookingKtmbCostMissingRes struct {
 }
 
 type GetApiVVersionBookingKtmbCostMissingParams struct {
-	Limit *int32 `form:"Limit,omitempty" json:"Limit,omitempty"`
-	Skip  *int32 `form:"Skip,omitempty" json:"Skip,omitempty"`
+	Limit  *int32 `form:"Limit,omitempty" json:"Limit,omitempty"`
+	Skip   *int32 `form:"Skip,omitempty" json:"Skip,omitempty"`
+	Status *int   `form:"Status,omitempty" json:"Status,omitempty"`
+}
+
+type GetApiVVersionBookingKtmbRefundMissingParams struct {
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 type PostApiVVersionBookingIdKtmbCostJSONBody struct {
 	Amount   float32 `json:"amount"`
 	Currency string  `json:"currency"`
+}
+
+type PostApiVVersionBookingIdKtmbRefundJSONBody struct {
+	RefundAmount   float32 `json:"refundAmount"`
+	RefundCurrency string  `json:"refundCurrency"`
 }
 
 func (c *Client) GetApiVVersionBookingKtmbCostMissing(ctx context.Context, version string, params *GetApiVVersionBookingKtmbCostMissingParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -45,6 +55,30 @@ func (c *Client) GetApiVVersionBookingKtmbCostMissing(ctx context.Context, versi
 
 func (c *Client) PostApiVVersionBookingIdKtmbCost(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingIdKtmbCostJSONBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostApiVVersionBookingIdKtmbCostRequest(c.Server, version, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApiVVersionBookingKtmbRefundMissing(ctx context.Context, version string, params *GetApiVVersionBookingKtmbRefundMissingParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetApiVVersionBookingKtmbRefundMissingRequest(c.Server, version, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiVVersionBookingIdKtmbRefund(ctx context.Context, version string, id openapi_types.UUID, body PostApiVVersionBookingIdKtmbRefundJSONBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiVVersionBookingIdKtmbRefundRequest(c.Server, version, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +106,26 @@ func NewGetApiVVersionBookingKtmbCostMissingRequest(server, version string, para
 		if params.Skip != nil {
 			values.Set("Skip", fmt.Sprint(*params.Skip))
 		}
+		if params.Status != nil {
+			values.Set("Status", fmt.Sprint(*params.Status))
+		}
+		queryURL.RawQuery = values.Encode()
+	}
+	return http.NewRequest(http.MethodGet, queryURL.String(), nil)
+}
+
+func NewGetApiVVersionBookingKtmbRefundMissingRequest(server, version string, params *GetApiVVersionBookingKtmbRefundMissingParams) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+	queryURL, err := serverURL.Parse(fmt.Sprintf("./api/v%s/Booking/ktmb-refund/missing", url.PathEscape(version)))
+	if err != nil {
+		return nil, err
+	}
+	if params != nil && params.Limit != nil {
+		values := queryURL.Query()
+		values.Set("limit", fmt.Sprint(*params.Limit))
 		queryURL.RawQuery = values.Encode()
 	}
 	return http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -83,6 +137,27 @@ func NewPostApiVVersionBookingIdKtmbCostRequest(server, version string, id opena
 		return nil, err
 	}
 	requestURL, err := serverURL.Parse(fmt.Sprintf("./api/v%s/Booking/%s/ktmb-cost", url.PathEscape(version), url.PathEscape(id.String())))
+	if err != nil {
+		return nil, err
+	}
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, requestURL.String(), bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return req, nil
+}
+
+func NewPostApiVVersionBookingIdKtmbRefundRequest(server, version string, id openapi_types.UUID, body PostApiVVersionBookingIdKtmbRefundJSONBody) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+	requestURL, err := serverURL.Parse(fmt.Sprintf("./api/v%s/Booking/%s/ktmb-refund", url.PathEscape(version), url.PathEscape(id.String())))
 	if err != nil {
 		return nil, err
 	}
