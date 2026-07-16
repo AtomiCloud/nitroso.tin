@@ -42,6 +42,7 @@ type fakeKTMB struct {
 	cancel           ktmb.GenericRes[*interface{}]
 	cancelErr        error
 	cancelCalls      int
+	cancelUserData   []string
 }
 
 func (k *fakeKTMB) ReserveContext(context.Context, string, string, string, string) (ktmb.GenericRes[ktmb.ReserveRes], error) {
@@ -64,10 +65,11 @@ func (k *fakeKTMB) ReserveContext(context.Context, string, string, string, strin
 	return k.reserve, k.reserveErr
 }
 
-func (k *fakeKTMB) CancelContext(context.Context, string, string) (ktmb.GenericRes[*interface{}], error) {
+func (k *fakeKTMB) CancelContext(_ context.Context, userData, _ string) (ktmb.GenericRes[*interface{}], error) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	k.cancelCalls++
+	k.cancelUserData = append(k.cancelUserData, userData)
 	if k.cancelErr != nil || !k.cancel.Status {
 		return k.cancel, k.cancelErr
 	}
@@ -362,7 +364,7 @@ func TestRunnerRemovesUnreadableAndTerminalReleaseEntries(t *testing.T) {
 		patterns   []string
 	}{
 		{name: "unreadable", decryptErr: errors.New("old encryption key")},
-		{name: "terminal", cancel: ktmb.GenericRes[*interface{}]{Messages: []string{"booking expired"}}, patterns: []string{"expired"}},
+		{name: "terminal", cancel: ktmb.GenericRes[*interface{}]{Messages: []string{"booking expired"}}, patterns: []string{"booking expired"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -378,5 +380,41 @@ func TestRunnerRemovesUnreadableAndTerminalReleaseEntries(t *testing.T) {
 				t.Fatalf("entry was not removed: %q", removed)
 			}
 		})
+	}
+}
+
+func TestRunnerKeepsSessionRejectedDurableRelease(t *testing.T) {
+	k := &fakeKTMB{cancel: ktmb.GenericRes[*interface{}]{Status: false, Messages: []string{"session expired"}}}
+	var tally JobTally
+	runner := testRunner(k, &fakeStore{err: errors.New("missing cache")}, config.ProberConfig{
+		ReleaseTerminalPatterns: []string{"expired"},
+		SessionPatterns:         []string{"session"},
+	}, &tally)
+	runner.listReleases = func(context.Context, int) ([]string, error) { return []string{"entry"}, nil }
+	removed, signaled := false, false
+	runner.removeRelease = func(context.Context, string) error { removed = true; return nil }
+	runner.signalSessionDead = func(_ context.Context, fingerprint string) error {
+		signaled = fingerprint == SessionFingerprint("session")
+		return nil
+	}
+
+	_ = runner.Run(context.Background(), []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}}, 4, "job", time.Now().Add(-time.Second))
+	if removed || !signaled {
+		t.Fatalf("removed=%v signaled=%v", removed, signaled)
+	}
+}
+
+func TestRunnerUsesCurrentSessionForDurableRelease(t *testing.T) {
+	k := &fakeKTMB{cancel: ktmb.GenericRes[*interface{}]{Status: true}}
+	var tally JobTally
+	runner := testRunner(k, seededStore(), config.ProberConfig{}, &tally)
+	runner.listReleases = func(context.Context, int) ([]string, error) { return []string{"entry"}, nil }
+	runner.removeRelease = func(context.Context, string) error { return nil }
+
+	if err := runner.Run(context.Background(), []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}}, 4, "job", time.Now().Add(-time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if len(k.cancelUserData) != 1 || k.cancelUserData[0] != "secret-session" {
+		t.Fatalf("cancel userData = %#v, want current funded session", k.cancelUserData)
 	}
 }

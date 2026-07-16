@@ -79,10 +79,14 @@ func NewRunner(k ktmbClient, store *Store, mainRedis, streamRedis *otelredis.Ote
 }
 
 func (r *Runner) Run(ctx context.Context, targets []Target, epoch int64, job string, probeUntil time.Time) error {
-	if err := r.drainReleases(ctx); err != nil {
-		r.logger.Error().Err(err).Msg("Failed to drain durable prober hold releases")
-	}
 	userData, store, err := r.store.Load(ctx)
+	releaseUserData := ""
+	if err == nil {
+		releaseUserData = userData
+	}
+	if releaseErr := r.drainReleases(ctx, releaseUserData); releaseErr != nil {
+		r.logger.Error().Err(releaseErr).Msg("Failed to drain durable prober hold releases")
+	}
 	if err != nil {
 		tallies := make([]SlotTally, len(targets))
 		for i, target := range targets {
@@ -313,7 +317,7 @@ func (r *Runner) compensateHold(ctx context.Context, dto reserver.ReserveDto, ca
 	return true, errors.Join(cause, cancelErr, errors.New("hold queued for durable release retry"))
 }
 
-func (r *Runner) drainReleases(ctx context.Context) error {
+func (r *Runner) drainReleases(ctx context.Context, currentUserData string) error {
 	limit := r.config.ReleaseDrainLimit
 	if limit <= 0 {
 		limit = 10
@@ -340,8 +344,23 @@ func (r *Runner) drainReleases(ctx context.Context) error {
 			}
 			continue
 		}
-		response, cancelErr := r.ktmb.CancelContext(cleanupCtx, dto.UserData, dto.BookingData)
+		cancelUserData := dto.UserData
+		if currentUserData != "" {
+			// Every prober hold belongs to the one funded account. A newer session
+			// for that account can release a hold created by an older invalidated
+			// session, avoiding a retry loop on dead userData.
+			cancelUserData = currentUserData
+		}
+		response, cancelErr := r.ktmb.CancelContext(cleanupCtx, cancelUserData, dto.BookingData)
 		if cancelErr != nil || !response.Status {
+			if cancelErr == nil && Matches(response.Messages, r.config.SessionPatterns) {
+				if signalErr := r.signalSessionDead(cleanupCtx, SessionFingerprint(cancelUserData)); signalErr != nil {
+					r.logger.Error().Err(signalErr).Msg("Failed to signal session rejected during durable hold release")
+				}
+				r.logger.Error().Strs("messages", response.Messages).
+					Msg("Session-rejected durable prober hold release remains pending")
+				continue
+			}
 			if cancelErr == nil && Matches(response.Messages, r.config.ReleaseTerminalPatterns) {
 				if removeErr := r.removeRelease(cleanupCtx, encrypted); removeErr != nil {
 					return removeErr
