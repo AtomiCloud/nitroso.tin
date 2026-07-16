@@ -205,6 +205,10 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 				r.logger.Error().Str("slot", target.Key()).Msg("KTMB Reserve success omitted bookingData")
 				return tally
 			}
+			// The KTMB hold exists as soon as Reserve succeeds. Delivery or
+			// compensation failures are separate outcomes and must not erase the
+			// acquisition from the hit-rate tally.
+			tally.Holds++
 			releaseFailed, acceptErr := r.acceptHold(ctx, userData, response.Data.BookingData, target)
 			if acceptErr != nil {
 				tally.Errors++
@@ -217,7 +221,6 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 				// stop this slot rather than risk accumulating orphan holds.
 				return tally
 			}
-			tally.Holds++
 			errorsSeen = 0
 			continue
 		}

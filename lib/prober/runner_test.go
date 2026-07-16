@@ -131,7 +131,7 @@ func TestRunnerCancelsHoldWhenQueueWriteFails(t *testing.T) {
 	if err := runner.Run(context.Background(), []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}}, 4, "job", time.Now().Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if k.cancelCalls != 1 || tally.Total.Holds != 0 || tally.Total.Errors != 1 {
+	if k.cancelCalls != 1 || tally.Total.Holds != 1 || tally.Total.Errors != 1 {
 		t.Fatalf("cancel=%d tally=%#v", k.cancelCalls, tally.Total)
 	}
 }
@@ -148,7 +148,7 @@ func TestRunnerPersistsHoldWhenImmediateCancellationFails(t *testing.T) {
 	if err := runner.Run(context.Background(), []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}}, 4, "job", time.Now().Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if persisted == "" || tally.Total.ReleaseFailed != 1 || tally.Total.Holds != 0 {
+	if persisted == "" || tally.Total.ReleaseFailed != 1 || tally.Total.Holds != 1 {
 		t.Fatalf("persisted=%q tally=%#v", persisted, tally.Total)
 	}
 }
