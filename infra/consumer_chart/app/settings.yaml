@@ -175,7 +175,7 @@ prober:
   releaseDrainBudgetMs: 5000
   releaseTerminalPatterns:
     - 'not found'
-    - 'expired'
+    - 'booking expired'
     - 'invalid booking'
   soldOutPatterns:
     - 'sold out'

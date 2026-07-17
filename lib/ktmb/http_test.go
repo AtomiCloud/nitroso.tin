@@ -34,8 +34,9 @@ func TestSendWithContextReturnsTypedHTTPStatusError(t *testing.T) {
 }
 
 func TestSendWithContextHonorsCancellation(t *testing.T) {
+	release := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		<-r.Context().Done()
+		<-release
 	}))
 	defer server.Close()
 	logger := zerolog.Nop()
@@ -43,6 +44,7 @@ func TestSendWithContextHonorsCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 	_, err := client.SendWithContext(ctx, http.MethodPost, "reserve", map[string]string{})
+	close(release)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("err = %v, want context deadline", err)
 	}
