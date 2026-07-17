@@ -206,6 +206,46 @@ func TestStoreEnsureEnrichesMissingAndUnreadableCache(t *testing.T) {
 	}
 }
 
+func TestStoreEnsureRequiresCompleteSearchAndTripData(t *testing.T) {
+	target := Target{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}
+
+	t.Run("refreshes incomplete cache", func(t *testing.T) {
+		cache := &memoryStoreCache{values: map[string]string{}}
+		finder := &fakeFinderProvider{result: enricher.FindRes{SearchData: "fresh-search", TripData: "fresh-trip"}}
+		store, encr := newTestStore(t, cache, &fakeSessionProvider{userData: "session"}, finder)
+		cached := enricher.FindStore{"JToW": {"01-01-2027": {"08:30:00": {TripData: "cached-trip"}}}}
+		cache.values["store"], _ = encr.EncryptAny(cached)
+
+		if err := store.Ensure(context.Background(), []Target{target}); err != nil {
+			t.Fatal(err)
+		}
+		written, err := encr.DecryptAny(cache.values["store"])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if finder.calls != 1 || !completeFind(findSlot(written, target)) {
+			t.Fatalf("finder=%d written=%#v", finder.calls, written)
+		}
+	})
+
+	t.Run("does not cache incomplete enrichment", func(t *testing.T) {
+		cache := &memoryStoreCache{values: map[string]string{}}
+		finder := &fakeFinderProvider{result: enricher.FindRes{TripData: "trip-only"}}
+		store, encr := newTestStore(t, cache, &fakeSessionProvider{userData: "session"}, finder)
+
+		if err := store.Ensure(context.Background(), []Target{target}); err != nil {
+			t.Fatal(err)
+		}
+		written, err := encr.DecryptAny(cache.values["store"])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if finder.calls != 1 || countSlotsForTest(written) != 0 {
+			t.Fatalf("finder=%d written=%#v", finder.calls, written)
+		}
+	})
+}
+
 func TestStoreEnsurePropagatesLoginAndWriteFailures(t *testing.T) {
 	tests := []struct {
 		name       string

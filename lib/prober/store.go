@@ -3,6 +3,7 @@ package prober
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -186,7 +187,7 @@ func (s *Store) Ensure(ctx context.Context, targets []Target) error {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	for _, target := range targets {
-		if existing := findSlot(cached, target); existing.TripData != "" {
+		if existing := findSlot(cached, target); completeFind(existing) {
 			mu.Lock()
 			setSlot(store, target, existing)
 			mu.Unlock()
@@ -198,6 +199,10 @@ func (s *Store) Ensure(ctx context.Context, targets []Target) error {
 			found, findErr := s.finder.FindContext(ctx, userData, target.Direction, lib.ZincToHeliumDate(target.Date), target.Time)
 			if findErr != nil {
 				s.logger.Error().Err(findErr).Str("slot", target.Key()).Msg("Failed to seed prober slot")
+				return
+			}
+			if !completeFind(found) {
+				s.logger.Error().Str("slot", target.Key()).Msg("Enricher returned incomplete searchData/tripData")
 				return
 			}
 			mu.Lock()
@@ -226,6 +231,9 @@ func (s *Store) Refresh(ctx context.Context, userData string, target Target) (en
 	if err != nil {
 		return enricher.FindRes{}, err
 	}
+	if !completeFind(found) {
+		return enricher.FindRes{}, errors.New("enricher returned incomplete searchData/tripData")
+	}
 	return found, nil
 }
 
@@ -234,6 +242,10 @@ func findSlot(store enricher.FindStore, target Target) enricher.FindRes {
 		return enricher.FindRes{}
 	}
 	return store[target.Direction][target.Date][target.Time]
+}
+
+func completeFind(found enricher.FindRes) bool {
+	return found.SearchData != "" && found.TripData != ""
 }
 
 func setSlot(store enricher.FindStore, target Target, found enricher.FindRes) {

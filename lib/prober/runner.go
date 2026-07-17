@@ -122,9 +122,9 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 	store enricher.FindStore, target Target, probeUntil time.Time) SlotTally {
 	tally := SlotTally{Slot: target.Key()}
 	find := findSlot(store, target)
-	if find.TripData == "" {
+	if !completeFind(find) {
 		var err error
-		find, err = r.store.Refresh(ctx, userData, target)
+		find, err = r.refreshSlot(ctx, userData, target)
 		if err != nil {
 			tally.Errors++
 			tally.Skipped++
@@ -147,7 +147,13 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 		if !time.Now().Before(probeUntil) {
 			return tally
 		}
-		if err := r.waitForMaintenance(ctx); err != nil {
+		maintenanceCtx, maintenanceCancel := context.WithDeadline(ctx, probeUntil)
+		maintenanceErr := r.waitForMaintenance(maintenanceCtx)
+		maintenanceCancel()
+		if maintenanceErr != nil {
+			return tally
+		}
+		if !time.Now().Before(probeUntil) {
 			return tally
 		}
 		select {
@@ -176,7 +182,7 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 						return tally
 					}
 					refreshed = true
-					find, err = r.store.Refresh(ctx, userData, target)
+					find, err = r.refreshSlot(ctx, userData, target)
 					if err != nil {
 						tally.Errors++
 						return tally
@@ -241,7 +247,7 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 				return tally
 			}
 			refreshed = true
-			find, err = r.store.Refresh(ctx, userData, target)
+			find, err = r.refreshSlot(ctx, userData, target)
 			if err != nil {
 				tally.Errors++
 				return tally
@@ -268,11 +274,24 @@ func (r *Runner) probeSlot(ctx context.Context, cancelEpoch context.CancelFunc, 
 }
 
 func (r *Runner) markSessionDead(ctx context.Context, cancelEpoch context.CancelFunc, userData string, target Target, messages []string) {
-	if err := r.signalSessionDead(context.WithoutCancel(ctx), SessionFingerprint(userData)); err != nil {
+	cancelEpoch()
+	signalCtx, signalCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer signalCancel()
+	if err := r.signalSessionDead(signalCtx, SessionFingerprint(userData)); err != nil {
 		r.logger.Error().Err(err).Str("slot", target.Key()).Strs("messages", messages).
 			Msg("Failed to persist dead KTMB session signal")
 	}
-	cancelEpoch()
+}
+
+func (r *Runner) refreshSlot(ctx context.Context, userData string, target Target) (enricher.FindRes, error) {
+	find, err := r.store.Refresh(ctx, userData, target)
+	if err != nil {
+		return enricher.FindRes{}, err
+	}
+	if !completeFind(find) {
+		return enricher.FindRes{}, errors.New("enrichment returned incomplete searchData/tripData")
+	}
+	return find, nil
 }
 
 func (r *Runner) acceptHold(ctx context.Context, userData, bookingData string, target Target) (bool, error) {
@@ -353,13 +372,23 @@ func (r *Runner) drainReleases(ctx context.Context, currentUserData string) erro
 		}
 		response, cancelErr := r.ktmb.CancelContext(cleanupCtx, cancelUserData, dto.BookingData)
 		if cancelErr != nil || !response.Status {
-			if cancelErr == nil && Matches(response.Messages, r.config.SessionPatterns) {
+			messages := response.Messages
+			sessionRejected := cancelErr == nil && Matches(messages, r.config.SessionPatterns)
+			if cancelErr != nil {
+				var statusErr *ktmb.HttpStatusError
+				if errors.As(cancelErr, &statusErr) {
+					messages = []string{statusErr.Body}
+					sessionRejected = statusErr.StatusCode == 401 || statusErr.StatusCode == 403 ||
+						Matches(messages, r.config.SessionPatterns)
+				}
+			}
+			if sessionRejected {
 				if signalErr := r.signalSessionDead(cleanupCtx, SessionFingerprint(cancelUserData)); signalErr != nil {
 					r.logger.Error().Err(signalErr).Msg("Failed to signal session rejected during durable hold release")
 				}
-				r.logger.Error().Strs("messages", response.Messages).
+				r.logger.Error().Err(cancelErr).Strs("messages", messages).
 					Msg("Session-rejected durable prober hold release remains pending")
-				continue
+				return nil
 			}
 			if cancelErr == nil && Matches(response.Messages, r.config.ReleaseTerminalPatterns) {
 				if removeErr := r.removeRelease(cleanupCtx, encrypted); removeErr != nil {

@@ -198,6 +198,57 @@ func TestRunnerRefreshesStaleDataOnce(t *testing.T) {
 	}
 }
 
+func TestRunnerRequiresCompleteSearchAndTripData(t *testing.T) {
+	target := Target{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}
+
+	t.Run("refreshes incomplete cached slot", func(t *testing.T) {
+		store := seededStore()
+		store.find["JToW"]["01-01-2027"]["08:30:00"] = enricher.FindRes{TripData: "trip"}
+		store.refresh = enricher.FindRes{SearchData: "fresh-search", TripData: "fresh-trip"}
+		k := &fakeKTMB{reserve: ktmb.GenericRes[ktmb.ReserveRes]{Status: true, Data: ktmb.ReserveRes{BookingData: "hold"}}, cancel: ktmb.GenericRes[*interface{}]{Status: true}}
+		var tally JobTally
+		runner := testRunner(k, store, config.ProberConfig{DryRun: true}, &tally)
+
+		if err := runner.Run(context.Background(), []Target{target}, 4, "job", time.Now().Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+		if store.refreshCalls != 1 || k.reserveCalls != 1 || tally.Total.Holds != 1 {
+			t.Fatalf("refresh=%d reserve=%d tally=%#v", store.refreshCalls, k.reserveCalls, tally.Total)
+		}
+	})
+
+	t.Run("skips incomplete refresh", func(t *testing.T) {
+		store := seededStore()
+		store.find["JToW"]["01-01-2027"]["08:30:00"] = enricher.FindRes{TripData: "trip"}
+		store.refresh = enricher.FindRes{TripData: "fresh-trip"}
+		k := &fakeKTMB{reserve: ktmb.GenericRes[ktmb.ReserveRes]{Status: true, Data: ktmb.ReserveRes{BookingData: "hold"}}}
+		var tally JobTally
+		runner := testRunner(k, store, config.ProberConfig{}, &tally)
+
+		if err := runner.Run(context.Background(), []Target{target}, 4, "job", time.Now().Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+		if k.reserveCalls != 0 || tally.Total.Errors != 1 || tally.Total.Skipped != 1 {
+			t.Fatalf("reserve=%d tally=%#v", k.reserveCalls, tally.Total)
+		}
+	})
+
+	t.Run("stops after incomplete stale refresh", func(t *testing.T) {
+		store := seededStore()
+		store.refresh = enricher.FindRes{TripData: "fresh-trip"}
+		k := &fakeKTMB{reserveResponses: []ktmb.GenericRes[ktmb.ReserveRes]{{Messages: []string{"trip data expired"}}, {Status: true, Data: ktmb.ReserveRes{BookingData: "hold"}}}}
+		var tally JobTally
+		runner := testRunner(k, store, config.ProberConfig{StaleDataPatterns: []string{"trip data"}}, &tally)
+
+		if err := runner.Run(context.Background(), []Target{target}, 4, "job", time.Now().Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+		if k.reserveCalls != 1 || tally.Total.Stale != 1 || tally.Total.Errors != 1 || tally.Total.Holds != 0 {
+			t.Fatalf("reserve=%d tally=%#v", k.reserveCalls, tally.Total)
+		}
+	})
+}
+
 func TestRunnerLiveModeEnqueuesEncryptedHold(t *testing.T) {
 	k := &fakeKTMB{reserve: ktmb.GenericRes[ktmb.ReserveRes]{Status: true, Data: ktmb.ReserveRes{BookingData: "hold"}}}
 	var tally JobTally
@@ -317,6 +368,23 @@ func TestRunnerSessionFailureCancelsMultiTargetEpoch(t *testing.T) {
 	}
 }
 
+func TestRunnerCancelsEpochBeforePersistingSessionDeath(t *testing.T) {
+	logger := zerolog.Nop()
+	runner := &Runner{logger: &logger}
+	epochCtx, cancelEpoch := context.WithCancel(context.Background())
+	canceledFirst, boundedSignal := false, false
+	runner.signalSessionDead = func(signalCtx context.Context, _ string) error {
+		canceledFirst = epochCtx.Err() != nil
+		_, boundedSignal = signalCtx.Deadline()
+		return nil
+	}
+
+	runner.markSessionDead(epochCtx, cancelEpoch, "session", Target{Direction: "JToW"}, []string{"expired"})
+	if !canceledFirst || !boundedSignal {
+		t.Fatalf("canceledFirst=%v boundedSignal=%v", canceledFirst, boundedSignal)
+	}
+}
+
 func TestRunnerTalliesCacheMissWithoutLoggingIn(t *testing.T) {
 	k := &fakeKTMB{}
 	var tally JobTally
@@ -401,6 +469,26 @@ func TestRunnerKeepsSessionRejectedDurableRelease(t *testing.T) {
 	_ = runner.Run(context.Background(), []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}}, 4, "job", time.Now().Add(-time.Second))
 	if removed || !signaled {
 		t.Fatalf("removed=%v signaled=%v", removed, signaled)
+	}
+}
+
+func TestRunnerStopsDurableReleaseDrainOnTypedSessionFailure(t *testing.T) {
+	k := &fakeKTMB{cancelErr: &ktmb.HttpStatusError{StatusCode: 401, Body: "unauthorized"}}
+	var tally JobTally
+	runner := testRunner(k, seededStore(), config.ProberConfig{SessionPatterns: []string{"session"}}, &tally)
+	runner.listReleases = func(context.Context, int) ([]string, error) { return []string{"one", "two"}, nil }
+	removed, signaled := false, false
+	runner.removeRelease = func(context.Context, string) error { removed = true; return nil }
+	runner.signalSessionDead = func(_ context.Context, fingerprint string) error {
+		signaled = fingerprint == SessionFingerprint("secret-session")
+		return nil
+	}
+
+	if err := runner.Run(context.Background(), []Target{{Direction: "JToW", Date: "01-01-2027", Time: "08:30:00", Needed: 1}}, 4, "job", time.Now().Add(-time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if k.cancelCalls != 1 || removed || !signaled {
+		t.Fatalf("cancel=%d removed=%v signaled=%v", k.cancelCalls, removed, signaled)
 	}
 }
 

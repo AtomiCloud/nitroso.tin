@@ -84,7 +84,7 @@ func (s *Spawner) Start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return ctx.Err()
+			return nil
 		case <-timer.C:
 		}
 	}

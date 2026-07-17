@@ -161,3 +161,14 @@ func TestSpawnerRejectsInvalidFleetConfig(t *testing.T) {
 		t.Fatal("expected invalid config error")
 	}
 }
+
+func TestSpawnerTreatsRequestedShutdownAsSuccess(t *testing.T) {
+	spawner, _ := testSpawner(&fakeCountSource{}, &fakeSeedStore{}, &fakeJobSource{}, config.ProberConfig{
+		EpochMinutes: 1, JobMinutes: 2, SlotsPerJob: 1, Fanout: 1,
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := spawner.Start(ctx); err != nil {
+		t.Fatalf("requested shutdown returned %v", err)
+	}
+}

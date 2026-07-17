@@ -59,7 +59,7 @@ The prober fleet is a **multi-job batch spawned every epoch** (1-minute tick), s
 by demand along two axes — _breadth_ (slots per Job) and _fanout_ (Jobs per slot
 group) — and each Job expires by its own deadline:
 
-```
+```text
  tin-spawner (Deployment; absorbs the poller AND the enricher)
    every EPOCH_MINUTES (epoch E = floor(unix / (EPOCH_MINUTES*60)); default 1 min):
      1. read MAIN "{ps}:count" → filterPoller window → ALL demanded slots (NO cap),
@@ -269,7 +269,7 @@ a second funded account is added.
 One goroutine per slot. Each Job handles up to `slotsPerJob` slots; with `fanout` F,
 each slot group is probed by F concurrent Jobs (F× goroutines per slot). Each goroutine:
 
-```
+```text
 seed: searchData/tripData := ktmb:store[slot]        // enricher cache, if present
       else StationsAll → SearchStations → Trip        // self-seed (3 calls, ~4 s)
 loop until deadline or holds == needed:
