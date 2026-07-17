@@ -1,3 +1,10 @@
+## [1.55.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.55.0...v1.55.1) (2026-07-17)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **prober:** classify KTMB 'Not enough seat' as sold-out ([#49](https://github.com/AtomiCloud/nitroso.tin/issues/49)) ([2b2aac5](https://github.com/AtomiCloud/nitroso.tin/commit/2b2aac5688b3df6618c32fa002c30fcf73c1b669))
+
 ## [1.55.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.54.1...v1.55.0) (2026-07-17)
 
 
