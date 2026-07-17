@@ -102,7 +102,7 @@ group) — and each Job expires by its own deadline:
    at deadline: exit 0; emit per-slot tally lines + write Job tally to MAIN
 
  buyer, recoverer, cdc, enricher*, zinc: unchanged contracts
- (* enricher optionally folded into the prober later — §9 phase 4)
+ (* enricher may be folded into the prober after Phase 3 — §9)
 ```
 
 Deleted permanently (~1,500 lines + 2 services' worth of coupling):
@@ -221,10 +221,14 @@ replaced.
     old-token Jobs cannot delete a newer healthy session or overwrite a current-token
     failure. A matching dead token is re-established through the existing cache-miss
     `session.Login`.
-- **Funding**: the account must hold e-wallet balance ≥ (max holds per epoch ×
-  ticket price). With fanout, max holds per epoch scales with `breadth × fanout ×
-needed`; size the wallet accordingly. Operational runbook item, not code. The
-  §3.1 revert path is the backstop for a drained wallet, not the plan.
+- **Funding**: size the account for maximum _concurrent_ holds across all live
+  generations, not one epoch: `overlap = ceil(jobMinutes / epochMinutes)`. For
+  uniform demand, use `breadth × fanout × needed × overlap`. For heterogeneous
+  slots, use `sum(target.needed) × fanout × overlap`.
+  Add every unreleased hold already in immediate-cancel or durable-release backlog,
+  then multiply the total hold budget by the maximum ticket price. This is an
+  operational runbook requirement, not code. The §3.1 revert path is the backstop
+  for a drained wallet, not the plan.
 - **No rate cap — throughput scales with Jobs**: the prober has **no `maxRps`**
   (`paceMs` defaults to **0 ms**, §7). Every goroutine fires `Reserve` as fast as the
   pooled HTTP client allows, relying on per-request **X-Real-IP rotation** to defeat
