@@ -181,6 +181,9 @@ prober:
     - 'sold out'
     - 'no seat'
     - 'not available'
+    # verbatim from the pikachu Phase-0 dry-run (EPOCH-PROBER.md §9): KTMB's
+    # actual full-slot phrasing is "Not enough seat for onward trip."
+    - 'not enough seat'
   staleDataPatterns:
     - 'search data'
     - 'trip data'
