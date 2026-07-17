@@ -3,6 +3,7 @@ module github.com/AtomiCloud/nitroso-tin
 go 1.21.4
 
 require (
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/deepmap/oapi-codegen v1.16.2
 	github.com/descope/go-sdk v1.6.1
 	github.com/getkin/kin-openapi v0.123.0
@@ -50,6 +51,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
+	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/flosch/pongo2/v4 v4.0.2 // indirect
@@ -130,6 +132,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/yosssi/ace v0.0.5 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0 // indirect
 	go.opentelemetry.io/otel/metric v1.22.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.1.0 // indirect

@@ -69,7 +69,12 @@ func (e *SymEncryptor[T]) Decrypt(s string) (string, error) {
 		return "", err
 	}
 
-	split := strings.Split(s, ":")
+	split := strings.SplitN(s, ":", 2)
+	if len(split) != 2 {
+		err := fmt.Errorf("invalid encrypted value: missing nonce separator")
+		e.logger.Error().Err(err).Msg("Failed to parse ciphertext")
+		return "", err
+	}
 	nonceHex := split[0]
 	ciphertextHex := split[1]
 	nonce, err := hex.DecodeString(nonceHex)

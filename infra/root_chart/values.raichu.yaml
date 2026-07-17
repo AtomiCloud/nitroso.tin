@@ -194,6 +194,27 @@ poller:
       memory: '256Mi'
       cpu: '250m'
 
+spawner:
+  enabled: false
+  fullnameOverride: 'tin-spawner'
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  replicaCount: 1
+  configMountPath: /app/config
+  resources:
+    requests:
+      memory: '64Mi'
+      cpu: '25m'
+    limits:
+      memory: '256Mi'
+      cpu: '250m'
+
 reserver:
   enabled: true
 

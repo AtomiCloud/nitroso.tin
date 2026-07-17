@@ -78,6 +78,31 @@ poller:
 
   configMountPath: /app/config
 
+spawner:
+  enabled: false
+  fullnameOverride: 'tin-spawner'
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  podSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    runAsNonRoot: true
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    capabilities:
+      drop:
+        - ALL
+  replicaCount: 1
+  configMountPath: /app/config
+
 enricher:
   serviceTree:
     landscape: *landscape

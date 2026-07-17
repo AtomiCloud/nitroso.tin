@@ -8,13 +8,14 @@ Root Chart to a single Service
 
 | Repository | Name | Version |
 |------------|------|---------|
-| file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
-| file://../consumer_chart | poller(golang-chart) | 0.1.0 |
+| file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
+| file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
+| file://../consumer_chart | spawner(golang-chart) | 0.1.0 |
 | file://../consumer_chart | terminator(golang-chart) | 0.1.0 |
 | file://../consumer_chart | enricher(golang-chart) | 0.1.0 |
 | file://../consumer_chart | loginer(golang-chart) | 0.1.0 |
-| file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
-| file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
+| file://../consumer_chart | poller(golang-chart) | 0.1.0 |
+| file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | recoverer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | withdrawer(golang-chart) | 0.1.0 |
 | oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.9.3 |
@@ -263,6 +264,38 @@ Root Chart to a single Service
 | serviceTree.layer | string | `"2"` |  |
 | serviceTree.platform | string | `"nitroso"` |  |
 | serviceTree.service | string | `"tin"` |  |
+| spawner.affinity | object | `{}` |  |
+| spawner.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| spawner.appSettings.app.module | string | `"spawner"` |  |
+| spawner.autoscaling | object | `{}` |  |
+| spawner.command[0] | string | `"/app/nitroso-tin"` |  |
+| spawner.command[1] | string | `"spawner"` |  |
+| spawner.configMountPath | string | `"/app/config"` |  |
+| spawner.enabled | bool | `false` |  |
+| spawner.envFromSecret | string | `"tin"` |  |
+| spawner.image.pullPolicy | string | `"IfNotPresent"` |  |
+| spawner.image.repository | string | `"ghcr.io/atomicloud/nitroso.tin/nitroso-tin"` |  |
+| spawner.image.tag | string | `""` |  |
+| spawner.imagePullSecrets | list | `[]` |  |
+| spawner.jobRbac.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| spawner.jobRbac.create | bool | `true` |  |
+| spawner.nameOverride | string | `"tin-spawner"` |  |
+| spawner.nodeSelector | object | `{}` |  |
+| spawner.podAnnotations | object | `{}` |  |
+| spawner.podSecurityContext | object | `{}` |  |
+| spawner.replicaCount | int | `1` |  |
+| spawner.resources | object | `{}` |  |
+| spawner.securityContext | object | `{}` |  |
+| spawner.serviceAccount.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| spawner.serviceAccount.create | bool | `true` |  |
+| spawner.serviceTree.<<.landscape | string | `"lapras"` |  |
+| spawner.serviceTree.<<.layer | string | `"2"` |  |
+| spawner.serviceTree.<<.platform | string | `"nitroso"` |  |
+| spawner.serviceTree.<<.service | string | `"tin"` |  |
+| spawner.serviceTree.module | string | `"spawner"` |  |
+| spawner.stateful | bool | `false` |  |
+| spawner.tolerations | list | `[]` |  |
+| spawner.topologySpreadConstraints | object | `{}` |  |
 | tags."atomi.cloud/layer" | string | `"2"` |  |
 | tags."atomi.cloud/platform" | string | `"nitroso"` |  |
 | tags."atomi.cloud/service" | string | `"tin"` |  |
