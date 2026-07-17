@@ -1,3 +1,10 @@
+## [1.55.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.54.1...v1.55.0) (2026-07-17)
+
+
+### ✨ Features ✨
+
+* **prober:** add epoch probe-by-reserving fleet ([#41](https://github.com/AtomiCloud/nitroso.tin/issues/41)) ([1c0e8d5](https://github.com/AtomiCloud/nitroso.tin/commit/1c0e8d5a7b825efdc2bab1c90e91d1402b865017)), closes [#48](https://github.com/AtomiCloud/nitroso.tin/issues/48)
+
 ## [1.54.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.54.0...v1.54.1) (2026-07-15)
 
 
