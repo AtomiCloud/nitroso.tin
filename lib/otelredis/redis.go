@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strings"
+
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
@@ -28,6 +31,26 @@ type OtelRedisMessage struct {
 	Context propagation.MapCarrier `json:"context"`
 }
 
+func fqdnHost(host string) string {
+	if net.ParseIP(host) != nil || !strings.Contains(host, ".") || strings.HasSuffix(host, ".") {
+		return host
+	}
+
+	return host + "."
+}
+
+func normalizeRedisOptions(opt *redis.Options) {
+	host, port, err := net.SplitHostPort(opt.Addr)
+	if err != nil {
+		return
+	}
+
+	opt.Addr = net.JoinHostPort(fqdnHost(host), port)
+	if opt.TLSConfig != nil {
+		opt.TLSConfig.ServerName = strings.TrimSuffix(host, ".")
+	}
+}
+
 func New(cfg config.CacheConfig) OtelRedis {
 
 	ssl := ""
@@ -37,6 +60,7 @@ func New(cfg config.CacheConfig) OtelRedis {
 
 	ep := fmt.Sprintf("redis%s://default:%s@%s", ssl, cfg.Password, cfg.Endpoints[0])
 	opt, _ := redis.ParseURL(ep)
+	normalizeRedisOptions(opt)
 	rdb := redis.NewClient(opt)
 	return OtelRedis{rdb}
 }
