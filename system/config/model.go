@@ -216,6 +216,8 @@ type PollerConfig struct {
 type ProberConfig struct {
 	EpochMinutes            int
 	JobMinutes              int
+	JobCpu                  string
+	JobMemory               string
 	SlotsPerJob             int
 	Fanout                  int
 	PaceMs                  int
