@@ -1,3 +1,10 @@
+## [1.56.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.56.0...v1.56.1) (2026-07-18)
+
+
+### 🐛 Bug Fixes 🐛
+
+* dial external Redis as FQDN to stop ndots search-domain amplification ([#51](https://github.com/AtomiCloud/nitroso.tin/issues/51)) ([a97dbc1](https://github.com/AtomiCloud/nitroso.tin/commit/a97dbc1c7f9bd1ec77f6999ed158580a493d10a0))
+
 ## [1.56.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.55.1...v1.56.0) (2026-07-18)
 
 
