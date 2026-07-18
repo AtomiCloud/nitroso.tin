@@ -2,6 +2,9 @@ package cmds
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/AtomiCloud/nitroso-tin/lib/encryptor"
@@ -14,7 +17,19 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func (state *State) Prober(c *cli.Context) error {
+func (state *State) Prober(c *cli.Context) (runErr error) {
+	profiler, err := prober.StartProfiler(c.Bool("pprof"), os.Stdout)
+	if err != nil {
+		return fmt.Errorf("start prober profiler: %w", err)
+	}
+	if profiler != nil {
+		defer func() {
+			if err := profiler.Stop(); err != nil {
+				runErr = errors.Join(runErr, fmt.Errorf("stop prober profiler: %w", err))
+			}
+		}()
+	}
+
 	targets, err := prober.ParseTargets(c.String("data"))
 	if err != nil {
 		return err

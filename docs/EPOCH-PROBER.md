@@ -355,6 +355,44 @@ loop until deadline or holds == needed:
 - Prometheus stays out of scope for v1; logs + redis tally are sufficient and
   match the fleet's existing observability posture.
 
+### 8.1 On-demand runtime profiles
+
+Runtime profiling is default-off and has no sampling or buffering cost unless the
+prober receives `--pprof` or `ATOMI_PROBER__PPROF=true`. An enabled Job records CPU
+for the full prober action, then captures heap, goroutine, block, and mutex profiles
+at exit. Each profile is gzip-wrapped, base64-encoded, and emitted as one raw log
+line with a stable `PPROF-<TYPE>-B64:` prefix.
+
+The spawner copies its container environment into each short-lived Job. To profile
+one pikachu Job, enable the environment variable on the spawner, wait for the next
+Job after the rollout, then immediately turn it back off:
+
+```bash
+kubectl --context pikachu-ruby -n nitroso set env deployment/tin-spawner ATOMI_PROBER__PPROF=true
+kubectl --context pikachu-ruby -n nitroso rollout status deployment/tin-spawner --timeout=2m
+PREVIOUS_JOB=$(kubectl --context pikachu-ruby -n nitroso get jobs -l atomi.cloud/module=prober --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
+while :; do
+  JOB=$(kubectl --context pikachu-ruby -n nitroso get jobs -l atomi.cloud/module=prober --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
+  [ -n "${JOB}" ] && [ "${JOB}" != "${PREVIOUS_JOB}" ] && break
+  sleep 5
+done
+kubectl --context pikachu-ruby -n nitroso set env deployment/tin-spawner ATOMI_PROBER__PPROF-
+kubectl --context pikachu-ruby -n nitroso rollout status deployment/tin-spawner --timeout=2m
+```
+
+Retrieve and reconstruct all five profiles before the completed Job's five-minute
+TTL expires:
+
+```bash
+until kubectl --context pikachu-ruby -n nitroso logs "job/${JOB}" | grep -q '^PPROF-MUTEX-B64:'; do sleep 5; done
+kubectl --context pikachu-ruby -n nitroso logs "job/${JOB}" > "${JOB}.log"
+for PROFILE in CPU HEAP GOROUTINE BLOCK MUTEX; do
+  name=$(printf '%s' "${PROFILE}" | tr '[:upper:]' '[:lower:]')
+  sed -n "s/^PPROF-${PROFILE}-B64://p" "${JOB}.log" | tail -n 1 | base64 -d | gzip -dc > "${name}.pprof"
+done
+go tool pprof -top cpu.pprof
+```
+
 ## 9. Migration plan (each phase independently shippable / revertible)
 
 - **Phase 0 — validate (§10)** on pichu by enabling only `spawner.enabled` while
