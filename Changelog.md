@@ -1,3 +1,10 @@
+## [1.56.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.55.1...v1.56.0) (2026-07-18)
+
+
+### ✨ Features ✨
+
+* configurable prober Job resources ([#50](https://github.com/AtomiCloud/nitroso.tin/issues/50)) ([6e4a064](https://github.com/AtomiCloud/nitroso.tin/commit/6e4a0642bb54dd484888885ef56363d0cfe1978a))
+
 ## [1.55.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.55.0...v1.55.1) (2026-07-17)
 
 
