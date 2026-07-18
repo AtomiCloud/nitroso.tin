@@ -164,6 +164,8 @@ poller:
 prober:
   epochMinutes: 1
   jobMinutes: 2
+  jobCpu: '250m'
+  jobMemory: '128Mi'
   slotsPerJob: 500
   fanout: 1
   paceMs: 0

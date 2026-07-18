@@ -51,7 +51,8 @@ func (state *State) Spawner(c *cli.Context) error {
 		ktmbConfig.LoginKey, state.Ps+":prober:session-dead", state.Logger)
 	counts := count.New(state.Config.Buffer, &mainRedis, state.Logger, state.Ps, state.Location)
 	jobs := prober.NewJobCreator(kube, namespace, container, pod.Spec.Volumes,
-		state.Config.App, state.Config.Prober.JobMinutes, state.Logger)
+		state.Config.App, state.Config.Prober.JobMinutes, state.Config.Prober.JobCpu,
+		state.Config.Prober.JobMemory, state.Logger)
 	spawner := prober.NewSpawner(counts, store, jobs, &mainRedis, state.Config.Prober, state.Ps, state.Logger)
 	state.Logger.Info().Msg("Starting epoch prober spawner")
 	return spawner.Start(ctx)

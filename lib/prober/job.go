@@ -23,14 +23,17 @@ type JobCreator struct {
 	volumes    []corev1.Volume
 	app        config.AppConfig
 	jobMinutes int
+	jobCpu     string
+	jobMemory  string
 	logger     *zerolog.Logger
 }
 
 func NewJobCreator(kube kubernetes.Interface, namespace string, container corev1.Container,
-	volumes []corev1.Volume, app config.AppConfig, jobMinutes int,
+	volumes []corev1.Volume, app config.AppConfig, jobMinutes int, jobCpu, jobMemory string,
 	logger *zerolog.Logger) *JobCreator {
 	return &JobCreator{kube: kube, namespace: namespace, container: container,
-		volumes: volumes, app: app, jobMinutes: jobMinutes, logger: logger}
+		volumes: volumes, app: app, jobMinutes: jobMinutes, jobCpu: jobCpu,
+		jobMemory: jobMemory, logger: logger}
 }
 
 func JobName(epoch int64, shard, fanout int) string {
@@ -52,9 +55,21 @@ func (c *JobCreator) Create(ctx context.Context, epoch int64, shard, fanout int,
 	container.StartupProbe = nil
 	container.Lifecycle = nil
 	container.Ports = nil
+	jobCpu := c.jobCpu
+	if jobCpu == "" {
+		jobCpu = "250m"
+	}
+	jobMemory := c.jobMemory
+	if jobMemory == "" {
+		jobMemory = "128Mi"
+	}
+	requests := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(jobCpu),
+		corev1.ResourceMemory: resource.MustParse(jobMemory),
+	}
 	container.Resources = corev1.ResourceRequirements{
-		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m"), corev1.ResourceMemory: resource.MustParse("128Mi")},
-		Limits:   corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m"), corev1.ResourceMemory: resource.MustParse("128Mi")},
+		Requests: requests,
+		Limits:   requests.DeepCopy(),
 	}
 	container.Env = append(container.Env, corev1.EnvVar{Name: "ATOMI_APP__MODULE", Value: "prober"})
 
