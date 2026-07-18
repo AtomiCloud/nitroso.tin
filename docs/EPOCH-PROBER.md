@@ -364,16 +364,24 @@ at exit. Each profile is gzip-wrapped, base64-encoded, and emitted as one raw lo
 line with a stable `PPROF-<TYPE>-B64:` prefix.
 
 The spawner copies its container environment into each short-lived Job. To profile
-one pikachu Job, enable the environment variable on the spawner, wait for the next
-Job after the rollout, then immediately turn it back off:
+the next pikachu batch, record the start time, enable the environment variable on
+the spawner, select the first new Job whose template carries the flag, then
+immediately turn it back off:
 
 ```bash
+STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 kubectl --context pikachu-ruby -n nitroso set env deployment/tin-spawner ATOMI_PROBER__PPROF=true
 kubectl --context pikachu-ruby -n nitroso rollout status deployment/tin-spawner --timeout=2m
-PREVIOUS_JOB=$(kubectl --context pikachu-ruby -n nitroso get jobs -l atomi.cloud/module=prober --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
 while :; do
-  JOB=$(kubectl --context pikachu-ruby -n nitroso get jobs -l atomi.cloud/module=prober --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
-  [ -n "${JOB}" ] && [ "${JOB}" != "${PREVIOUS_JOB}" ] && break
+  JOB=$(kubectl --context pikachu-ruby -n nitroso get jobs -l atomi.cloud/module=prober -o json | jq -r --arg started "${STARTED_AT}" '
+    [.items[]
+      | select(.metadata.creationTimestamp >= $started)
+      | select([.spec.template.spec.containers[].env[]?
+          | select(.name == "ATOMI_PROBER__PPROF" and .value == "true")] | length > 0)]
+    | sort_by(.metadata.creationTimestamp)
+    | .[0].metadata.name // empty
+  ')
+  [ -n "${JOB}" ] && break
   sleep 5
 done
 kubectl --context pikachu-ruby -n nitroso set env deployment/tin-spawner ATOMI_PROBER__PPROF-
