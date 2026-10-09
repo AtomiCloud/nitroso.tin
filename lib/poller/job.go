@@ -194,14 +194,19 @@ func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob) e
 					"-i",
 					"120", // 2 minutes
 				},
+				// Measured in raichu (2026-10-09, cgroup counters over 10s, 5 pods):
+				// 210-280m CPU and ~90Mi memory (peak 97Mi). Requesting a full core
+				// and 1Gi left whole-core-sized gaps the scheduler could not fill, so
+				// pollees queued Pending during the morning peak. Request ~1.5x the
+				// observed CPU and keep the 1-core limit so a watcher can still burst.
 				Resources: v1.ResourceRequirements{
 					Limits: v1.ResourceList{
 						v1.ResourceCPU:    resource.MustParse("1000m"),
-						v1.ResourceMemory: resource.MustParse("1Gi"),
+						v1.ResourceMemory: resource.MustParse("512Mi"),
 					},
 					Requests: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("1000m"),
-						v1.ResourceMemory: resource.MustParse("1Gi"),
+						v1.ResourceCPU:    resource.MustParse("400m"),
+						v1.ResourceMemory: resource.MustParse("256Mi"),
 					},
 				},
 				SecurityContext: &v1.SecurityContext{
