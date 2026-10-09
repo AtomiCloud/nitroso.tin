@@ -1,3 +1,10 @@
+## [1.56.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.56.1...v1.56.2) (2026-10-09)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **poller:** right-size helium multi-watch job resources ([#53](https://github.com/AtomiCloud/nitroso.tin/issues/53)) ([7ffd17d](https://github.com/AtomiCloud/nitroso.tin/commit/7ffd17d3b873b38753961e82b71f24c7ebd67744))
+
 ## [1.56.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.56.0...v1.56.1) (2026-07-18)
 
 
