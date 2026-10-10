@@ -1,0 +1,95 @@
+{{- if .Values.cronjob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "golang-chart.fullname" . }}
+  labels: {{- include "golang-chart.labels" . | nindent 4 }}
+  annotations: {{- include "golang-chart.annotations" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  {{- with .Values.cronjob.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
+  concurrencyPolicy: {{ .Values.cronjob.concurrencyPolicy }}
+  startingDeadlineSeconds: {{ .Values.cronjob.startingDeadlineSeconds }}
+  successfulJobsHistoryLimit: {{ .Values.cronjob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cronjob.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.cronjob.backoffLimit }}
+      {{- with .Values.cronjob.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ . }}
+      {{- end }}
+      template:
+        metadata:
+          annotations: {{- include "golang-chart.annotations" . | nindent 12 }}
+          {{- with .Values.podAnnotations }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            {{- include "golang-chart.labels" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "golang-chart.serviceAccountName" . }}
+          securityContext: {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: {{ .Chart.Name }}
+              {{- with .Values.command }}
+              command: {{ toYaml . | nindent 16 }}
+              {{- end }}
+              {{- if .Values.envFromSecret }}
+              envFrom:
+                - secretRef:
+                    name: {{ .Values.envFromSecret }}
+              {{- end }}
+              securityContext: {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              env:
+                - name: LANDSCAPE
+                  value: {{ .Values.serviceTree.landscape }}
+                - name: BASE_CONFIG
+                  value: "{{ .Values.configMountPath }}"
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              volumeMounts:
+                - mountPath: "{{ .Values.configMountPath }}/settings.yaml"
+                  name: config-volume
+                  subPath: settings.yaml
+                - mountPath: "{{ .Values.configMountPath }}/settings.{{ .Values.serviceTree.landscape }}.yaml"
+                  name: config-volume
+                  subPath: "settings.{{ .Values.serviceTree.landscape }}.yaml"
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+          volumes:
+            - name: config-volume
+              configMap:
+                name: {{ include "golang-chart.fullname-with-suffix" (dict "arg" "config" "root" .) }}
+                items:
+                  - key: settings.yaml
+                    path: settings.yaml
+                  - key: settings.{{ .Values.serviceTree.landscape }}.yaml
+                    path: settings.{{ .Values.serviceTree.landscape }}.yaml
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

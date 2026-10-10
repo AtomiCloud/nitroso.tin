@@ -9,15 +9,16 @@ Root Chart to a single Service
 | Repository | Name | Version |
 |------------|------|---------|
 | file://../consumer_chart | reserver(golang-chart) | 0.1.0 |
-| file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
+| file://../consumer_chart | recoverer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | spawner(golang-chart) | 0.1.0 |
 | file://../consumer_chart | terminator(golang-chart) | 0.1.0 |
 | file://../consumer_chart | enricher(golang-chart) | 0.1.0 |
 | file://../consumer_chart | loginer(golang-chart) | 0.1.0 |
 | file://../consumer_chart | poller(golang-chart) | 0.1.0 |
 | file://../consumer_chart | buyer(golang-chart) | 0.1.0 |
-| file://../consumer_chart | recoverer(golang-chart) | 0.1.0 |
+| file://../consumer_chart | cdc(golang-chart) | 0.1.0 |
 | file://../consumer_chart | withdrawer(golang-chart) | 0.1.0 |
+| file://../consumer_chart | ktmbcostbackfill(golang-chart) | 0.1.0 |
 | oci://ghcr.io/atomicloud/nitroso.helium | helium(root-chart) | 1.9.3 |
 | oci://ghcr.io/atomicloud/nitroso.zinc | zinc(root-chart) | 1.18.0 |
 | oci://ghcr.io/atomicloud/sulfoxide.bromine | bromine(sulfoxide-bromine) | 1.8.0 |
@@ -122,6 +123,38 @@ Root Chart to a single Service
 | helium.bromine.target | string | `"nitroso-helium"` |  |
 | helium.enable | bool | `false` |  |
 | helium.fullnameOverride | string | `"helium-poller"` |  |
+| ktmbcostbackfill.affinity | object | `{}` |  |
+| ktmbcostbackfill.annotations."argocd.argoproj.io/sync-wave" | string | `"4"` |  |
+| ktmbcostbackfill.appSettings.app.module | string | `"ktmb-cost-backfill"` |  |
+| ktmbcostbackfill.configMountPath | string | `"/app/config"` |  |
+| ktmbcostbackfill.cronjob.activeDeadlineSeconds | int | `21600` |  |
+| ktmbcostbackfill.cronjob.backoffLimit | int | `0` |  |
+| ktmbcostbackfill.cronjob.concurrencyPolicy | string | `"Forbid"` |  |
+| ktmbcostbackfill.cronjob.enabled | bool | `true` |  |
+| ktmbcostbackfill.cronjob.failedJobsHistoryLimit | int | `3` |  |
+| ktmbcostbackfill.cronjob.schedule | string | `"30 19 * * *"` |  |
+| ktmbcostbackfill.cronjob.startingDeadlineSeconds | int | `3600` |  |
+| ktmbcostbackfill.cronjob.successfulJobsHistoryLimit | int | `3` |  |
+| ktmbcostbackfill.enabled | bool | `false` |  |
+| ktmbcostbackfill.envFromSecret | string | `"tin"` |  |
+| ktmbcostbackfill.image.pullPolicy | string | `"IfNotPresent"` |  |
+| ktmbcostbackfill.image.repository | string | `"nitroso-tin-ktmb-cost-backfill"` |  |
+| ktmbcostbackfill.image.tag | string | `""` |  |
+| ktmbcostbackfill.imagePullSecrets | list | `[]` |  |
+| ktmbcostbackfill.jobRbac.create | bool | `false` |  |
+| ktmbcostbackfill.nameOverride | string | `"tin-ktmb-cost-backfill"` |  |
+| ktmbcostbackfill.nodeSelector | object | `{}` |  |
+| ktmbcostbackfill.podAnnotations | object | `{}` |  |
+| ktmbcostbackfill.podSecurityContext | object | `{}` |  |
+| ktmbcostbackfill.resources | object | `{}` |  |
+| ktmbcostbackfill.securityContext | object | `{}` |  |
+| ktmbcostbackfill.serviceAccount.create | bool | `false` |  |
+| ktmbcostbackfill.serviceTree.<<.landscape | string | `"lapras"` |  |
+| ktmbcostbackfill.serviceTree.<<.layer | string | `"2"` |  |
+| ktmbcostbackfill.serviceTree.<<.platform | string | `"nitroso"` |  |
+| ktmbcostbackfill.serviceTree.<<.service | string | `"tin"` |  |
+| ktmbcostbackfill.serviceTree.module | string | `"ktmb-cost-backfill"` |  |
+| ktmbcostbackfill.tolerations | list | `[]` |  |
 | livecache.architecture | string | `"standalone"` |  |
 | livecache.auth.enabled | bool | `true` |  |
 | livecache.auth.existingSecret | string | `"tin"` |  |
