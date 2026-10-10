@@ -6,6 +6,19 @@ serviceTree:
 
 stateful: false
 
+# run the module as a scheduled CronJob instead of a long-lived workload
+# (Deployment/StatefulSet are not rendered when enabled)
+cronjob:
+  enabled: false
+  schedule: '30 19 * * *'
+  timeZone: ''
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  backoffLimit: 0
+  activeDeadlineSeconds: 0
+
 replicaCount: 1
 appSettings: {}
 

@@ -270,6 +270,29 @@ buyer:
       memory: '1Gi'
       cpu: '1000m'
 
+ktmbcostbackfill:
+  enabled: true
+  fullnameOverride: 'tin-ktmb-cost-backfill'
+  command: ['/app/nitroso-tin', 'ktmb-cost-backfill', '--max', '2000', '--page-size', '100']
+
+  envFromSecret: *target
+  serviceTree:
+    landscape: *landscape
+  image:
+    repository: ghcr.io/atomicloud/nitroso.tin/nitroso-tin
+  imagePullSecrets: []
+  securityContext: *securityContext
+  podSecurityContext: *podSecurityContext
+  configMountPath: /app/config
+
+  resources:
+    requests:
+      memory: '64Mi'
+      cpu: '25m'
+    limits:
+      memory: '512Mi'
+      cpu: '500m'
+
 zinc:
   enable: false
 

@@ -29,6 +29,9 @@ dependencies:
 - name: golang-chart
   repository: file://../consumer_chart
   version: 0.1.0
+- name: golang-chart
+  repository: file://../consumer_chart
+  version: 0.1.0
 - name: redis
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 18.6.1
@@ -41,5 +44,5 @@ dependencies:
 - name: root-chart
   repository: oci://ghcr.io/atomicloud/nitroso.helium
   version: 1.9.3
-digest: sha256:fd5a823b32425b3dae98cea433b138bccb89b52270cf08b3b19ca5d5396d7d10
-generated: "2026-07-11T12:31:27.224299-07:00"
+digest: sha256:9c71f55f090d3705740ab6bec30bcb6ed049628227bacfd06bbf4949d4b675b3
+generated: "2026-10-09T23:57:23.468662805Z"

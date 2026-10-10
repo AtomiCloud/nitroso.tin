@@ -564,6 +564,67 @@ buyer:
 
   topologySpreadConstraints: {}
 
+# daily safety net for the actual KTMB cost: re-fetches the paid amount for
+# completed bookings that reached zinc without one (oldest first). Disabled
+# by default; enable per landscape where tin makes real purchases.
+ktmbcostbackfill:
+  enabled: false
+  annotations:
+    argocd.argoproj.io/sync-wave: '4'
+
+  envFromSecret: *target
+
+  jobRbac:
+    create: false
+
+  nameOverride: 'tin-ktmb-cost-backfill'
+
+  cronjob:
+    enabled: true
+    # 03:30 SGT, off-peak for purchases
+    schedule: '30 19 * * *'
+    concurrencyPolicy: Forbid
+    startingDeadlineSeconds: 3600
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    backoffLimit: 0
+    activeDeadlineSeconds: 21600
+
+  serviceTree:
+    <<: *serviceTree
+    module: ktmb-cost-backfill
+
+  imagePullSecrets: []
+
+  appSettings:
+    app:
+      module: ktmb-cost-backfill
+
+  configMountPath: /app/config
+
+  image:
+    repository: nitroso-tin-ktmb-cost-backfill
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ''
+
+  serviceAccount:
+    create: false
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  securityContext: {}
+
+  resources: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
 zinc:
   api:
     configMountPath: /app/Config

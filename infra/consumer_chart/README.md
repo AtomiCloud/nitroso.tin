@@ -12,6 +12,15 @@ A Chart to deploy Golang Microservice
 | appSettings | object | `{}` |  |
 | autoscaling | object | `{}` |  |
 | configMountPath | string | `"/app/config"` |  |
+| cronjob.activeDeadlineSeconds | int | `0` |  |
+| cronjob.backoffLimit | int | `0` |  |
+| cronjob.concurrencyPolicy | string | `"Forbid"` |  |
+| cronjob.enabled | bool | `false` |  |
+| cronjob.failedJobsHistoryLimit | int | `3` |  |
+| cronjob.schedule | string | `"30 19 * * *"` |  |
+| cronjob.startingDeadlineSeconds | int | `3600` |  |
+| cronjob.successfulJobsHistoryLimit | int | `3` |  |
+| cronjob.timeZone | string | `""` |  |
 | env[0].name | string | `"POD_NAME"` |  |
 | env[0].valueFrom.fieldRef.fieldPath | string | `"metadata.name"` |  |
 | fullnameOverride | string | `""` |  |
