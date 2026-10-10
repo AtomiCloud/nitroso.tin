@@ -1,3 +1,10 @@
+## [1.57.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.56.2...v1.57.0) (2026-10-10)
+
+
+### ✨ Features ✨
+
+* **chart:** daily ktmb-cost-backfill CronJob as a safety net ([#54](https://github.com/AtomiCloud/nitroso.tin/issues/54)) ([de933d8](https://github.com/AtomiCloud/nitroso.tin/commit/de933d8f5b2354365f2a165149d6810a7b4356e1))
+
 ## [1.56.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.56.1...v1.56.2) (2026-10-09)
 
 
