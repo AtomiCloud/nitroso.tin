@@ -3,6 +3,9 @@ package recoverer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/AtomiCloud/nitroso-tin/lib"
@@ -33,6 +36,7 @@ type Client struct {
 	ktmb             ktmb.Ktmb
 	session          *session.Session
 	mainRedis        *otelredis.OtelRedis
+	streamRedis      *otelredis.OtelRedis
 	zinc             *zinc.Client
 	encr             encryptor.Encryptor[lib.RecoverDto]
 	otelConfigurator *telemetry.OtelConfigurator
@@ -43,7 +47,7 @@ type Client struct {
 	loc              *time.Location
 }
 
-func New(k ktmb.Ktmb, s *session.Session, mainRedis *otelredis.OtelRedis,
+func New(k ktmb.Ktmb, s *session.Session, mainRedis, streamRedis *otelredis.OtelRedis,
 	zClient *zinc.Client, encr encryptor.Encryptor[lib.RecoverDto], otelConfigurator *telemetry.OtelConfigurator,
 	logger *zerolog.Logger, cfg config.RecovererConfig, enricher config.EnricherConfig, psm string,
 	loc *time.Location) *Client {
@@ -51,6 +55,7 @@ func New(k ktmb.Ktmb, s *session.Session, mainRedis *otelredis.OtelRedis,
 		ktmb:             k,
 		session:          s,
 		mainRedis:        mainRedis,
+		streamRedis:      streamRedis,
 		zinc:             zClient,
 		encr:             encr,
 		otelConfigurator: otelConfigurator,
@@ -104,16 +109,31 @@ func (c *Client) Start(ctx context.Context) error {
 	// run a full drain+sweep once on startup so a redeploy doesn't wait a period
 	ch <- "sweep"
 
+	// admin KTMB account checks arrive on their own queue but are answered
+	// here, one at a time between cycles, so the recoverer stays sequential
+	checks := make(chan checkRequest)
+	if c.config.CheckQueueName != "" && c.streamRedis != nil {
+		go c.popChecks(ctx, checks)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case req := <-checks:
+			c.answerCheck(ctx, req)
 		case trigger := <-ch:
 			c.logger.Info().Ctx(ctx).Str("trigger", trigger).Msg("Recoverer cycle starting")
 			// both ticks drain (fast path); only the sweep tick reconciles zinc.
 			handled, drainErr := c.Drain(ctx)
 			if drainErr != nil {
 				c.logger.Error().Ctx(ctx).Err(drainErr).Msg("Recoverer drain failed")
+			}
+			// recycled bookings that never found a seat must still end (as
+			// Duplicate) once their retry window / departure lead runs out,
+			// never wait in Pending for the post-departure refund
+			if expireErr := c.ExpireRecovery(ctx); expireErr != nil {
+				c.logger.Error().Ctx(ctx).Err(expireErr).Msg("Recoverer recovery expiry failed")
 			}
 			if trigger == "sweep" {
 				// safety net: the queue is a fast-path hint (destructive RPop), so
@@ -230,6 +250,32 @@ func (c *Client) Sweep(ctx context.Context, skip map[string]bool) error {
 			c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", dto.BookingId).Msg("Sweep failed to process recovering booking, requeueing with attempt count")
 			c.requeue(ctx, dto)
 		}
+	}
+	return nil
+}
+
+// ExpireRecovery asks zinc to end every recycled booking still in Pending
+// whose recovery window (from its first duplicate-passport rejection) or
+// departure lead has run out, as Duplicate (full refund). zinc owns the
+// window and re-guards each booking transactionally, so this is idempotent
+// and safe to call every drain tick.
+func (c *Client) ExpireRecovery(ctx context.Context) error {
+	resp, err := c.zinc.PostApiVVersionBookingRecoveryExpire(ctx, "1.0")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to expire recycled bookings: status %d: %s", resp.StatusCode, string(body))
+	}
+	var expired []zinc.BookingPrincipalRes
+	if err := json.Unmarshal(body, &expired); err != nil {
+		return err
+	}
+	for _, b := range expired {
+		c.logger.Warn().Ctx(ctx).Str("bookingId", b.Id.String()).Int32("recoveryRetries", lib.Deref(b.RecoveryRetries)).
+			Msg("Recycled booking ran out of its recovery window, ended as Duplicate")
 	}
 	return nil
 }

@@ -27,6 +27,7 @@ func (state *State) buildRecoverer() (*recoverer.Client, *zinc.Client, error) {
 	buyerCfg := state.Config.Buyer
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
+	streamRedis := otelredis.New(state.Config.Cache["stream"])
 	k := ktmb.New(ktmbConfig.ApiUrl, ktmbConfig.AppUrl, ktmbConfig.RequestSignature, state.Logger, ktmbConfig.Proxy, ktmb.WarmConfig{})
 
 	endpoint := fmt.Sprintf("%s://%s:%s", buyerCfg.Scheme, buyerCfg.Host, buyerCfg.Port)
@@ -43,12 +44,12 @@ func (state *State) buildRecoverer() (*recoverer.Client, *zinc.Client, error) {
 
 	s := session.New(&k, &mainRedis, state.Logger, state.Config.Ktmb.LoginKey, loginEncr)
 
-	client := recoverer.New(k, &s, &mainRedis, zClient, recoverEncr, state.OtelConfigurator,
+	client := recoverer.New(k, &s, &mainRedis, &streamRedis, zClient, recoverEncr, state.OtelConfigurator,
 		state.Logger, state.Config.Recoverer, state.Config.Enricher, state.Psm, state.Location)
 	return client, zClient, nil
 }
 
-// Recoverer runs the hourly drain daemon
+// Recoverer runs the drain/sweep daemon and answers admin KTMB account checks
 func (state *State) Recoverer(c *cli.Context) error {
 	state.Logger.Info().Msg("Starting Recoverer")
 

@@ -59,9 +59,21 @@ terminator:
 
 recoverer:
   queueName: 'recover'
-  drainCron: '@every 15m'
+  # duplicate-passport retries must all fit in zinc's Recovery:MaxWindowMinutes
+  # (2h) from the first rejection, at most Recovery:MaxRetries (10) times. One
+  # retry = wait for this drain + re-buy, so the drain must be well under
+  # 120m / 10 = 12m. A drain with an empty queue costs one Redis LLEN and no
+  # KTMB call; each queued item costs one cached login + a binary-searched
+  # ticket-list scan (~log2(pages) + a few requests), i.e. a handful of KTMB
+  # requests per Recovering booking per 5 min — negligible next to the poller.
+  # Each drain tick also ends recycled bookings past their window (zinc
+  # recovery-expire) so none waits in Pending for the post-departure refund.
+  drainCron: '@every 5m'
   sweepCron: '@every 1h'
   maxAttempts: 5
+  # admin "check our KTMB account" requests: the stream-cache list zinc pushes
+  # to (must equal zinc KtmbCheck:QueueName); answered read-only between ticks
+  checkQueueName: 'ktmb-check'
   # missing-ticket repair sweep: on each sweep tick, list Completed bookings
   # whose ticket file is missing and restore them by re-downloading the PDF
   # from KTMB (PrintTicketPdf) and re-attaching it to zinc. Read-mostly and

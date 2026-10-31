@@ -1,6 +1,7 @@
 package recoverer
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -23,9 +24,14 @@ type pageFetcher func(page int64) (ktmb.TicketListRes, error)
 // KTMB's upcoming-ticket list. Returns (nil, nil) only when the ticket is
 // definitively absent; an error means the scan was inconclusive (the caller
 // must retry rather than treat it as "not ours", which would refund a user
-// who actually holds a valid ticket).
-func (c *Client) findTicket(userData string, target time.Time, direction, passport string) (*foundTicket, error) {
+// who actually holds a valid ticket). The KTMB client takes no context (each
+// request has its own timeout), so the scan stops between pages once ctx is
+// done — an aborted scan is inconclusive like any other error.
+func (c *Client) findTicket(ctx context.Context, userData string, target time.Time, direction, passport string) (*foundTicket, error) {
 	return findTicketIn(func(page int64) (ktmb.TicketListRes, error) {
+		if err := ctx.Err(); err != nil {
+			return ktmb.TicketListRes{}, err
+		}
 		return c.listPage(userData, page)
 	}, target, direction, passport, c.loc)
 }

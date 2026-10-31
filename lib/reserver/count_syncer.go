@@ -100,10 +100,12 @@ func (s *CountSyncer) update(ctx context.Context) error {
 	maps.Copy(dCount, counts)
 	maps.Copy(rCount, counts)
 
-	s.logger.Info().Ctx(ctx).Msgf("Sending counts to reserver differ")
-	s.toDiffer <- dCount
+	// reserver first: the differ re-arms slots whose demand rose, and its next
+	// diff must be priced against the NEW demand, not the reserver's old cache
 	s.logger.Info().Ctx(ctx).Msgf("Sending counts to reserver reserver")
 	s.toReserver <- rCount
+	s.logger.Info().Ctx(ctx).Msgf("Sending counts to reserver differ")
+	s.toDiffer <- dCount
 	return nil
 }
 
