@@ -19,15 +19,15 @@ env:
 jobs:
   precommit:
     name: Pre-commit Check
-    runs-on:
-      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
-      - nscloud-cache-size-50gb
-      - nscloud-cache-tag-nitroso-tin-nix-pc-store-cache
-      - nscloud-git-mirror-1gb
+    runs-on: ubuntu-22.04
     steps:
       # Setup
       - uses: AtomiCloud/actions.setup-nix@v1.2.1
+        with:
+          namespacelabs: 'false'
       - uses: AtomiCloud/actions.cache-go@v1.0.1
+        with:
+          namespacelabs: 'false'
 
       # pre commit
       - name: Run pre-commit
@@ -56,6 +56,8 @@ jobs:
     steps:
       # Setup
       - uses: AtomiCloud/actions.setup-docker@v1.2.0
+        with:
+          namespacelabs: 'false'
 
       # action
       - uses: rlespinasse/github-slug-action@v3.x
@@ -84,16 +86,18 @@ jobs:
       - precommit
       - build
     if: github.ref == 'refs/heads/main'
-    runs-on:
-      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
-      - nscloud-cache-size-50gb
-      - nscloud-cache-tag-nitroso-tin-releaser-nix-store-cache
-      - nscloud-git-mirror-1gb
+    runs-on: ubuntu-22.04
     steps:
       # Setup
       - uses: AtomiCloud/actions.setup-nix@v1.1.0
+        with:
+          namespacelabs: 'false'
       - uses: AtomiCloud/actions.cache-npm@v1.0.1
+        with:
+          namespacelabs: 'false'
       - uses: AtomiCloud/actions.cache-go@v1.0.1
+        with:
+          namespacelabs: 'false'
       # action
       - uses: rlespinasse/github-slug-action@v3.x
       - name: Release
