@@ -49,14 +49,64 @@ func (d *Differ) Start(ctx context.Context) {
 	prev := make(Count)
 
 	count1 := <-d.fromCount
+	last := copyCount(count1)
 	go d.sub(ctx, prev, count1, term, done, d.toReserver)
 	for {
 		count := <-d.fromCount
 		d.logger.Info().Any("count", count).Msg("Received new count")
 		term <- false
 		<-done
+		// the sub goroutine is stopped, so prev is ours to edit until the next
+		// one starts
+		if rearmed := rearm(prev, last, count); len(rearmed) > 0 {
+			d.logger.Info().Strs("slots", rearmed).Msg("Demand rose on slots, re-arming their seat diff")
+		}
+		last = copyCount(count)
 		go d.sub(ctx, prev, count, term, done, d.toReserver)
 	}
+}
+
+// rearm forgets the last seen seat count of every slot whose demand ROSE
+// between two counts, so the next poll for that slot diffs against zero and
+// the reserver re-attempts min(demand, seats) reservations. Without it the
+// reserver only reacts to a seat-count CHANGE: a booking that joins a slot
+// whose seat count is unchanged — a new booking, or one zinc recycled from
+// Recovering back to Pending for another duplicate-passport attempt — waits
+// for an unrelated seat to appear, which can take hours. Over-reserving is
+// already safe (the buyer releases when zinc has no Pending booking left).
+// Count times are "HH:MM:SS"; prev (poller pub/sub) keys are "HH:MM".
+// Returns the re-armed slots for logging.
+func rearm(prev, old, next Count) []string {
+	var rearmed []string
+	for dir, dates := range next {
+		for date, times := range dates {
+			for t, n := range times {
+				if n <= old[dir][date][t] {
+					continue
+				}
+				key := strings.TrimSuffix(t, ":00")
+				if _, seen := prev[dir][date][key]; seen {
+					delete(prev[dir][date], key)
+				}
+				rearmed = append(rearmed, fmt.Sprintf("%s:%s:%s", dir, date, t))
+			}
+		}
+	}
+	return rearmed
+}
+
+func copyCount(c Count) Count {
+	out := make(Count, len(c))
+	for dir, dates := range c {
+		out[dir] = make(map[string]map[string]int, len(dates))
+		for date, times := range dates {
+			out[dir][date] = make(map[string]int, len(times))
+			for t, n := range times {
+				out[dir][date][t] = n
+			}
+		}
+	}
+	return out
 }
 
 func (d *Differ) diff(dir, date string, prevState Count, newState map[string]int) (Count, map[string]DiffData, error) {

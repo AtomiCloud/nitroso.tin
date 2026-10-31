@@ -98,13 +98,7 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 		return c.markManualIntervention(ctx, dto.BookingId)
 	}
 
-	userData, err := c.session.Login(ctx, c.enricher.Email, c.enricher.Password)
-	if err != nil {
-		l.Error().Err(err).Msg("Failed to login to KTMB")
-		return err
-	}
-
-	found, err := c.findTicket(userData, target, dto.Direction, dto.PassportNumber)
+	found, err := c.scanOurAccount(ctx, target, dto.Direction, dto.PassportNumber)
 	if err != nil {
 		// an inconclusive scan (empty/blank list, mutated pagination, unparseable
 		// row) must never fall through to a refund — only a definitive not-found does
@@ -209,6 +203,18 @@ func problemTypeOf(body []byte) string {
 	return problem.Type
 }
 
+// scanOurAccount logs in to OUR KTMB account and scans its upcoming-ticket
+// list for the passport at the target departure+direction — the one scan both
+// the recovery path and the admin KTMB check use. (nil, nil) only on a
+// definitive absence; any error is inconclusive (see findTicketIn).
+func (c *Client) scanOurAccount(ctx context.Context, target time.Time, direction, passport string) (*foundTicket, error) {
+	userData, err := c.session.Login(ctx, c.enricher.Email, c.enricher.Password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to login to KTMB: %w", err)
+	}
+	return c.findTicket(userData, target, direction, passport)
+}
+
 // forceComplete downloads the ticket PDF from KTMB and reports it to zinc
 func (c *Client) forceComplete(ctx context.Context, bookingId, bookingNo, ticketNo string) error {
 	userData, err := c.session.Login(ctx, c.enricher.Email, c.enricher.Password)
@@ -253,6 +259,13 @@ func (c *Client) completeBooking(ctx context.Context, bookingId, bookingNo, tick
 // isClaimed reports whether the KTMB booking number is already recorded on a
 // completed zinc booking for the same passenger and slot
 func (c *Client) isClaimed(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (bool, error) {
+	b, err := c.claimant(ctx, dto, ktmbBookingNo)
+	return b != nil, err
+}
+
+// claimant returns the Completed zinc booking (same passenger and slot) that
+// already records the KTMB booking number, or nil when none does
+func (c *Client) claimant(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (*zinc.BookingPrincipalRes, error) {
 	completed := "Completed"
 	// explicit Limit so a zinc default page size can't hide the claiming booking:
 	// a miss here returns false and force-completes a ticket owned by another
@@ -269,27 +282,27 @@ func (c *Client) isClaimed(ctx context.Context, dto lib.RecoverDto, ktmbBookingN
 		Limit:          &limit,
 	})
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return false, fmt.Errorf("failed to search completed bookings: status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("failed to search completed bookings: status %d: %s", resp.StatusCode, string(body))
 	}
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	var bookings []zinc.BookingPrincipalRes
 	if err := json.Unmarshal(content, &bookings); err != nil {
-		return false, err
+		return nil, err
 	}
-	for _, b := range bookings {
-		if b.BookingNo != nil && *b.BookingNo == ktmbBookingNo {
-			return true, nil
+	for i := range bookings {
+		if bookings[i].BookingNo != nil && *bookings[i].BookingNo == ktmbBookingNo {
+			return &bookings[i], nil
 		}
 	}
-	return false, nil
+	return nil, nil
 }
 
 // listRecovering fetches every booking currently in Recovering status,

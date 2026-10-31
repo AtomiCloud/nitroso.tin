@@ -90,6 +90,10 @@ type RecovererConfig struct {
 	// MaxAttempts is how many drain cycles an item may fail before it is
 	// parked as RequireManualIntervention
 	MaxAttempts int
+	// CheckQueueName is the stream-cache list zinc pushes admin "check our
+	// KTMB account" requests to; the recoverer answers each one read-only
+	// (same scan as a recovery, never a transition) between drain ticks.
+	CheckQueueName string
 	// RepairEnable turns on the missing-ticket repair sweep: each sweep tick
 	// also lists Completed bookings whose ticket file is missing and restores
 	// them by re-downloading the PDF from KTMB and re-attaching it to zinc.

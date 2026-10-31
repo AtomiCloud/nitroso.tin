@@ -106,8 +106,8 @@ verbatim to pin the real text):
 
 ## 5. Recovery decision tree (tin `lib/recoverer`)
 
-Runs as a **single-replica** `Deployment`, `robfig/cron`: `Drain` the queue every 15m
-(`drainCron`, the fast path), and `Sweep` zinc for reconciliation hourly (`sweepCron`; each
+Runs as a **single-replica** `Deployment`, `robfig/cron`: `Drain` the queue every 5m
+(`drainCron`, the fast path; sized so 10 retries fit the 2h window below), and `Sweep` zinc for reconciliation hourly (`sweepCron`; each
 sweep drains first). Per booking (`ProcessItem`):
 
 1. Fetch from zinc. Not found → drop. Terminal/parked status → drop.
@@ -134,6 +134,36 @@ sweep drains first). Per booking (`ProcessItem`):
      400 (state changed under us) → drop, the sweep re-derives; anything else →
      transient, requeue.
 7. Item fails `maxAttempts` cycles → `manual-intervention`.
+
+### Retry window (zinc `Recovery:*`)
+
+All recycles of a booking must happen within **`MaxWindowMinutes` (120) of its FIRST
+duplicate-passport rejection** (`Bookings.FirstRecoveringAt`, stamped once on the first
+`Recovering` entry). `recover-revert` answers the same 409 once ANY budget is spent —
+`MaxRetries` (10) recycles, the window, or departure closer than
+`MinDepartureLeadMinutes` (120, = `buffers.closing`: the reserver never buys inside it) —
+and the recoverer then marks the booking `duplicate` (refund) **before departure**.
+
+A recycled booking only re-buys when the reserver reserves a seat for it:
+
+- zinc fires CDC on a recycle so the demand counts include it at once;
+- the reserver's differ **re-arms a slot whose demand rose** (`rearm`): it forgets the
+  slot's last seat count so the next poll re-attempts `min(demand, seats)` reservations.
+  Before this, the reserver only reacted to a seat-count _change_, so a recycled booking on
+  a slot with unchanged seats waited hours for an unrelated seat (e.g. 5 recycles in 11h).
+- every drain tick calls zinc `POST Booking/recovery-expire`, which ends recycled bookings
+  still `Pending` past their window / departure lead as `Duplicate` (same refund), so a
+  booking that never finds a seat is not left for the post-departure refund.
+
+### Admin KTMB account check (read-only)
+
+argon's booking page (admin) → zinc `POST Booking/{id}/ktmb-check` stores a `Pending`
+check and pushes `{checkId, bookingId}` onto the stream-cache list `checkQueueName`
+(`ktmb-check`). The recoverer pops it, answers between cycles with the **same**
+`scanOurAccount` + `claimant` code the decision tree uses (Found + KTMB booking/ticket no +
+claiming booking / NotFound / Departed / Error), and writes it back via
+`POST Booking/ktmb-check/{checkId}/result`. argon polls `GET Booking/{id}/ktmb-check`. A
+check never completes, refunds, recycles or marks anything.
 
 ### Missing-ticket repair sweep (`Repair`, after each `Sweep`)
 

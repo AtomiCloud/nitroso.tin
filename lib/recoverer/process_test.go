@@ -27,10 +27,17 @@ type zincStub struct {
 	// recycleBody is the raw body the recycle endpoint answers with; empty →
 	// a minimal BookingPrincipalRes
 	recycleBody string
-	duplicated  []string
-	completed   []string
-	recycled    []string
-	parked      []string
+	// bookingBody is what GET Booking/{id} answers (nil → 404)
+	bookingBody *zinc.BookingRes
+	// expireBody is what POST Booking/recovery-expire answers
+	expireBody []zinc.BookingPrincipalRes
+	// checkResults records every POST Booking/ktmb-check/{id}/result body
+	checkResults map[string]zinc.PostApiVVersionBookingKtmbCheckCheckIdResultJSONBody
+	expired      int
+	duplicated   []string
+	completed    []string
+	recycled     []string
+	parked       []string
 }
 
 func (s *zincStub) server() *httptest.Server {
@@ -65,6 +72,31 @@ func (s *zincStub) server() *httptest.Server {
 			} else if status == http.StatusOK {
 				_, _ = w.Write([]byte(`{}`))
 			}
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1.0/Booking/"):
+			if s.bookingBody == nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if err := json.NewEncoder(w).Encode(s.bookingBody); err != nil {
+				s.t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1.0/Booking/recovery-expire":
+			s.expired++
+			if err := json.NewEncoder(w).Encode(s.expireBody); err != nil {
+				s.t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1.0/Booking/ktmb-check/") && strings.HasSuffix(r.URL.Path, "/result"):
+			var body zinc.PostApiVVersionBookingKtmbCheckCheckIdResultJSONBody
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				s.t.Fatal(err)
+			}
+			if s.checkResults == nil {
+				s.checkResults = map[string]zinc.PostApiVVersionBookingKtmbCheckCheckIdResultJSONBody{}
+			}
+			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1.0/Booking/ktmb-check/"), "/result")
+			s.checkResults[id] = body
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("{}"))
 		default:
 			s.t.Errorf("unexpected zinc call: %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusInternalServerError)
