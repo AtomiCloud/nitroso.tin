@@ -212,7 +212,7 @@ func (c *Client) scanOurAccount(ctx context.Context, target time.Time, direction
 	if err != nil {
 		return nil, fmt.Errorf("failed to login to KTMB: %w", err)
 	}
-	return c.findTicket(userData, target, direction, passport)
+	return c.findTicket(ctx, userData, target, direction, passport)
 }
 
 // forceComplete downloads the ticket PDF from KTMB and reports it to zinc

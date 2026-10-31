@@ -92,8 +92,17 @@ func (c *Client) CheckBooking(ctx context.Context, bookingId string, now time.Ti
 	return res
 }
 
-// answerCheck runs one queued check and reports it to zinc
-func (c *Client) answerCheck(ctx context.Context, req checkRequest) {
+// checkTimeout bounds one check (zinc reads + KTMB scan + result write) so a
+// stalled request cannot hold up the drain/sweep loop it runs in
+const checkTimeout = 2 * time.Minute
+
+// answerCheck runs one queued check and reports it to zinc. If reporting
+// fails the request is dropped, not requeued: zinc keeps it Pending, argon
+// shows "no answer" and the admin can ask again (requeueing would repeat the
+// KTMB scan in a loop while zinc is unreachable).
+func (c *Client) answerCheck(parent context.Context, req checkRequest) {
+	ctx, cancel := context.WithTimeout(parent, checkTimeout)
+	defer cancel()
 	l := c.logger.With().Ctx(ctx).Str("checkId", req.CheckId.String()).Str("bookingId", req.BookingId.String()).Logger()
 	res := c.CheckBooking(ctx, req.BookingId.String(), time.Now(), c.scanOurAccount)
 	l.Info().Str("result", res.Status).Str("ktmbBookingNo", res.KtmbBookingNo).Msg("KTMB account check answered")
