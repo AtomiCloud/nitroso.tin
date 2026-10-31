@@ -1,3 +1,10 @@
+## [1.58.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.57.0...v1.58.0) (2026-10-31)
+
+
+### ✨ Features ✨
+
+* **recoverer:** 2h duplicate-passport window and KTMB account check ([#55](https://github.com/AtomiCloud/nitroso.tin/issues/55)) ([e71e973](https://github.com/AtomiCloud/nitroso.tin/commit/e71e973e08ccdb79b161567ab4d21b45fe108db8))
+
 ## [1.57.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.56.2...v1.57.0) (2026-10-10)
 
 
