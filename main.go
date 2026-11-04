@@ -137,6 +137,11 @@ func main() {
 					&cli.IntFlag{Name: "interval", Aliases: []string{"i"}, Required: true},
 					&cli.Int64Flag{Name: "epoch", Required: true},
 					&cli.StringFlag{Name: "job", Required: true},
+					&cli.BoolFlag{
+						Name:    "pprof",
+						Usage:   "capture runtime profiles and emit them as gzip+base64 log lines at exit",
+						EnvVars: []string{"ATOMI_PROBER__PPROF"},
+					},
 				},
 			},
 			{

@@ -355,6 +355,52 @@ loop until deadline or holds == needed:
 - Prometheus stays out of scope for v1; logs + redis tally are sufficient and
   match the fleet's existing observability posture.
 
+### 8.1 On-demand runtime profiles
+
+Runtime profiling is default-off and has no sampling or buffering cost unless the
+prober receives `--pprof` or `ATOMI_PROBER__PPROF=true`. An enabled Job records CPU
+for the full prober action, then captures heap, goroutine, block, and mutex profiles
+at exit. Each profile is gzip-wrapped, base64-encoded, and emitted as one raw log
+line with a stable `PPROF-<TYPE>-B64:` prefix.
+
+The spawner copies its container environment into each short-lived Job. To profile
+the next pikachu batch, record the start time, enable the environment variable on
+the spawner, select the first new Job whose template carries the flag, then
+immediately turn it back off:
+
+```bash
+STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+kubectl --context pikachu-ruby -n nitroso set env deployment/tin-spawner ATOMI_PROBER__PPROF=true
+kubectl --context pikachu-ruby -n nitroso rollout status deployment/tin-spawner --timeout=2m
+while :; do
+  JOB=$(kubectl --context pikachu-ruby -n nitroso get jobs -l atomi.cloud/module=prober -o json | jq -r --arg started "${STARTED_AT}" '
+    [.items[]
+      | select(.metadata.creationTimestamp >= $started)
+      | select([.spec.template.spec.containers[].env[]?
+          | select(.name == "ATOMI_PROBER__PPROF" and .value == "true")] | length > 0)]
+    | sort_by(.metadata.creationTimestamp)
+    | .[0].metadata.name // empty
+  ')
+  [ -n "${JOB}" ] && break
+  sleep 5
+done
+kubectl --context pikachu-ruby -n nitroso set env deployment/tin-spawner ATOMI_PROBER__PPROF-
+kubectl --context pikachu-ruby -n nitroso rollout status deployment/tin-spawner --timeout=2m
+```
+
+Retrieve and reconstruct all five profiles before the completed Job's five-minute
+TTL expires:
+
+```bash
+until kubectl --context pikachu-ruby -n nitroso logs "job/${JOB}" | grep -q '^PPROF-MUTEX-B64:'; do sleep 5; done
+kubectl --context pikachu-ruby -n nitroso logs "job/${JOB}" > "${JOB}.log"
+for PROFILE in CPU HEAP GOROUTINE BLOCK MUTEX; do
+  name=$(printf '%s' "${PROFILE}" | tr '[:upper:]' '[:lower:]')
+  sed -n "s/^PPROF-${PROFILE}-B64://p" "${JOB}.log" | tail -n 1 | base64 -d | gzip -dc > "${name}.pprof"
+done
+go tool pprof -top cpu.pprof
+```
+
 ## 9. Migration plan (each phase independently shippable / revertible)
 
 - **Phase 0 — validate (§10)** on pichu by enabling only `spawner.enabled` while
