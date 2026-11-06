@@ -1,3 +1,10 @@
+## [1.59.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.59.0...v1.59.1) (2026-11-06)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **poller:** dedupe identical watcher generations ([#58](https://github.com/AtomiCloud/nitroso.tin/issues/58)) ([c868105](https://github.com/AtomiCloud/nitroso.tin/commit/c8681051261395c057562e6db9cc87890b5fe0a1))
+
 ## [1.59.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.58.0...v1.59.0) (2026-11-06)
 
 
