@@ -115,19 +115,21 @@ func (p *Poller) createPoller(ctx context.Context) error {
 	boost := p.readBoost(ctx)
 	full, light := p.selectTargets(ctx, jobs, boost, time.Now())
 
+	// Attempt both levels even if one fails, then report every failure.
 	p.logger.Info().Any("jobs", full).Ctx(ctx).Msgf("Create %d full-power jobs", len(full))
-	if er := p.job.CreateMultiJob(ctx, full, p.job.FullProfile()); er != nil {
-		p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create full-power multi job")
-		return er
+	fullErr := p.job.CreateMultiJob(ctx, full, p.job.FullProfile())
+	if fullErr != nil {
+		p.logger.Error().Ctx(ctx).Err(fullErr).Msg("Failed to create full-power multi job")
 	}
+	var lightErr error
 	if len(light) > 0 {
 		p.logger.Info().Ctx(ctx).Msgf("Create %d light jobs", len(light))
-		if er := p.job.CreateMultiJob(ctx, light, p.tiers.Light); er != nil {
-			p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create light multi job")
-			return er
+		lightErr = p.job.CreateMultiJob(ctx, light, p.tiers.Light)
+		if lightErr != nil {
+			p.logger.Error().Ctx(ctx).Err(lightErr).Msg("Failed to create light multi job")
 		}
 	}
-	return nil
+	return errors.Join(fullErr, lightErr)
 }
 
 // releaseBoost is the JSON helium writes at boostKey: released date
