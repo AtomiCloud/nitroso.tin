@@ -32,6 +32,14 @@ type HeliumJobCreator struct {
 	shardSize    int
 }
 
+// PollProfile is how hard a group of targets is watched: streams per pod and
+// the inter-poll delay (ms) of each target's mobile stream.
+type PollProfile struct {
+	Name      string
+	ShardSize int
+	Delay     int
+}
+
 // HeliumJob is one polling target: a (date, direction) pair. The marshalled
 // array becomes multi-watch's -d (targets) argument.
 type HeliumJob struct {
@@ -85,23 +93,32 @@ func shardTargets(targets []HeliumJob, size int) [][]HeliumJob {
 	return shards
 }
 
-// CreateMultiJob shards the targets into pods of at most shardSize streams each
-// (1 stream = 1 date-direction target) and creates one helium job per shard.
-func (h HeliumJobCreator) CreateMultiJob(ctx context.Context, job []HeliumJob) error {
+// FullProfile is the max-power profile: the configured shard size and the
+// original 10ms inter-poll delay.
+func (h HeliumJobCreator) FullProfile() PollProfile {
+	return PollProfile{Name: "full", ShardSize: h.shardSize, Delay: 10}
+}
+
+// CreateMultiJob shards the targets into pods of at most profile.ShardSize
+// streams each (1 stream = 1 date-direction target) and creates one helium job
+// per shard, polling at profile.Delay.
+func (h HeliumJobCreator) CreateMultiJob(ctx context.Context, job []HeliumJob, profile PollProfile) error {
 	if len(job) == 0 {
-		h.logger.Info().Ctx(ctx).Msg("No targets to poll, skipping helium job creation")
+		h.logger.Info().Ctx(ctx).Str("profile", profile.Name).Msg("No targets to poll, skipping helium job creation")
 		return nil
 	}
 
-	shards := shardTargets(job, h.shardSize)
+	shards := shardTargets(job, profile.ShardSize)
 	h.logger.Info().Ctx(ctx).
+		Str("profile", profile.Name).
 		Int("targets", len(job)).
-		Int("shardSize", h.shardSize).
+		Int("shardSize", profile.ShardSize).
+		Int("delay", profile.Delay).
 		Int("pods", len(shards)).
 		Msg("Sharding helium targets into pods")
 
 	for i, shard := range shards {
-		if err := h.createMultiPod(ctx, shard); err != nil {
+		if err := h.createMultiPod(ctx, shard, profile.Delay); err != nil {
 			h.logger.Error().Ctx(ctx).Err(err).Int("shard", i).Msg("Failed to create helium pod shard")
 			return err
 		}
@@ -109,7 +126,7 @@ func (h HeliumJobCreator) CreateMultiJob(ctx context.Context, job []HeliumJob) e
 	return nil
 }
 
-func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob) error {
+func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob, delay int) error {
 
 	jobClient := h.kubectl.BatchV1().Jobs(h.namespace)
 
@@ -129,9 +146,10 @@ func (h HeliumJobCreator) createMultiPod(ctx context.Context, job []HeliumJob) e
 	}
 
 	// settings (-s): a single mobile stream per target — IP-spoofed, held
-	// (cached search token), polling at a 10ms inter-poll delay.
+	// (cached search token), polling at the profile's inter-poll delay (10ms at
+	// full power).
 	settings := []HeliumSetting{
-		{Mode: "mobile", Type: "held", Delay: 10, Proxy: false, SpoofIp: true, Token: token},
+		{Mode: "mobile", Type: "held", Delay: delay, Proxy: false, SpoofIp: true, Token: token},
 	}
 	settingsData, err := json.Marshal(settings)
 	if err != nil {

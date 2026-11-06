@@ -2,7 +2,11 @@ package poller
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/AtomiCloud/nitroso-tin/lib/count"
+	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"sort"
 	"time"
@@ -17,10 +21,26 @@ type Poller struct {
 	ps          string
 	countReader *count.Client
 	maxStreams  int
+
+	// Release boost: dates KTMB just released (written by helium's schedule
+	// updater into LIVE redis) are watched at full power on top of the
+	// maxStreams window.
+	liveRedis *otelredis.OtelRedis
+	tiers     Tiers
+}
+
+// Tiers configures the three watch levels beyond the full-power window:
+// freshly released dates (full power, up to MaxBoost extra targets) and every
+// later date (Light profile, up to MaxLight targets; <= 0 disables it).
+type Tiers struct {
+	BoostKey string
+	MaxBoost int
+	MaxLight int
+	Light    PollProfile
 }
 
 func NewPoller(channel chan string, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psm, ps string,
-	countReader *count.Client, maxStreams int) *Poller {
+	countReader *count.Client, maxStreams int, liveRedis *otelredis.OtelRedis, tiers Tiers) *Poller {
 	return &Poller{
 		channel:     channel,
 		trigger:     trigger,
@@ -30,6 +50,8 @@ func NewPoller(channel chan string, job *HeliumJobCreator, trigger *Trigger, log
 		psm:         psm,
 		ps:          ps,
 		maxStreams:  maxStreams,
+		liveRedis:   liveRedis,
+		tiers:       tiers,
 	}
 }
 
@@ -87,18 +109,86 @@ func (p *Poller) createPoller(ctx context.Context) error {
 		}
 	}
 
-	// Cap total streams to avoid overloading the system: sort targets by date
-	// (earliest first) and keep the first maxStreams. When there are fewer than
-	// the cap, all are kept (even if they extend past ~3 weeks).
-	jobs = p.capStreams(ctx, jobs)
+	// Three watch levels: the earliest maxStreams targets (~3 weeks) and any
+	// freshly released dates at full power; every other date at the light
+	// profile.
+	boost := p.readBoost(ctx)
+	full, light := p.selectTargets(ctx, jobs, boost, time.Now())
 
-	p.logger.Info().Any("jobs", jobs).Ctx(ctx).Msgf("Create %d jobs", len(jobs))
-	er := p.job.CreateMultiJob(ctx, jobs)
-	if er != nil {
-		p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create multi job")
+	p.logger.Info().Any("jobs", full).Ctx(ctx).Msgf("Create %d full-power jobs", len(full))
+	if er := p.job.CreateMultiJob(ctx, full, p.job.FullProfile()); er != nil {
+		p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create full-power multi job")
 		return er
 	}
+	if len(light) > 0 {
+		p.logger.Info().Ctx(ctx).Msgf("Create %d light jobs", len(light))
+		if er := p.job.CreateMultiJob(ctx, light, p.tiers.Light); er != nil {
+			p.logger.Error().Ctx(ctx).Err(er).Msg("Failed to create light multi job")
+			return er
+		}
+	}
 	return nil
+}
+
+// releaseBoost is the JSON helium writes at boostKey: released date
+// ("dd-mm-yyyy") -> unix-seconds expiry.
+type releaseBoost struct {
+	Dates map[string]int64 `json:"dates"`
+}
+
+// readBoost returns the released-date boost set; empty on any problem so a
+// missing or bad key only ever falls back to the normal window.
+func (p *Poller) readBoost(ctx context.Context) map[string]int64 {
+	if p.liveRedis == nil || p.tiers.BoostKey == "" || p.tiers.MaxBoost <= 0 {
+		return nil
+	}
+	raw, err := p.liveRedis.Get(ctx, p.tiers.BoostKey).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil
+	}
+	if err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Str("key", p.tiers.BoostKey).Msg("Failed to read release boost; using normal window")
+		return nil
+	}
+	var b releaseBoost
+	if err := json.Unmarshal([]byte(raw), &b); err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Str("key", p.tiers.BoostKey).Msg("Bad release boost JSON; using normal window")
+		return nil
+	}
+	return b.Dates
+}
+
+// selectTargets splits targets into the full-power set and the light set.
+// Full power: the earliest maxStreams targets (capStreams) plus every later
+// target on an unexpired released date, earliest first, up to MaxBoost extra.
+// Light: every remaining target, earliest first, up to MaxLight. Boosted pods
+// are what make the cluster scale up while a newly released month is open;
+// when the boost expires those dates fall back to the light set.
+func (p *Poller) selectTargets(ctx context.Context, jobs []HeliumJob, boost map[string]int64, now time.Time) ([]HeliumJob, []HeliumJob) {
+	window := p.capStreams(ctx, jobs)
+	rest := jobs[len(window):]
+	full := append(make([]HeliumJob, 0, len(window)), window...)
+	light := make([]HeliumJob, 0)
+	boosted := 0
+	for _, j := range rest {
+		if exp, ok := boost[j.Date]; ok && exp > now.Unix() && boosted < p.tiers.MaxBoost {
+			full = append(full, j)
+			boosted++
+			continue
+		}
+		if p.tiers.MaxLight > 0 && len(light) < p.tiers.MaxLight {
+			light = append(light, j)
+		}
+	}
+	if len(rest) > 0 {
+		p.logger.Info().Ctx(ctx).
+			Int("window", len(window)).
+			Int("boosted", boosted).
+			Int("light", len(light)).
+			Int("dropped", len(rest)-boosted-len(light)).
+			Msg("Watch tiers selected")
+	}
+	return full, light
 }
 
 // capStreams sorts targets by date ascending (then direction) and keeps the
