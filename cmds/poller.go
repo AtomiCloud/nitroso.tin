@@ -48,6 +48,7 @@ func (state *State) Poller(c *cli.Context) error {
 
 	mainRedis := otelredis.New(state.Config.Cache["main"])
 	streamRedis := otelredis.New(state.Config.Cache["stream"])
+	liveRedis := otelredis.New(state.Config.Cache["live"])
 
 	countReader := count.New(state.Config.Buffer, &mainRedis, state.Logger, state.Ps, state.Location)
 
@@ -59,7 +60,17 @@ func (state *State) Poller(c *cli.Context) error {
 	job := poller.NewHeliumJobCreator(clientset, state.Config.Poller.Pollee, state.Config.App, state.Logger, podName, currentPod.UID, &tokenPool, state.Config.Poller.ShardSize)
 	trigger := poller.NewTrigger(channel, state.Logger, &streamRedis, state.Config.Stream, state.Config.Poller, state.OtelConfigurator, state.Psm)
 
-	p := poller.NewPoller(channel, job, trigger, state.Logger, state.Psm, state.Ps, countReader, state.Config.Poller.MaxStreams)
+	p := poller.NewPoller(channel, job, trigger, state.Logger, state.Psm, state.Ps, countReader, state.Config.Poller.MaxStreams,
+		&liveRedis, poller.Tiers{
+			BoostKey: state.Config.Poller.BoostKey,
+			MaxBoost: state.Config.Poller.MaxBoostStreams,
+			MaxLight: state.Config.Poller.MaxLightStreams,
+			Light: poller.PollProfile{
+				Name:      "light",
+				ShardSize: state.Config.Poller.LightShardSize,
+				Delay:     state.Config.Poller.LightDelay,
+			},
+		})
 
 	err = p.Start(ctx, uniqueID)
 

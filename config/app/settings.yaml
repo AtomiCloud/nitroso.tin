@@ -164,6 +164,15 @@ poller:
   # cap on total streams per run: sort targets by date, keep the first N
   # (42 = ~3 weeks x 2 directions); 0 = no cap
   maxStreams: 42
+  # extra targets for freshly released dates (helium writes boostKey in LIVE
+  # redis when KTMB opens new dates); 0 = no release boost
+  boostKey: 'ktmb:release-boost'
+  maxBoostStreams: 240
+  # light level: every later date with bookings, polled gently (ms delay,
+  # streams per pod); maxLightStreams 0 = only the window + boost are watched
+  lightDelay: 2000
+  lightShardSize: 60
+  maxLightStreams: 300
   pollee:
     namespace: 'nitroso'
     image: ''

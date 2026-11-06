@@ -210,6 +210,23 @@ type PollerConfig struct {
 	// (e.g. 42 = ~3 weeks across both directions). <= 0 means no cap.
 	MaxStreams int
 
+	// BoostKey is the LIVE-redis key helium's schedule updater writes when KTMB
+	// releases new dates: JSON {"dates": {"dd-mm-yyyy": <unix expiry>}}.
+	// Targets on those dates are watched on top of the MaxStreams window until
+	// they expire, so a new month is watched the moment it opens.
+	BoostKey string
+
+	// MaxBoostStreams caps the extra (released-date) targets added on top of
+	// MaxStreams. <= 0 disables the release boost.
+	MaxBoostStreams int
+
+	// Light-power level for every date beyond the window that is not boosted:
+	// LightDelay is the per-stream inter-poll delay (ms), LightShardSize the
+	// streams per pod, MaxLightStreams the cap (<= 0 disables the light level).
+	LightDelay      int
+	LightShardSize  int
+	MaxLightStreams int
+
 	Pollee PolleeConfig
 }
 
