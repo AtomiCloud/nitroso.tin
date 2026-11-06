@@ -173,6 +173,10 @@ poller:
   lightDelay: 2000
   lightShardSize: 60
   maxLightStreams: 300
+  # spawn an identical watcher set at most once per this many seconds (pollees
+  # run ~120s, so ~60s keeps two generations overlapping); 0 = no dedupe
+  generationKey: 'ktmb:poller-generation'
+  minGenerationSeconds: 55
   pollee:
     namespace: 'nitroso'
     image: ''

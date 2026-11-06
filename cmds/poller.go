@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"os"
+	"time"
 )
 
 func (state *State) Poller(c *cli.Context) error {
@@ -62,9 +63,11 @@ func (state *State) Poller(c *cli.Context) error {
 
 	p := poller.NewPoller(channel, job, trigger, state.Logger, state.Psm, state.Ps, countReader, state.Config.Poller.MaxStreams,
 		&liveRedis, poller.Tiers{
-			BoostKey: state.Config.Poller.BoostKey,
-			MaxBoost: state.Config.Poller.MaxBoostStreams,
-			MaxLight: state.Config.Poller.MaxLightStreams,
+			BoostKey:      state.Config.Poller.BoostKey,
+			MaxBoost:      state.Config.Poller.MaxBoostStreams,
+			MaxLight:      state.Config.Poller.MaxLightStreams,
+			GenerationKey: state.Config.Poller.GenerationKey,
+			MinGeneration: time.Duration(state.Config.Poller.MinGenerationSeconds) * time.Second,
 			Light: poller.PollProfile{
 				Name:      "light",
 				ShardSize: state.Config.Poller.LightShardSize,

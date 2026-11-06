@@ -227,6 +227,12 @@ type PollerConfig struct {
 	LightShardSize  int
 	MaxLightStreams int
 
+	// GenerationKey / MinGenerationSeconds dedupe watcher generations across
+	// triggers and replicas: the same target set is spawned at most once per
+	// MinGenerationSeconds. 0 disables it.
+	GenerationKey        string
+	MinGenerationSeconds int
+
 	Pollee PolleeConfig
 }
 

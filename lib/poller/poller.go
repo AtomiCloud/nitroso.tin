@@ -2,6 +2,8 @@ package poller
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"github.com/AtomiCloud/nitroso-tin/lib/count"
@@ -37,6 +39,37 @@ type Tiers struct {
 	MaxBoost int
 	MaxLight int
 	Light    PollProfile
+
+	// GenerationKey prefixes the LIVE-redis key that dedupes watcher
+	// generations: an identical target set is not respawned within
+	// MinGeneration (pollees run ~2 minutes, so a generation per minute keeps
+	// them overlapping). A changed set always spawns at once. Empty key or
+	// MinGeneration <= 0 disables dedupe.
+	GenerationKey string
+	MinGeneration time.Duration
+}
+
+// targetSignature identifies a full+light target set (order matters: both
+// are sorted by date by selectTargets).
+func targetSignature(full, light []HeliumJob) string {
+	b, _ := json.Marshal([2][]HeliumJob{full, light})
+	h := sha1.Sum(b)
+	return hex.EncodeToString(h[:])
+}
+
+// claimGeneration reports whether this target set should be spawned now.
+// Fails open: any redis problem spawns as before.
+func (p *Poller) claimGeneration(ctx context.Context, full, light []HeliumJob) bool {
+	if p.liveRedis == nil || p.tiers.GenerationKey == "" || p.tiers.MinGeneration <= 0 {
+		return true
+	}
+	key := p.tiers.GenerationKey + ":" + targetSignature(full, light)
+	ok, err := p.liveRedis.SetNX(ctx, key, 1, p.tiers.MinGeneration).Result()
+	if err != nil {
+		p.logger.Error().Ctx(ctx).Err(err).Msg("Failed to claim watcher generation; spawning anyway")
+		return true
+	}
+	return ok
 }
 
 func NewPoller(channel chan string, job *HeliumJobCreator, trigger *Trigger, logger *zerolog.Logger, psm, ps string,
@@ -114,6 +147,11 @@ func (p *Poller) createPoller(ctx context.Context) error {
 	// profile.
 	boost := p.readBoost(ctx)
 	full, light := p.selectTargets(ctx, jobs, boost, time.Now())
+
+	if !p.claimGeneration(ctx, full, light) {
+		p.logger.Info().Ctx(ctx).Msg("Same targets spawned within the last generation; skipping")
+		return nil
+	}
 
 	// Attempt both levels even if one fails, then report every failure.
 	p.logger.Info().Any("jobs", full).Ctx(ctx).Msgf("Create %d full-power jobs", len(full))
