@@ -79,3 +79,23 @@ func TestLightDisabledAndCapped(t *testing.T) {
 		t.Fatalf("light capped at 3 earliest, got %v", dates(light))
 	}
 }
+
+func TestTargetSignatureChangesWithTargets(t *testing.T) {
+	a := targetSignature(targets("09-11-2026"), targets("05-01-2027"))
+	b := targetSignature(targets("09-11-2026"), targets("05-01-2027"))
+	c := targetSignature(targets("09-11-2026", "10-11-2026"), targets("05-01-2027"))
+	d := targetSignature(targets("09-11-2026", "05-01-2027"), nil)
+	if a != b {
+		t.Fatal("same targets must give the same signature")
+	}
+	if a == c || a == d {
+		t.Fatal("a new date, or a date moving level, must change the signature")
+	}
+}
+
+func TestClaimGenerationFailsOpenWithoutRedis(t *testing.T) {
+	p := newTestPoller(2, Tiers{GenerationKey: "k", MinGeneration: time.Minute})
+	if !p.claimGeneration(context.Background(), targets("09-11-2026"), nil) {
+		t.Fatal("no redis must spawn as before")
+	}
+}
