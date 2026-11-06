@@ -1,3 +1,10 @@
+## [1.59.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.58.0...v1.59.0) (2026-11-06)
+
+
+### ✨ Features ✨
+
+* **poller:** three watch levels with release boost ([#57](https://github.com/AtomiCloud/nitroso.tin/issues/57)) ([99d2c6e](https://github.com/AtomiCloud/nitroso.tin/commit/99d2c6ebff13e2621ac6fc766791ccc5516430b2))
+
 ## [1.58.0](https://github.com/AtomiCloud/nitroso.tin/compare/v1.57.0...v1.58.0) (2026-10-31)
 
 
