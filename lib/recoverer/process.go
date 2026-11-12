@@ -107,19 +107,7 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	}
 
 	if found != nil {
-		claimed, err := c.isClaimed(ctx, dto, found.BookingNo)
-		if err != nil {
-			return err
-		}
-		if claimed {
-			// the ticket on our account already belongs to another zinc booking
-			// (user double-booked) — this booking is a true duplicate
-			l.Warn().Str("ktmbBookingNo", found.BookingNo).Msg("Ticket already claimed by another completed booking, marking duplicate")
-			return c.markDuplicate(ctx, dto.BookingId)
-		}
-		// our uncaptured ticket — capture it
-		l.Info().Str("ktmbBookingNo", found.BookingNo).Str("ktmbTicketNo", found.TicketNo).Msg("Found uncaptured ticket on our KTMB account, force completing")
-		return c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo)
+		return c.resolveFound(ctx, l, dto, found)
 	}
 
 	// not on our account: the passenger holds this seat via another channel
@@ -134,6 +122,44 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	// is exhausted (409) do we refund as a true duplicate.
 	l.Warn().Msg("Ticket not on our KTMB account, requesting recycle before duplicate")
 	return c.recycleOrDuplicate(ctx, l, dto.BookingId)
+}
+
+// resolveFound decides what to do with a ticket for this passenger+slot that
+// IS on our KTMB account: capture it, mark this booking duplicate, recycle it,
+// or retry later — depending on which zinc booking (if any) records it.
+func (c *Client) resolveFound(ctx context.Context, l zerolog.Logger, dto lib.RecoverDto, found *foundTicket) error {
+	holder, err := c.ticketHolder(ctx, dto, found.BookingNo)
+	if err != nil {
+		return err
+	}
+	if holder != nil {
+		hl := l.With().Str("ktmbBookingNo", found.BookingNo).Str("holderId", holder.Id.String()).Str("holderStatus", lib.Deref(holder.Status)).Logger()
+		switch holderStatus := lib.Deref(holder.Status); {
+		case holderStatus == "Completed":
+			// the ticket on our account already belongs to another zinc booking
+			// (user double-booked) — this booking is a true duplicate
+			hl.Warn().Msg("Ticket already claimed by another completed booking, marking duplicate")
+			return c.markDuplicate(ctx, dto.BookingId)
+		case releasedStatuses[holderStatus]:
+			// the ticket was bought for ANOTHER booking that has since been
+			// cancelled/terminated, so its KTMB ticket is being released. It is
+			// not this booking's ticket and cannot be captured (KTMB will not
+			// print a cancelled ticket — every force-complete would fail and the
+			// booking would be parked). The duplicate-passport block that sent
+			// this booking to recovery came from that released ticket, so recycle
+			// it to Pending and let the pipeline buy a fresh one; zinc's recycle
+			// budget still caps this at a duplicate refund if KTMB keeps blocking.
+			hl.Warn().Msg("Ticket belongs to another booking that was released, recycling instead of capturing")
+			return c.recycleOrDuplicate(ctx, l, dto.BookingId)
+		default:
+			// recorded on a booking that is still in flight — never capture a
+			// ticket another live booking may own; retry once it settles
+			return fmt.Errorf("ticket %s is recorded on booking %s in status %q, waiting for it to settle", found.BookingNo, holder.Id.String(), holderStatus)
+		}
+	}
+	// our uncaptured ticket — capture it
+	l.Info().Str("ktmbBookingNo", found.BookingNo).Str("ktmbTicketNo", found.TicketNo).Msg("Found uncaptured ticket on our KTMB account, force completing")
+	return c.forceComplete(ctx, dto.BookingId, found.BookingNo, found.TicketNo)
 }
 
 // recycleOrDuplicate asks zinc to recycle a Recovering booking back to Pending
@@ -226,7 +252,31 @@ func (c *Client) forceComplete(ctx context.Context, bookingId, bookingNo, ticket
 		c.logger.Error().Ctx(ctx).Err(err).Str("bookingNo", bookingNo).Msg("Failed to print ticket for force complete")
 		return err
 	}
+	if !isPDF(pdf) {
+		// KTMB answered 2xx with something that is not a ticket (an error body,
+		// e.g. for a cancelled ticket). Uploading it only earns an opaque zinc
+		// 500 ("Unknown file format"); fail here with what KTMB actually said.
+		err := fmt.Errorf("KTMB did not return a ticket PDF for booking %s ticket %s (%d bytes: %q)", bookingNo, ticketNo, len(pdf), preview(pdf))
+		c.logger.Error().Ctx(ctx).Err(err).Str("bookingNo", bookingNo).Msg("Printed ticket is not a PDF, not completing")
+		return err
+	}
 	return c.completeBooking(ctx, bookingId, bookingNo, ticketNo, pdf)
+}
+
+// isPDF reports whether b looks like a PDF document (magic "%PDF-", allowing
+// leading whitespace or a UTF-8 BOM).
+func isPDF(b []byte) bool {
+	b = bytes.TrimLeft(bytes.TrimPrefix(b, []byte("\xef\xbb\xbf")), " \t\r\n")
+	return bytes.HasPrefix(b, []byte("%PDF-"))
+}
+
+// preview returns a short, printable prefix of a non-PDF body for logs
+func preview(b []byte) string {
+	const max = 160
+	if len(b) > max {
+		b = b[:max]
+	}
+	return strings.ToValidUTF8(string(b), "?")
 }
 
 func (c *Client) completeBooking(ctx context.Context, bookingId, bookingNo, ticketNo string, pdf []byte) error {
@@ -256,29 +306,31 @@ func (c *Client) completeBooking(ctx context.Context, bookingId, bookingNo, tick
 	return nil
 }
 
-// isClaimed reports whether the KTMB booking number is already recorded on a
-// completed zinc booking for the same passenger and slot
-func (c *Client) isClaimed(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (bool, error) {
-	b, err := c.claimant(ctx, dto, ktmbBookingNo)
-	return b != nil, err
+// releasedStatuses are zinc states whose KTMB ticket has been (or is being)
+// given back: a ticket recorded on such a booking is not capturable by another
+var releasedStatuses = map[string]bool{
+	"Cancelled":  true,
+	"Refunded":   true,
+	"Terminated": true,
 }
 
-// claimant returns the Completed zinc booking (same passenger and slot) that
-// already records the KTMB booking number, or nil when none does
-func (c *Client) claimant(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (*zinc.BookingPrincipalRes, error) {
-	completed := "Completed"
+// ticketHolder returns the OTHER zinc booking (same passenger and slot, any
+// status) that records the KTMB booking number, or nil when none does. A
+// Completed holder wins over any other match. Searching every status (not just
+// Completed) is what lets the caller tell "a live booking owns this ticket"
+// from "the ticket belonged to a booking that was since cancelled".
+func (c *Client) ticketHolder(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (*zinc.BookingPrincipalRes, error) {
 	// explicit Limit so a zinc default page size can't hide the claiming booking:
-	// a miss here returns false and force-completes a ticket owned by another
+	// a miss here returns nil and force-completes a ticket owned by another
 	// Completed booking, collecting this booking's reserve for someone else's
 	// ticket (a §3.1 double-collect). The exact passport+slot+direction tuple
-	// yields ≤1 in practice, so a large cap suffices.
+	// yields a handful at most, so a large cap suffices.
 	limit := int32(100)
 	resp, err := c.zinc.GetApiVVersionBooking(ctx, "1.0", &zinc.GetApiVVersionBookingParams{
 		PassportNumber: &dto.PassportNumber,
 		Date:           &dto.Date,
 		Time:           &dto.Time,
 		Direction:      &dto.Direction,
-		Status:         &completed,
 		Limit:          &limit,
 	})
 	if err != nil {
@@ -287,7 +339,7 @@ func (c *Client) claimant(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to search completed bookings: status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("failed to search bookings for ticket holder: status %d: %s", resp.StatusCode, string(body))
 	}
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -297,12 +349,24 @@ func (c *Client) claimant(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo
 	if err := json.Unmarshal(content, &bookings); err != nil {
 		return nil, err
 	}
+	if len(bookings) >= int(limit) {
+		// a full page could hide the holder on the next one — inconclusive
+		return nil, fmt.Errorf("ticket holder search hit the %d-result cap, inconclusive", limit)
+	}
+	var holder *zinc.BookingPrincipalRes
 	for i := range bookings {
-		if bookings[i].BookingNo != nil && *bookings[i].BookingNo == ktmbBookingNo {
-			return &bookings[i], nil
+		b := &bookings[i]
+		if b.Id.String() == dto.BookingId || b.BookingNo == nil || *b.BookingNo != ktmbBookingNo {
+			continue
+		}
+		if lib.Deref(b.Status) == "Completed" {
+			return b, nil
+		}
+		if holder == nil {
+			holder = b
 		}
 	}
-	return nil, nil
+	return holder, nil
 }
 
 // listRecovering fetches every booking currently in Recovering status,

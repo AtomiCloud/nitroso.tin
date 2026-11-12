@@ -10,6 +10,7 @@ import (
 
 	"github.com/AtomiCloud/nitroso-tin/lib"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -125,56 +126,158 @@ func recoverDto() lib.RecoverDto {
 	}
 }
 
-// isClaimed is the money-critical §5.6 double-charge gate on the found-ticket
-// path: a KTMB ticket already recorded on another Completed zinc booking must
-// mark THIS booking Duplicate (refund), never force-complete (which would
-// collect this booking's reserve for a ticket someone else owns). These tests
-// pin the gate decision directly.
+// ticketHolder + resolveFound are the money-critical §5.6 gate on the
+// found-ticket path: a KTMB ticket already recorded on another Completed zinc
+// booking must mark THIS booking Duplicate (refund), never force-complete
+// (which would collect this booking's reserve for a ticket someone else owns);
+// a ticket recorded on a since-released booking must be recycled (re-bought),
+// never captured; one on a still-live booking must wait.
 
-// The gate returns true when our uncaptured KTMB booking number already appears
-// on a Completed zinc booking for the same passenger+slot.
-func TestIsClaimedMatchingBookingNoIsClaimed(t *testing.T) {
-	no := "KTMB-K1"
-	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{{BookingNo: &no}}}
+func holderRes(id uuid.UUID, status, bookingNo string) zinc.BookingPrincipalRes {
+	return zinc.BookingPrincipalRes{Id: id, Status: &status, BookingNo: &bookingNo}
+}
+
+// A Completed booking recording the ticket is the holder.
+func TestTicketHolderCompletedMatch(t *testing.T) {
+	other := uuid.New()
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(other, "Completed", "KTMB-K1")}}
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 
-	claimed, err := c.isClaimed(context.Background(), recoverDto(), "KTMB-K1")
+	h, err := c.ticketHolder(context.Background(), recoverDto(), "KTMB-K1")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if !claimed {
-		t.Error("a ticket whose booking number matches a Completed booking must be considered claimed")
+	if h == nil || h.Id != other {
+		t.Fatalf("expected holder %s, got %+v", other, h)
 	}
 }
 
-// A found ticket whose KTMB booking number matches no Completed zinc booking is
-// unclaimed: the gate must let it through to capture (force-complete).
-func TestIsClaimedUnmatchedBookingNoIsNotClaimed(t *testing.T) {
-	other := "KTMB-OTHER"
-	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{{BookingNo: &other}}}
+// A Completed holder wins over a released one recording the same ticket.
+func TestTicketHolderPrefersCompleted(t *testing.T) {
+	released, completed := uuid.New(), uuid.New()
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{
+		holderRes(released, "Terminated", "KTMB-K1"),
+		holderRes(completed, "Completed", "KTMB-K1"),
+	}}
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 
-	claimed, err := c.isClaimed(context.Background(), recoverDto(), "KTMB-K1")
-	if err != nil {
-		t.Fatalf("expected nil error, got %v", err)
-	}
-	if claimed {
-		t.Error("ticket with an unmatched booking number must not be considered claimed")
+	h, err := c.ticketHolder(context.Background(), recoverDto(), "KTMB-K1")
+	if err != nil || h == nil || h.Id != completed {
+		t.Fatalf("expected the Completed holder %s, got %+v (err %v)", completed, h, err)
 	}
 }
 
-// A failed claim search is inconclusive: it must surface an error (caller
-// retries), never a silent "not claimed" that would force-complete a ticket
-// another booking may own.
-func TestIsClaimedSearchFailureErrors(t *testing.T) {
+// No booking records the ticket (or only this booking itself does): no holder.
+func TestTicketHolderUnmatchedOrSelf(t *testing.T) {
+	self := uuid.MustParse(testBookingId)
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{
+		holderRes(uuid.New(), "Completed", "KTMB-OTHER"),
+		holderRes(self, "Recovering", "KTMB-K1"),
+	}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+
+	h, err := c.ticketHolder(context.Background(), recoverDto(), "KTMB-K1")
+	if err != nil || h != nil {
+		t.Fatalf("expected no holder, got %+v (err %v)", h, err)
+	}
+}
+
+// A failed search is inconclusive: it must surface an error (caller retries),
+// never a silent "no holder" that would force-complete a ticket another
+// booking may own.
+func TestTicketHolderSearchFailureErrors(t *testing.T) {
 	stub := &zincStub{t: t, searchStatus: http.StatusBadGateway}
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 
-	if _, err := c.isClaimed(context.Background(), recoverDto(), "KTMB-K1"); err == nil {
-		t.Fatal("expected error when the claim search fails, got nil")
+	if _, err := c.ticketHolder(context.Background(), recoverDto(), "KTMB-K1"); err == nil {
+		t.Fatal("expected error when the holder search fails, got nil")
+	}
+}
+
+// A full result page could hide the holder: inconclusive, error.
+func TestTicketHolderFullPageIsInconclusive(t *testing.T) {
+	body := make([]zinc.BookingPrincipalRes, 100)
+	for i := range body {
+		body[i] = holderRes(uuid.New(), "Cancelled", "KTMB-X")
+	}
+	stub := &zincStub{t: t, searchBody: body}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+
+	if _, err := c.ticketHolder(context.Background(), recoverDto(), "KTMB-K1"); err == nil {
+		t.Fatal("expected an inconclusive error on a full page, got nil")
+	}
+}
+
+// Completed holder → this booking is a true duplicate.
+func TestResolveFoundCompletedHolderMarksDuplicate(t *testing.T) {
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Completed", "KTMB-K1")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(stub.duplicated) != 1 || len(stub.recycled) != 0 || len(stub.completed) != 0 || len(stub.parked) != 0 {
+		t.Fatalf("expected exactly one duplicate, got dup=%v recycle=%v complete=%v park=%v", stub.duplicated, stub.recycled, stub.completed, stub.parked)
+	}
+}
+
+// The 2026-11-11 incident: the user double-booked the same passenger+slot,
+// the first booking bought the ticket and was then terminated (KTMB ticket
+// cancelled), and the second booking — recovering from the duplicate-passport
+// rejection — found that ticket on our account. It must be recycled to Pending
+// for a fresh purchase, never force-completed (KTMB will not print a cancelled
+// ticket, so capture fails forever and the booking gets parked).
+func TestResolveFoundReleasedHolderRecycles(t *testing.T) {
+	for _, status := range []string{"Terminated", "Cancelled", "Refunded"} {
+		t.Run(status, func(t *testing.T) {
+			stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), status, "KTMB-K1")}}
+			c, closeSrv := conflictClient(t, stub)
+			defer closeSrv()
+
+			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err != nil {
+				t.Fatalf("expected nil error, got %v", err)
+			}
+			if len(stub.recycled) != 1 || stub.recycled[0] != testBookingId {
+				t.Fatalf("expected one recycle of %s, got %v", testBookingId, stub.recycled)
+			}
+			if len(stub.completed) != 0 || len(stub.duplicated) != 0 || len(stub.parked) != 0 {
+				t.Fatalf("released holder must only recycle, got complete=%v dup=%v park=%v", stub.completed, stub.duplicated, stub.parked)
+			}
+		})
+	}
+}
+
+// A holder still in flight (e.g. Buying) → wait: error, no transition.
+func TestResolveFoundLiveHolderWaits(t *testing.T) {
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Buying", "KTMB-K1")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err == nil {
+		t.Fatal("expected an error (retry later) for a live holder, got nil")
+	}
+	assertNoTransitions(t, stub)
+}
+
+func TestIsPDF(t *testing.T) {
+	cases := map[string]bool{
+		"%PDF-1.7\n...":                     true,
+		"\xef\xbb\xbf%PDF-1.4":              true,
+		"\n  %PDF-1.4":                      true,
+		`{"status":false,"messages":["x"]}`: false,
+		"":                                  false,
+		"<html>":                            false,
+	}
+	for in, want := range cases {
+		if got := isPDF([]byte(in)); got != want {
+			t.Errorf("isPDF(%q) = %v, want %v", in, got, want)
+		}
 	}
 }
 

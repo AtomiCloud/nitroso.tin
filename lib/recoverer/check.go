@@ -16,7 +16,7 @@ import (
 // Admin "check our KTMB account": zinc queues {checkId, bookingId} on the
 // stream-cache list recoverer.checkQueueName when an admin presses the button;
 // the recoverer answers each request with the SAME scan + claim lookup it uses
-// to resolve a Recovering booking (scanOurAccount / claimant) and writes the
+// to resolve a Recovering booking (scanOurAccount / ticketHolder) and writes the
 // answer back to zinc. Strictly READ-ONLY: a check never completes, refunds,
 // recycles or marks anything — the only zinc write is the check result.
 
@@ -79,7 +79,7 @@ func (c *Client) CheckBooking(ctx context.Context, bookingId string, now time.Ti
 	}
 
 	res := CheckResult{Status: CheckFound, KtmbBookingNo: found.BookingNo, KtmbTicketNo: found.TicketNo}
-	claim, err := c.claimant(ctx, dto, found.BookingNo)
+	claim, err := c.ticketHolder(ctx, dto, found.BookingNo)
 	if err != nil {
 		// the ticket IS on our account; only the claim lookup failed
 		res.Error = "could not look up which booking claims this ticket: " + err.Error()
