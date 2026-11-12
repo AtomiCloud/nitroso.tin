@@ -122,41 +122,42 @@ func (c *Client) ProcessItem(ctx context.Context, dto lib.RecoverDto) error {
 	// KTMB booking lapses); zinc holds the retry counter, and only once its cap
 	// is exhausted (409) do we refund as a true duplicate.
 	l.Warn().Msg("Ticket not on our KTMB account, requesting recycle before duplicate")
-	return c.recycleOrDuplicate(ctx, l, dto.BookingId)
+	return c.recycleOrDuplicate(ctx, l, dto.BookingId, true)
 }
 
 // resolveFound decides what to do with the tickets for this passenger+slot
 // found on our KTMB account (KTMB keeps cancelled bookings listed, so there can
-// be more than one), based on which zinc booking — if any — records each:
+// be more than one), based on which zinc booking — if any — records each, and
+// on what KTMB says when asked to print it:
 //
-//   - a ticket no other booking records is this booking's own uncaptured
-//     ticket → capture it (force-complete)
+//   - a ticket no other booking records: print it. Live (a PDF) → it is this
+//     booking's own uncaptured ticket → capture it. Confirmed cancelled →
+//     treat like a released ticket. Anything else → retry.
 //   - one recorded on a Completed booking → this booking is a true duplicate
 //   - one recorded on a booking still in flight → wait (retry later)
-//   - every ticket recorded on a released (Cancelled/Refunded/Terminated)
-//     booking → those tickets were given back; once KTMB confirms none of them
-//     is still live, recycle this booking to Pending so it is bought afresh.
-//     zinc's Terminated does NOT prove the KTMB cancel landed (the terminator
-//     can fail), so a still-live released ticket is left for a human (retry →
-//     RequireManualIntervention), never recycled into a duplicate refund and
-//     never captured (a late terminator run could still cancel it).
+//   - every ticket released (recorded on a Cancelled/Refunded/Terminated
+//     booking, or unrecorded and confirmed cancelled) → once KTMB confirms
+//     none is still live, recycle this booking to Pending so it is bought
+//     afresh. zinc's Terminated does NOT prove the KTMB cancel landed (the
+//     terminator can fail), so a still-live released ticket is left for a human
+//     (retry → RequireManualIntervention), never recycled into a duplicate
+//     refund and never captured (a late terminator run could still cancel it).
 //
 // partial (non-nil) means the scan was inconclusive somewhere, so matches may
-// be incomplete: capturing a match is still safe, but concluding "every ticket
-// is released" is not.
+// be incomplete: capturing a live match is still safe, but concluding "every
+// ticket is released" is not.
 func (c *Client) resolveFound(ctx context.Context, l zerolog.Logger, dto lib.RecoverDto, matches []foundTicket, partial error) error {
 	slot, err := c.slotBookings(ctx, dto)
 	if err != nil {
 		return err
 	}
-	var released, live, completed []foundTicket
+	var unrecorded, released, live, completed []foundTicket
 	var liveHolder, completedHolder *zinc.BookingPrincipalRes
 	for _, m := range matches {
 		holder := holderOf(slot, dto.BookingId, m.BookingNo)
 		if holder == nil {
-			// our uncaptured ticket — capture it
-			l.Info().Str("ktmbBookingNo", m.BookingNo).Str("ktmbTicketNo", m.TicketNo).Msg("Found uncaptured ticket on our KTMB account, force completing")
-			return c.forceComplete(ctx, dto.BookingId, m.BookingNo, m.TicketNo)
+			unrecorded = append(unrecorded, m)
+			continue
 		}
 		switch st := lib.Deref(holder.Status); {
 		case st == "Completed":
@@ -168,6 +169,21 @@ func (c *Client) resolveFound(ctx context.Context, l zerolog.Logger, dto lib.Rec
 			live = append(live, m)
 			liveHolder = holder
 		}
+	}
+
+	// unrecorded tickets: our own uncaptured ticket if KTMB still prints it
+	deadUnrecorded := 0
+	for _, m := range unrecorded {
+		state, pdf, err := c.ticketState(ctx, m)
+		if err != nil {
+			return err
+		}
+		if state == ticketLive {
+			l.Info().Str("ktmbBookingNo", m.BookingNo).Str("ktmbTicketNo", m.TicketNo).Msg("Found uncaptured ticket on our KTMB account, force completing")
+			return c.completeBooking(ctx, dto.BookingId, m.BookingNo, m.TicketNo, pdf)
+		}
+		l.Warn().Str("ktmbBookingNo", m.BookingNo).Msg("Unrecorded ticket on our KTMB account is cancelled, ignoring it")
+		deadUnrecorded++
 	}
 	if len(completed) > 0 {
 		// the ticket on our account already belongs to another zinc booking
@@ -183,25 +199,56 @@ func (c *Client) resolveFound(ctx context.Context, l zerolog.Logger, dto lib.Rec
 			live[0].BookingNo, liveHolder.Id.String(), lib.Deref(liveHolder.Status))
 	}
 	if partial != nil {
-		return fmt.Errorf("only released bookings' tickets seen but the KTMB scan was inconclusive, will retry: %w", partial)
+		return fmt.Errorf("only cancelled/released tickets seen but the KTMB scan was inconclusive, will retry: %w", partial)
 	}
 	for _, m := range released {
-		pdf, err := c.print(ctx, m.BookingNo, m.TicketNo)
+		state, _, err := c.ticketState(ctx, m)
 		if err != nil {
-			// cannot tell dead from a KTMB hiccup — retry
-			return fmt.Errorf("could not confirm released ticket %s is cancelled on KTMB: %w", m.BookingNo, err)
+			return err
 		}
-		if isPDF(pdf) {
+		if state == ticketLive {
 			l.Error().Str("ktmbBookingNo", m.BookingNo).Str("ktmbTicketNo", m.TicketNo).
 				Msg("Ticket of a released booking is still live on KTMB (its cancel did not land), leaving for a human")
 			return fmt.Errorf("ticket %s belongs to a released booking but is still live on KTMB; needs a human", m.BookingNo)
 		}
 	}
-	// every ticket for this passenger+slot belonged to a booking that was
-	// released and KTMB confirms none is printable any more: the
-	// duplicate-passport block came from those dead tickets — buy afresh
-	l.Warn().Int("releasedTickets", len(released)).Msg("Only cancelled tickets of released bookings on our account, recycling instead of capturing")
-	return c.recycleOrDuplicate(ctx, l, dto.BookingId)
+	// every ticket for this passenger+slot is cancelled on KTMB: the
+	// duplicate-passport block came from those dead tickets — buy afresh. If
+	// zinc refuses (budget spent / departure too close), park for a human:
+	// the passenger holds no live ticket, so a Duplicate refund would be wrong.
+	l.Warn().Int("releasedTickets", len(released)).Int("cancelledUnrecorded", deadUnrecorded).
+		Msg("Only cancelled tickets on our account for this passenger+slot, recycling instead of capturing")
+	return c.recycleOrDuplicate(ctx, l, dto.BookingId, false)
+}
+
+type ticketLiveness int
+
+const (
+	ticketLive ticketLiveness = iota
+	ticketCancelled
+)
+
+// ktmbCancelledBody is what KTMB's PrintTicketPdf answers (HTTP 200, plain
+// text) for a ticket that has been cancelled — observed on production
+// 2026-11-12 for the incident's terminated ticket
+const ktmbCancelledBody = "error when retrieving booking"
+
+// ticketState asks KTMB to print the ticket: a PDF means it is live; KTMB's
+// known "cannot retrieve" answer means it is cancelled; anything else (print
+// error, empty body, unknown page) is inconclusive and returned as an error so
+// the caller retries — never guessed as cancelled.
+func (c *Client) ticketState(ctx context.Context, m foundTicket) (ticketLiveness, []byte, error) {
+	body, err := c.print(ctx, m.BookingNo, m.TicketNo)
+	if err != nil {
+		return 0, nil, fmt.Errorf("could not print ticket %s to check it: %w", m.BookingNo, err)
+	}
+	if isPDF(body) {
+		return ticketLive, body, nil
+	}
+	if strings.Contains(strings.ToLower(string(body)), ktmbCancelledBody) {
+		return ticketCancelled, nil, nil
+	}
+	return 0, nil, fmt.Errorf("KTMB answered an unrecognised non-PDF for ticket %s (%d bytes: %q), will retry", m.BookingNo, len(body), preview(body))
 }
 
 // recycleOrDuplicate asks zinc to recycle a Recovering booking back to Pending
@@ -214,7 +261,14 @@ func (c *Client) resolveFound(ctx context.Context, l zerolog.Logger, dto lib.Rec
 //     re-derives from zinc if anything is still stuck.
 //   - anything else (404 on an old zinc without the endpoint, 5xx, network)
 //     → error, normal requeue path.
-func (c *Client) recycleOrDuplicate(ctx context.Context, l zerolog.Logger, bookingId string) error {
+//
+// refundAsDuplicate chooses the 409 fallback: true (the ticket is not on our
+// account — the passenger holds it elsewhere) refunds as Duplicate; false (we
+// KNOW the passenger holds no live ticket — every ticket we saw was cancelled)
+// parks for a human instead, since a Duplicate refund would tell the customer
+// "you already have a ticket" when they do not (zinc also answers 409 when the
+// departure is too close to re-buy).
+func (c *Client) recycleOrDuplicate(ctx context.Context, l zerolog.Logger, bookingId string, refundAsDuplicate bool) error {
 	id, err := uuid.Parse(bookingId)
 	if err != nil {
 		return err
@@ -239,6 +293,11 @@ func (c *Client) recycleOrDuplicate(ctx context.Context, l zerolog.Logger, booki
 		// the recycle budget is spent — this is a true duplicate now; refund.
 		// Sniff the problem type purely for logging: any 409 on this endpoint
 		// means the cap (zinc changed nothing, the booking is still Recovering).
+		if !refundAsDuplicate {
+			l.Warn().Str("problem", problemTypeOf(body)).
+				Msg("Recycle refused but the passenger holds no live ticket, parking for manual intervention")
+			return c.markManualIntervention(ctx, bookingId)
+		}
 		l.Warn().Str("problem", problemTypeOf(body)).
 			Msg("Recovery retries exhausted, marking duplicate")
 		return c.markDuplicate(ctx, bookingId)

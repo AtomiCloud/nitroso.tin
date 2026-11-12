@@ -295,7 +295,7 @@ func TestResolveFoundLiveHolderWaits(t *testing.T) {
 
 const (
 	livePDF       = "%PDF-1.7\n%fake ticket"
-	cancelledBody = `{"status":false,"messages":["Ticket is cancelled"]}`
+	cancelledBody = "Error when retrieving booking."
 )
 
 // printer fakes KTMB PrintTicket per KTMB booking number; a missing entry is
@@ -393,6 +393,96 @@ func TestForceCompleteRejectsNonPDF(t *testing.T) {
 	assertNoTransitions(t, stub)
 }
 
+// A non-PDF answer that is not KTMB's known "cancelled" text (empty body,
+// maintenance page, JSON error) is never read as cancelled: retry, no
+// transition — for released and unrecorded tickets alike.
+func TestResolveFoundUnknownPrintBodyRetries(t *testing.T) {
+	for _, body := range []string{"", "<html>maintenance</html>", `{"status":false,"messages":["busy"]}`} {
+		for _, status := range []string{"Terminated", ""} {
+			t.Run(status+"/"+body, func(t *testing.T) {
+				var search []zinc.BookingPrincipalRes
+				if status != "" {
+					search = []zinc.BookingPrincipalRes{holderRes(uuid.New(), status, "KTMB-K1")}
+				}
+				stub := &zincStub{t: t, searchBody: search}
+				c, closeSrv := conflictClient(t, stub)
+				defer closeSrv()
+				c.printTicket = printer(map[string]string{"KTMB-K1": body})
+
+				if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err == nil {
+					t.Fatal("expected an error (retry) on an unrecognised print body, got nil")
+				}
+				assertNoTransitions(t, stub)
+			})
+		}
+	}
+}
+
+// An unrecorded but cancelled ticket (e.g. zinc's passport search missed its
+// holder) is not captured: with only cancelled tickets around, recycle.
+func TestResolveFoundUnrecordedCancelledRecycles(t *testing.T) {
+	stub := &zincStub{t: t}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-K1": cancelledBody})
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(stub.recycled) != 1 || len(stub.completed) != 0 || len(stub.duplicated) != 0 || len(stub.parked) != 0 {
+		t.Fatalf("expected only a recycle, got recycle=%v complete=%v dup=%v park=%v", stub.recycled, stub.completed, stub.duplicated, stub.parked)
+	}
+}
+
+// An unrecorded cancelled ticket must not mask a Completed holder's ticket:
+// still a duplicate.
+func TestResolveFoundUnrecordedCancelledPlusCompletedIsDuplicate(t *testing.T) {
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Completed", "KTMB-HELD")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-DEAD": cancelledBody, "KTMB-HELD": livePDF})
+
+	matches := []foundTicket{{BookingNo: "KTMB-DEAD", TicketNo: "T-D"}, {BookingNo: "KTMB-HELD", TicketNo: "T-H"}}
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), matches, nil); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(stub.duplicated) != 1 || len(stub.completed) != 0 || len(stub.recycled) != 0 || len(stub.parked) != 0 {
+		t.Fatalf("expected only a duplicate, got dup=%v complete=%v recycle=%v park=%v", stub.duplicated, stub.completed, stub.recycled, stub.parked)
+	}
+}
+
+// Only cancelled tickets and zinc refuses the recycle (budget spent or
+// departure too close): park for a human — never a Duplicate refund telling
+// the customer they already hold a ticket.
+func TestResolveFoundCancelledOnlyRecycleRefusedParks(t *testing.T) {
+	stub := &zincStub{t: t, recycleStatus: http.StatusConflict, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Terminated", "KTMB-K1")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-K1": cancelledBody})
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(stub.parked) != 1 || len(stub.duplicated) != 0 || len(stub.completed) != 0 {
+		t.Fatalf("expected a park and no duplicate, got park=%v dup=%v complete=%v", stub.parked, stub.duplicated, stub.completed)
+	}
+}
+
+// An unrecorded live ticket is captured with the PDF already printed.
+func TestResolveFoundUnrecordedLiveCaptures(t *testing.T) {
+	stub := &zincStub{t: t}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-K1": livePDF})
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(stub.completed) != 1 || len(stub.recycled) != 0 || len(stub.duplicated) != 0 || len(stub.parked) != 0 {
+		t.Fatalf("expected only a capture, got complete=%v recycle=%v dup=%v park=%v", stub.completed, stub.recycled, stub.duplicated, stub.parked)
+	}
+}
+
 func TestIsPDF(t *testing.T) {
 	cases := map[string]bool{
 		"%PDF-1.7\n...":                     true,
@@ -421,7 +511,7 @@ func TestRecycleOrDuplicateRecycles(t *testing.T) {
 	defer closeSrv()
 
 	l := zerolog.Nop()
-	if err := c.recycleOrDuplicate(context.Background(), l, testBookingId); err != nil {
+	if err := c.recycleOrDuplicate(context.Background(), l, testBookingId, true); err != nil {
 		t.Fatalf("expected nil error on a successful recycle, got %v", err)
 	}
 	if len(stub.recycled) != 1 || stub.recycled[0] != testBookingId {
@@ -441,7 +531,7 @@ func TestRecycleOrDuplicateExhaustedFallsBackToDuplicate(t *testing.T) {
 	defer closeSrv()
 
 	l := zerolog.Nop()
-	if err := c.recycleOrDuplicate(context.Background(), l, testBookingId); err != nil {
+	if err := c.recycleOrDuplicate(context.Background(), l, testBookingId, true); err != nil {
 		t.Fatalf("expected nil error when falling back to duplicate, got %v", err)
 	}
 	if len(stub.duplicated) != 1 || stub.duplicated[0] != testBookingId {
@@ -458,7 +548,7 @@ func TestRecycleOrDuplicateBadRequestDropsItem(t *testing.T) {
 	defer closeSrv()
 
 	l := zerolog.Nop()
-	if err := c.recycleOrDuplicate(context.Background(), l, testBookingId); err != nil {
+	if err := c.recycleOrDuplicate(context.Background(), l, testBookingId, true); err != nil {
 		t.Fatalf("expected nil error (drop) on 400, got %v", err)
 	}
 	if len(stub.duplicated) != 0 {
@@ -475,7 +565,7 @@ func TestRecycleOrDuplicateOtherStatusErrors(t *testing.T) {
 		c, closeSrv := conflictClient(t, stub)
 
 		l := zerolog.Nop()
-		err := c.recycleOrDuplicate(context.Background(), l, testBookingId)
+		err := c.recycleOrDuplicate(context.Background(), l, testBookingId, true)
 		closeSrv()
 		if err == nil {
 			t.Errorf("expected error on recycle status %d, got nil", status)
