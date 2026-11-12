@@ -69,8 +69,9 @@ func TestCheckFoundUnclaimed(t *testing.T) {
 func TestCheckFoundClaimedByAnotherBooking(t *testing.T) {
 	other := uuid.New()
 	no := "KTMB-K1"
+	completed := "Completed"
 	stub := &zincStub{t: t, bookingBody: checkBooking("Duplicate", nil),
-		searchBody: []zinc.BookingPrincipalRes{{Id: other, BookingNo: &no}}}
+		searchBody: []zinc.BookingPrincipalRes{{Id: other, BookingNo: &no, Status: &completed}}}
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 	scan, _ := scanReturning(&foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}, nil)
@@ -79,6 +80,42 @@ func TestCheckFoundClaimedByAnotherBooking(t *testing.T) {
 
 	if res.Status != CheckFound || res.ClaimedBy == nil || *res.ClaimedBy != other {
 		t.Fatalf("expected Found claimed by %s, got %+v", other, res)
+	}
+	assertNoTransitions(t, stub)
+}
+
+// The checked Completed booking itself records the ticket: report it as the
+// claimant (argon shows "claimed by this booking"), not "unclaimed".
+func TestCheckFoundClaimedBySelf(t *testing.T) {
+	self := uuid.MustParse(testBookingId)
+	no, completed := "KTMB-K1", "Completed"
+	stub := &zincStub{t: t, bookingBody: checkBooking("Completed", nil),
+		searchBody: []zinc.BookingPrincipalRes{{Id: self, BookingNo: &no, Status: &completed}}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	scan, _ := scanReturning(&foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}, nil)
+
+	res := c.CheckBooking(context.Background(), testBookingId, beforeDeparture(t), scan)
+
+	if res.Status != CheckFound || res.ClaimedBy == nil || *res.ClaimedBy != self {
+		t.Fatalf("expected Found claimed by self %s, got %+v", self, res)
+	}
+	assertNoTransitions(t, stub)
+}
+
+// A released (Terminated) booking recording the ticket is not a claimant.
+func TestCheckFoundReleasedHolderIsNotClaimant(t *testing.T) {
+	no, terminated := "KTMB-K1", "Terminated"
+	stub := &zincStub{t: t, bookingBody: checkBooking("Recovering", nil),
+		searchBody: []zinc.BookingPrincipalRes{{Id: uuid.New(), BookingNo: &no, Status: &terminated}}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	scan, _ := scanReturning(&foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}, nil)
+
+	res := c.CheckBooking(context.Background(), testBookingId, beforeDeparture(t), scan)
+
+	if res.Status != CheckFound || res.ClaimedBy != nil {
+		t.Fatalf("expected Found with no claimant, got %+v", res)
 	}
 	assertNoTransitions(t, stub)
 }

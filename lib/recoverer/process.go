@@ -320,11 +320,50 @@ var releasedStatuses = map[string]bool{
 // Completed) is what lets the caller tell "a live booking owns this ticket"
 // from "the ticket belonged to a booking that was since cancelled".
 func (c *Client) ticketHolder(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (*zinc.BookingPrincipalRes, error) {
+	recording, err := c.bookingsRecording(ctx, dto, ktmbBookingNo)
+	if err != nil {
+		return nil, err
+	}
+	var holder *zinc.BookingPrincipalRes
+	for i := range recording {
+		b := &recording[i]
+		if b.Id.String() == dto.BookingId {
+			continue
+		}
+		if lib.Deref(b.Status) == "Completed" {
+			return b, nil
+		}
+		if holder == nil {
+			holder = b
+		}
+	}
+	return holder, nil
+}
+
+// claimant returns the Completed zinc booking (same passenger and slot, which
+// may be the checked booking itself) that records the KTMB booking number, or
+// nil when none does — the admin KTMB check's "claimed by" answer.
+func (c *Client) claimant(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (*zinc.BookingPrincipalRes, error) {
+	recording, err := c.bookingsRecording(ctx, dto, ktmbBookingNo)
+	if err != nil {
+		return nil, err
+	}
+	for i := range recording {
+		if lib.Deref(recording[i].Status) == "Completed" {
+			return &recording[i], nil
+		}
+	}
+	return nil, nil
+}
+
+// bookingsRecording returns every zinc booking (same passenger and slot, any
+// status, including the booking itself) whose KTMB booking number matches.
+func (c *Client) bookingsRecording(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) ([]zinc.BookingPrincipalRes, error) {
 	// explicit Limit so a zinc default page size can't hide the claiming booking:
-	// a miss here returns nil and force-completes a ticket owned by another
-	// Completed booking, collecting this booking's reserve for someone else's
-	// ticket (a §3.1 double-collect). The exact passport+slot+direction tuple
-	// yields a handful at most, so a large cap suffices.
+	// a miss here force-completes a ticket owned by another Completed booking,
+	// collecting this booking's reserve for someone else's ticket (a §3.1
+	// double-collect). The exact passport+slot+direction tuple yields a handful
+	// at most, so a large cap suffices; a full page is treated as inconclusive.
 	limit := int32(100)
 	resp, err := c.zinc.GetApiVVersionBooking(ctx, "1.0", &zinc.GetApiVVersionBookingParams{
 		PassportNumber: &dto.PassportNumber,
@@ -353,20 +392,13 @@ func (c *Client) ticketHolder(ctx context.Context, dto lib.RecoverDto, ktmbBooki
 		// a full page could hide the holder on the next one — inconclusive
 		return nil, fmt.Errorf("ticket holder search hit the %d-result cap, inconclusive", limit)
 	}
-	var holder *zinc.BookingPrincipalRes
-	for i := range bookings {
-		b := &bookings[i]
-		if b.Id.String() == dto.BookingId || b.BookingNo == nil || *b.BookingNo != ktmbBookingNo {
-			continue
-		}
-		if lib.Deref(b.Status) == "Completed" {
-			return b, nil
-		}
-		if holder == nil {
-			holder = b
+	var out []zinc.BookingPrincipalRes
+	for _, b := range bookings {
+		if b.BookingNo != nil && *b.BookingNo == ktmbBookingNo {
+			out = append(out, b)
 		}
 	}
-	return holder, nil
+	return out, nil
 }
 
 // listRecovering fetches every booking currently in Recovering status,
