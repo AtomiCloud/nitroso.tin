@@ -483,6 +483,22 @@ func TestResolveFoundUnrecordedLiveCaptures(t *testing.T) {
 	}
 }
 
+func TestIsKtmbCancelled(t *testing.T) {
+	cases := map[string]bool{
+		"Error when retrieving booking.":                                 true,
+		"error when retrieving booking":                                  true,
+		"  Error when retrieving booking.\n":                             true,
+		"<html>Error when retrieving booking.</html>":                    false,
+		`{"status":false,"messages":["Error when retrieving booking."]}`: false,
+		"": false,
+	}
+	for in, want := range cases {
+		if got := isKtmbCancelled([]byte(in)); got != want {
+			t.Errorf("isKtmbCancelled(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
 func TestIsPDF(t *testing.T) {
 	cases := map[string]bool{
 		"%PDF-1.7\n...":                     true,

@@ -233,6 +233,14 @@ const (
 // 2026-11-12 for the incident's terminated ticket
 const ktmbCancelledBody = "error when retrieving booking"
 
+// isKtmbCancelled reports whether the body is exactly KTMB's cancelled answer
+// (case/whitespace and the trailing period aside) — a page that merely
+// contains the phrase is not trusted.
+func isKtmbCancelled(body []byte) bool {
+	b := strings.TrimSuffix(strings.ToLower(strings.TrimSpace(string(body))), ".")
+	return b == ktmbCancelledBody
+}
+
 // ticketState asks KTMB to print the ticket: a PDF means it is live; KTMB's
 // known "cannot retrieve" answer means it is cancelled; anything else (print
 // error, empty body, unknown page) is inconclusive and returned as an error so
@@ -245,7 +253,7 @@ func (c *Client) ticketState(ctx context.Context, m foundTicket) (ticketLiveness
 	if isPDF(body) {
 		return ticketLive, body, nil
 	}
-	if strings.Contains(strings.ToLower(string(body)), ktmbCancelledBody) {
+	if isKtmbCancelled(body) {
 		return ticketCancelled, nil, nil
 	}
 	return 0, nil, fmt.Errorf("KTMB answered an unrecognised non-PDF for ticket %s (%d bytes: %q), will retry", m.BookingNo, len(body), preview(body))
