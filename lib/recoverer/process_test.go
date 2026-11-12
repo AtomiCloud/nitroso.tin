@@ -169,6 +169,32 @@ func TestTicketHolderPrefersCompleted(t *testing.T) {
 	}
 }
 
+// A holder still in flight wins over a released one, in either response
+// order, so recovery waits instead of recycling (and burning the budget).
+func TestTicketHolderPrefersLiveOverReleased(t *testing.T) {
+	live, released := uuid.New(), uuid.New()
+	orders := map[string][]zinc.BookingPrincipalRes{
+		"released-first": {holderRes(released, "Cancelled", "KTMB-K1"), holderRes(live, "Buying", "KTMB-K1")},
+		"live-first":     {holderRes(live, "Buying", "KTMB-K1"), holderRes(released, "Cancelled", "KTMB-K1")},
+	}
+	for name, body := range orders {
+		t.Run(name, func(t *testing.T) {
+			stub := &zincStub{t: t, searchBody: body}
+			c, closeSrv := conflictClient(t, stub)
+			defer closeSrv()
+
+			h, err := c.ticketHolder(context.Background(), recoverDto(), "KTMB-K1")
+			if err != nil || h == nil || h.Id != live {
+				t.Fatalf("expected the live holder %s, got %+v (err %v)", live, h, err)
+			}
+			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err == nil {
+				t.Fatal("expected resolveFound to wait (error) on a live holder, got nil")
+			}
+			assertNoTransitions(t, stub)
+		})
+	}
+}
+
 // No booking records the ticket (or only this booking itself does): no holder.
 func TestTicketHolderUnmatchedOrSelf(t *testing.T) {
 	self := uuid.MustParse(testBookingId)

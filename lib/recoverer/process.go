@@ -316,7 +316,7 @@ var releasedStatuses = map[string]bool{
 
 // ticketHolder returns the OTHER zinc booking (same passenger and slot, any
 // status) that records the KTMB booking number, or nil when none does. A
-// Completed holder wins over any other match. Searching every status (not just
+// Completed holder wins, then one still in flight, then a released one. Searching every status (not just
 // Completed) is what lets the caller tell "a live booking owns this ticket"
 // from "the ticket belonged to a booking that was since cancelled".
 func (c *Client) ticketHolder(ctx context.Context, dto lib.RecoverDto, ktmbBookingNo string) (*zinc.BookingPrincipalRes, error) {
@@ -324,20 +324,31 @@ func (c *Client) ticketHolder(ctx context.Context, dto lib.RecoverDto, ktmbBooki
 	if err != nil {
 		return nil, err
 	}
-	var holder *zinc.BookingPrincipalRes
+	// precedence, independent of response order: Completed (owns the ticket)
+	// > still in flight (may yet own it — wait) > released (ticket given back)
+	var live, released *zinc.BookingPrincipalRes
 	for i := range recording {
 		b := &recording[i]
 		if b.Id.String() == dto.BookingId {
 			continue
 		}
-		if lib.Deref(b.Status) == "Completed" {
+		switch st := lib.Deref(b.Status); {
+		case st == "Completed":
 			return b, nil
-		}
-		if holder == nil {
-			holder = b
+		case releasedStatuses[st]:
+			if released == nil {
+				released = b
+			}
+		default:
+			if live == nil {
+				live = b
+			}
 		}
 	}
-	return holder, nil
+	if live != nil {
+		return live, nil
+	}
+	return released, nil
 }
 
 // claimant returns the Completed zinc booking (same passenger and slot, which
