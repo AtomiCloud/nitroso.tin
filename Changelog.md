@@ -1,3 +1,15 @@
+## [1.59.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.59.1...v1.59.2) (2026-11-12)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **recoverer:** keep admin check claimant semantics ([637b41e](https://github.com/AtomiCloud/nitroso.tin/commit/637b41e242048cbd27d0949f5a7aa3f2c18ad9e1))
+* **recoverer:** match KTMB's cancelled answer exactly ([dc03054](https://github.com/AtomiCloud/nitroso.tin/commit/dc030544305fb7c4c6cf265f09a589d11fbf0d6b))
+* **recoverer:** only recycle once KTMB confirms the ticket is dead ([ac615c4](https://github.com/AtomiCloud/nitroso.tin/commit/ac615c4aa84f257c18b892fcb67c9a155c7914e4))
+* **recoverer:** prefer a live ticket holder over a released one ([99ac9b8](https://github.com/AtomiCloud/nitroso.tin/commit/99ac9b82e3f37b02a15fd6ac8e98e1e85f562796))
+* **recoverer:** recycle instead of capturing a released ticket ([0c140ea](https://github.com/AtomiCloud/nitroso.tin/commit/0c140ea22c0a63c725d5994dc4a114854ffbdf44))
+* **recoverer:** require KTMB's cancelled answer before recycling ([0861f16](https://github.com/AtomiCloud/nitroso.tin/commit/0861f1674a9d2f3cc495816238aa8d7cb513ab3a))
+
 ## [1.59.1](https://github.com/AtomiCloud/nitroso.tin/compare/v1.59.0...v1.59.1) (2026-11-06)
 
 
