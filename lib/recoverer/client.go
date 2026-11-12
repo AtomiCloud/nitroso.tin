@@ -45,6 +45,8 @@ type Client struct {
 	enricher         config.EnricherConfig
 	psm              string
 	loc              *time.Location
+	// printTicket overrides KTMB ticket printing (tests only); nil = real KTMB
+	printTicket func(ctx context.Context, bookingNo, ticketNo string) ([]byte, error)
 }
 
 func New(k ktmb.Ktmb, s *session.Session, mainRedis, streamRedis *otelredis.OtelRedis,

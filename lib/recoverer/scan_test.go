@@ -430,3 +430,55 @@ func TestFindTicketInEmptyContiguousScanPage(t *testing.T) {
 		t.Errorf("empty contiguous-scan page: expected inconclusive error, got %+v err nil", f)
 	}
 }
+
+// KTMB keeps cancelled bookings listed: the same passenger+slot can appear
+// twice (a cancelled ticket and a live one), even across a page boundary.
+// findTicketsIn must return both; findTicketIn keeps returning the first.
+func TestFindTicketsInReturnsEveryMatch(t *testing.T) {
+	loc := sgLoc(t)
+	target := time.Date(2026, 11, 15, 20, 0, 0, 0, loc)
+	at := "2026-11-15T20:00:00"
+	bookings := []ktmb.TicketListBookingRes{
+		ticket("2026-11-15T19:00:00", "WOODLANDS CIQ", "K0", "T0", "OTHER"),
+		ticket(at, "WOODLANDS CIQ", "K-DEAD", "T-DEAD", "PP1"),
+		ticket(at, "WOODLANDS CIQ", "K-X", "T-X", "OTHER"),
+		ticket(at, "WOODLANDS CIQ", "K-OWN", "T-OWN", "PP1"),
+		ticket("2026-11-15T21:00:00", "WOODLANDS CIQ", "K9", "T9", "OTHER"),
+	}
+	for _, size := range []int{1, 2, 3, 5} {
+		fetch, _ := paginate(bookings, size)
+		got, err := findTicketsIn(fetch, target, "WToJ", "PP1", loc)
+		if err != nil {
+			t.Fatalf("page size %d: unexpected error %v", size, err)
+		}
+		seen := map[string]bool{}
+		for _, m := range got {
+			seen[m.BookingNo] = true
+		}
+		if len(got) != 2 || !seen["K-DEAD"] || !seen["K-OWN"] {
+			t.Fatalf("page size %d: expected K-DEAD and K-OWN, got %+v", size, got)
+		}
+		fetch1, _ := paginate(bookings, size)
+		if f, err := findTicketIn(fetch1, target, "WToJ", "PP1", loc); err != nil || f == nil {
+			t.Fatalf("page size %d: findTicketIn expected a match, got %+v %v", size, f, err)
+		}
+	}
+}
+
+// A match plus an unclassifiable row at the target: the match is returned
+// together with the inconclusive error (the caller must not treat the list
+// as complete).
+func TestFindTicketsInPartialKeepsError(t *testing.T) {
+	loc := sgLoc(t)
+	target := time.Date(2026, 11, 15, 20, 0, 0, 0, loc)
+	at := "2026-11-15T20:00:00"
+	bookings := []ktmb.TicketListBookingRes{
+		ticket(at, "WOODLANDS CIQ", "K-DEAD", "T-DEAD", "PP1"),
+		ticket(at, "WDL", "K-AMBIG", "T-AMBIG", "PP1"),
+	}
+	fetch, _ := paginate(bookings, 5)
+	got, err := findTicketsIn(fetch, target, "WToJ", "PP1", loc)
+	if err == nil || len(got) != 1 || got[0].BookingNo != "K-DEAD" {
+		t.Fatalf("expected K-DEAD with an inconclusive error, got %+v %v", got, err)
+	}
+}
