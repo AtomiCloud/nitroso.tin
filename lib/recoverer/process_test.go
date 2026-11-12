@@ -3,6 +3,7 @@ package recoverer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -187,7 +188,7 @@ func TestTicketHolderPrefersLiveOverReleased(t *testing.T) {
 			if err != nil || h == nil || h.Id != live {
 				t.Fatalf("expected the live holder %s, got %+v (err %v)", live, h, err)
 			}
-			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err == nil {
+			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err == nil {
 				t.Fatal("expected resolveFound to wait (error) on a live holder, got nil")
 			}
 			assertNoTransitions(t, stub)
@@ -245,7 +246,7 @@ func TestResolveFoundCompletedHolderMarksDuplicate(t *testing.T) {
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 
-	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err != nil {
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if len(stub.duplicated) != 1 || len(stub.recycled) != 0 || len(stub.completed) != 0 || len(stub.parked) != 0 {
@@ -265,8 +266,9 @@ func TestResolveFoundReleasedHolderRecycles(t *testing.T) {
 			stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), status, "KTMB-K1")}}
 			c, closeSrv := conflictClient(t, stub)
 			defer closeSrv()
+			c.printTicket = printer(map[string]string{"KTMB-K1": cancelledBody})
 
-			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err != nil {
+			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err != nil {
 				t.Fatalf("expected nil error, got %v", err)
 			}
 			if len(stub.recycled) != 1 || stub.recycled[0] != testBookingId {
@@ -285,8 +287,108 @@ func TestResolveFoundLiveHolderWaits(t *testing.T) {
 	c, closeSrv := conflictClient(t, stub)
 	defer closeSrv()
 
-	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), &foundTicket{BookingNo: "KTMB-K1", TicketNo: "T-1"}); err == nil {
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err == nil {
 		t.Fatal("expected an error (retry later) for a live holder, got nil")
+	}
+	assertNoTransitions(t, stub)
+}
+
+const (
+	livePDF       = "%PDF-1.7\n%fake ticket"
+	cancelledBody = `{"status":false,"messages":["Ticket is cancelled"]}`
+)
+
+// printer fakes KTMB PrintTicket per KTMB booking number; a missing entry is
+// a print error
+func printer(bodies map[string]string) func(context.Context, string, string) ([]byte, error) {
+	return func(_ context.Context, bookingNo, _ string) ([]byte, error) {
+		b, ok := bodies[bookingNo]
+		if !ok {
+			return nil, fmt.Errorf("print failed for %s", bookingNo)
+		}
+		return []byte(b), nil
+	}
+}
+
+// zinc says the holder was Terminated, but its KTMB cancel never landed (the
+// ticket still prints). Recycling would loop into a duplicate refund while the
+// passenger's ticket is live: leave it for a human (error, no transition), and
+// never capture it (a late terminator run could still cancel it).
+func TestResolveFoundReleasedButStillLiveWaitsForHuman(t *testing.T) {
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Terminated", "KTMB-K1")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-K1": livePDF})
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err == nil {
+		t.Fatal("expected an error (leave for a human) for a still-live released ticket, got nil")
+	}
+	assertNoTransitions(t, stub)
+}
+
+// Printing the released ticket fails outright: cannot tell cancelled from a
+// KTMB hiccup — retry, no transition.
+func TestResolveFoundReleasedPrintErrorRetries(t *testing.T) {
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Terminated", "KTMB-K1")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{})
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, nil); err == nil {
+		t.Fatal("expected an error on a failed print, got nil")
+	}
+	assertNoTransitions(t, stub)
+}
+
+// A cancelled row of a released booking listed next to this booking's own
+// live, uncaptured ticket (bought after a recycle, ids lost): capture our own
+// ticket, in either list order — never recycle into a duplicate refund.
+func TestResolveFoundReleasedPlusOwnTicketCaptures(t *testing.T) {
+	dead := foundTicket{BookingNo: "KTMB-DEAD", TicketNo: "T-DEAD"}
+	own := foundTicket{BookingNo: "KTMB-OWN", TicketNo: "T-OWN"}
+	for name, order := range map[string][]foundTicket{"dead-first": {dead, own}, "own-first": {own, dead}} {
+		t.Run(name, func(t *testing.T) {
+			stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Terminated", "KTMB-DEAD")}}
+			c, closeSrv := conflictClient(t, stub)
+			defer closeSrv()
+			c.printTicket = printer(map[string]string{"KTMB-DEAD": cancelledBody, "KTMB-OWN": livePDF})
+
+			if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), order, nil); err != nil {
+				t.Fatalf("expected nil error, got %v", err)
+			}
+			if len(stub.completed) != 1 || stub.completed[0] != testBookingId {
+				t.Fatalf("expected our own ticket captured for %s, got %v", testBookingId, stub.completed)
+			}
+			if len(stub.recycled) != 0 || len(stub.duplicated) != 0 || len(stub.parked) != 0 {
+				t.Fatalf("must only capture, got recycle=%v dup=%v park=%v", stub.recycled, stub.duplicated, stub.parked)
+			}
+		})
+	}
+}
+
+// Only released tickets seen, but the scan was inconclusive somewhere (an
+// unseen row could be our own ticket): retry, never recycle.
+func TestResolveFoundReleasedPartialScanRetries(t *testing.T) {
+	stub := &zincStub{t: t, searchBody: []zinc.BookingPrincipalRes{holderRes(uuid.New(), "Terminated", "KTMB-K1")}}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-K1": cancelledBody})
+
+	if err := c.resolveFound(context.Background(), zerolog.Nop(), recoverDto(), []foundTicket{{BookingNo: "KTMB-K1", TicketNo: "T-1"}}, fmt.Errorf("unparseable row")); err == nil {
+		t.Fatal("expected an error on a partial scan, got nil")
+	}
+	assertNoTransitions(t, stub)
+}
+
+// A non-PDF print on the capture path fails before any zinc upload.
+func TestForceCompleteRejectsNonPDF(t *testing.T) {
+	stub := &zincStub{t: t}
+	c, closeSrv := conflictClient(t, stub)
+	defer closeSrv()
+	c.printTicket = printer(map[string]string{"KTMB-K1": cancelledBody})
+
+	if err := c.forceComplete(context.Background(), testBookingId, "KTMB-K1", "T-1"); err == nil {
+		t.Fatal("expected an error for a non-PDF ticket, got nil")
 	}
 	assertNoTransitions(t, stub)
 }

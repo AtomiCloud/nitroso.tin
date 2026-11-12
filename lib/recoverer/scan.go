@@ -36,6 +36,110 @@ func (c *Client) findTicket(ctx context.Context, userData string, target time.Ti
 	}, target, direction, passport, c.loc)
 }
 
+// findTickets is findTicket returning EVERY definitive match at the target
+// (see findTicketsIn).
+func (c *Client) findTickets(ctx context.Context, userData string, target time.Time, direction, passport string) ([]foundTicket, error) {
+	return findTicketsIn(func(page int64) (ktmb.TicketListRes, error) {
+		if err := ctx.Err(); err != nil {
+			return ktmb.TicketListRes{}, err
+		}
+		return c.listPage(userData, page)
+	}, target, direction, passport, c.loc)
+}
+
+// findTicketsIn returns every definitive passport+datetime+direction match on
+// the list — KTMB keeps cancelled bookings listed, so the same passenger+slot
+// can appear more than once (a cancelled ticket next to a live one). A non-nil
+// error means the scan was inconclusive somewhere, so the matches returned
+// alongside it may be incomplete: callers may act on a match that is safe on
+// its own (capture), but must not conclude "these are ALL the tickets".
+func findTicketsIn(fetch pageFetcher, target time.Time, direction, passport string, loc *time.Location) ([]foundTicket, error) {
+	first, err := fetch(1)
+	if err != nil {
+		return nil, err
+	}
+	total := first.TotalPage
+	if total <= 0 || len(first.Bookings) == 0 {
+		return nil, fmt.Errorf("empty ticket list (inconclusive, must retry — never treat as absent)")
+	}
+	getPage := func(page int64) (ktmb.TicketListRes, error) {
+		if page == 1 {
+			return first, nil
+		}
+		return fetch(page)
+	}
+
+	lo, hi := int64(1), total
+	hit := int64(0)
+	for lo <= hi {
+		mid := (lo + hi) / 2
+		page, err := getPage(mid)
+		if err != nil {
+			return nil, err
+		}
+		if len(page.Bookings) == 0 {
+			return nil, fmt.Errorf("empty page %d within range during scan", mid)
+		}
+		firstDt, err := departOf(page.Bookings[0], loc)
+		if err != nil {
+			return nil, err
+		}
+		lastDt, err := departOf(page.Bookings[len(page.Bookings)-1], loc)
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case target.Before(firstDt):
+			hi = mid - 1
+		case target.After(lastDt):
+			lo = mid + 1
+		default:
+			hit = mid
+			lo = hi + 1
+		}
+	}
+	if hit == 0 {
+		return nil, nil
+	}
+
+	var matches []foundTicket
+	var inconclusive error
+	// visit returns whether the target datetime may continue onto the next page
+	visit := func(page int64, side string) bool {
+		res, err := getPage(page)
+		if err != nil {
+			inconclusive = err
+			return false
+		}
+		if len(res.Bookings) == 0 {
+			inconclusive = fmt.Errorf("empty page %d during %s contiguous scan (inconclusive, must retry)", page, side)
+			return false
+		}
+		found, matchErr := matchPageAll(res, target, direction, passport, loc)
+		matches = append(matches, found...)
+		if matchErr != nil {
+			inconclusive = matchErr
+		}
+		contains, containsErr := pageContainsDatetime(res, target, loc)
+		if containsErr != nil {
+			inconclusive = containsErr
+			return false
+		}
+		return contains
+	}
+	for page := hit; page >= 1; page-- {
+		if !visit(page, "left") {
+			break
+		}
+	}
+	for page := hit + 1; page <= total; page++ {
+		if !visit(page, "right") {
+			break
+		}
+	}
+	return matches, inconclusive
+}
+
 // findTicketIn is the testable core: the list is ascending by departure
 // datetime, so binary-search for a page whose datetime range spans the target,
 // then scan every contiguous page that still contains the target datetime
@@ -240,6 +344,23 @@ func matchPage(page ktmb.TicketListRes, target time.Time, direction, passport st
 		return &foundTicket{BookingNo: booking.BookingNo, TicketNo: ticketNo}, nil
 	}
 	return nil, inconclusiveErr
+}
+
+// matchPageAll is matchPage returning every definitive match on the page,
+// plus the inconclusive error (if any) for rows it could not classify.
+func matchPageAll(page ktmb.TicketListRes, target time.Time, direction, passport string, loc *time.Location) ([]foundTicket, error) {
+	var matches []foundTicket
+	var inconclusiveErr error
+	for _, booking := range page.Bookings {
+		one := ktmb.TicketListRes{Bookings: []ktmb.TicketListBookingRes{booking}}
+		f, err := matchPage(one, target, direction, passport, loc)
+		if f != nil {
+			matches = append(matches, *f)
+		} else if err != nil {
+			inconclusiveErr = err
+		}
+	}
+	return matches, inconclusiveErr
 }
 
 // ticketForPassport returns the ticket number for the passport on this booking
