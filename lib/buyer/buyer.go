@@ -103,7 +103,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		return PurchaseResult{}, e
 	}
 
-	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Passenger Set. Sleeping to prevent overloading...")
+	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Float32("walletBalance", passenger.Data.EWalletBalanceAmount).Float32("paymentAmount", passenger.Data.PaymentAmount).Msg("Passenger Set. Sleeping to prevent overloading...")
 	time.Sleep(sd)
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Sleep Complete. Performing Payment...")
 

@@ -52,6 +52,11 @@ buyer:
   # e-wallet ran out of funds at Pay: "KTM Wallet balance is insufficient.").
   revertPatterns:
     - 'wallet balance is insufficient'
+  # while KTMB keeps refusing payment for an empty wallet (revertPatterns), the
+  # buyer keeps a 'wallet low' flag up until this many minutes after the latest
+  # refusal; meanwhile the recoverer HOLDS bookings (manual intervention) and
+  # never refunds them as Duplicate, nor expires recycled ones.
+  walletLowHoldMinutes: 60
 
 terminator:
   backoffLimit: 3

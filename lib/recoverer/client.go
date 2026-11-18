@@ -13,6 +13,7 @@ import (
 	"github.com/AtomiCloud/nitroso-tin/lib/ktmb"
 	"github.com/AtomiCloud/nitroso-tin/lib/otelredis"
 	"github.com/AtomiCloud/nitroso-tin/lib/session"
+	"github.com/AtomiCloud/nitroso-tin/lib/walletlow"
 	"github.com/AtomiCloud/nitroso-tin/lib/zinc"
 	"github.com/AtomiCloud/nitroso-tin/system/config"
 	"github.com/AtomiCloud/nitroso-tin/system/telemetry"
@@ -47,6 +48,9 @@ type Client struct {
 	loc              *time.Location
 	// printTicket overrides KTMB ticket printing (tests only); nil = real KTMB
 	printTicket func(ctx context.Context, bookingNo, ticketNo string) ([]byte, error)
+	// walletLow overrides the KTMB wallet-low hold check (tests only); nil =
+	// read the shared flag (lib/walletlow) from main redis
+	walletLow func(ctx context.Context) bool
 }
 
 func New(k ktmb.Ktmb, s *session.Session, mainRedis, streamRedis *otelredis.OtelRedis,
@@ -262,6 +266,10 @@ func (c *Client) Sweep(ctx context.Context, skip map[string]bool) error {
 // window and re-guards each booking transactionally, so this is idempotent
 // and safe to call every drain tick.
 func (c *Client) ExpireRecovery(ctx context.Context) error {
+	if c.holdForWallet(ctx) {
+		c.logger.Warn().Ctx(ctx).Msg("KTMB wallet is low: not expiring recycled bookings (held, not refunded as Duplicate)")
+		return nil
+	}
 	resp, err := c.zinc.PostApiVVersionBookingRecoveryExpire(ctx, "1.0")
 	if err != nil {
 		return err
@@ -353,3 +361,24 @@ func (c *Client) requeue(ctx context.Context, dto lib.RecoverDto) {
 // recoverRequeueRetries bounds how many times requeue retries a failed Redis
 // push before falling back to zinc's durable Recovering status.
 const recoverRequeueRetries = 3
+
+// holdForWallet reports whether the "KTMB wallet is low" flag (raised by the
+// buyer when KTMB refuses payment for an empty wallet) is up. While it is,
+// bookings are HELD, never refunded as Duplicate: duplicate-passport
+// rejections in that window are typically our own unpaid reservations, not a
+// ticket the passenger holds elsewhere. A redis error reads as "held" — the
+// cautious side is a manual-intervention park, never a refund.
+func (c *Client) holdForWallet(ctx context.Context) bool {
+	if c.walletLow != nil {
+		return c.walletLow(ctx)
+	}
+	if c.mainRedis == nil || c.mainRedis.Client == nil {
+		return false
+	}
+	low, err := walletlow.IsLow(ctx, c.mainRedis.Client)
+	if err != nil {
+		c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to read the KTMB wallet-low hold flag, holding to be safe")
+		return true
+	}
+	return low
+}

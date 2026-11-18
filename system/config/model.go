@@ -70,6 +70,11 @@ type BuyerConfig struct {
 	// Buying -> Pending so the pipeline retries them once the condition clears,
 	// instead of stranding them in Buying.
 	RevertPatterns []string
+	// WalletLowHoldMinutes is how long the "KTMB wallet is low" hold flag
+	// (lib/walletlow) stays up after the latest RevertPatterns refusal. While
+	// it is up the recoverer holds bookings instead of refunding them as
+	// Duplicate. Must be > 0.
+	WalletLowHoldMinutes int
 }
 
 // Terminator Config
