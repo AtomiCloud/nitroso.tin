@@ -23,6 +23,10 @@ func (e *ConflictError) Error() string {
 // stranded in Buying.
 type RevertError struct {
 	Messages []string
+	// UserData/BookingData are the KTMB tokens of the refused Pay (KTMB
+	// re-issues them at each step), used to cancel the reservation
+	UserData    string
+	BookingData string
 }
 
 func (e *RevertError) Error() string {

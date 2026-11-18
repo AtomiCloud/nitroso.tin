@@ -30,6 +30,8 @@ type revertHarness struct {
 	events       []string
 	revertStatus []int // answered in order; the last one repeats
 	releaseErr   error
+	refuse       map[string]bool // bookingData values KTMB refuses to cancel
+	delay        time.Duration    // zinc answers after this long
 	mr           *miniredis.Miniredis
 }
 
@@ -37,6 +39,14 @@ func (h *revertHarness) record(e string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.events = append(h.events, e)
+}
+
+// snapshot reads the event log under the lock (the fake zinc handler may still
+// be running after the client gave up on it)
+func (h *revertHarness) snapshot() []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return append([]string(nil), h.events...)
 }
 
 func (h *revertHarness) client(t *testing.T) *Client {
@@ -49,8 +59,17 @@ func (h *revertHarness) client(t *testing.T) *Client {
 			return
 		}
 		h.record("revert force=" + r.URL.Query().Get("force"))
+		if h.delay > 0 {
+			select {
+			case <-time.After(h.delay):
+			case <-r.Context().Done():
+				return
+			}
+		}
+		h.mu.Lock()
 		status := h.revertStatus[min(calls, len(h.revertStatus)-1)]
 		calls++
+		h.mu.Unlock()
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(`{}`))
 	}))
@@ -67,8 +86,11 @@ func (h *revertHarness) client(t *testing.T) *Client {
 		logger:    &l,
 		mainRedis: &otelredis.OtelRedis{Client: rc},
 		buyerCfg:  config.BuyerConfig{ParkRetries: 2, WalletLowHoldMinutes: 30},
-		releaseFn: func(_, _ string) error {
-			h.record("release")
+		releaseFn: func(_, bookingData string) error {
+			h.record("release:" + bookingData)
+			if h.refuse[bookingData] {
+				return errors.New("KTMB refused to cancel the reservation")
+			}
 			return h.releaseErr
 		},
 	}
@@ -81,6 +103,11 @@ func revertId(t *testing.T) openapi_types.UUID {
 	}
 	return id
 }
+
+var (
+	latest   = ktmbTokens{UserData: "ud2", BookingData: "bd2"}
+	original = ktmbTokens{UserData: "ud", BookingData: "bd"}
+)
 
 func withFastBackoff(t *testing.T) {
 	old := baseDelay
@@ -97,12 +124,12 @@ func TestRevertReleasesFirstForcesAndRaisesHold(t *testing.T) {
 	h := &revertHarness{revertStatus: []int{http.StatusOK}}
 	c := h.client(t)
 
-	if err := c.revert(context.Background(), revertId(t), "ud", "bd"); err != nil {
+	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
 		t.Fatalf("revert must never error, got %v", err)
 	}
-	want := []string{"release", "revert force=true"}
-	if strings.Join(h.events, ",") != strings.Join(want, ",") {
-		t.Errorf("events = %v, want %v (release BEFORE asking zinc)", h.events, want)
+	want := []string{"release:bd2", "revert force=true"}
+	if strings.Join(h.snapshot(), ",") != strings.Join(want, ",") {
+		t.Errorf("events = %v, want %v (release BEFORE asking zinc)", h.snapshot(), want)
 	}
 	if !h.mr.Exists(walletlow.Key) {
 		t.Fatal("the wallet-low hold flag must be raised")
@@ -119,20 +146,20 @@ func TestRevertZincRefusalIsNotAnError(t *testing.T) {
 	h := &revertHarness{revertStatus: []int{http.StatusBadRequest}}
 	c := h.client(t)
 
-	if err := c.revert(context.Background(), revertId(t), "ud", "bd"); err != nil {
+	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
 		t.Fatalf("a refused revert must be logged, not returned (crash loop), got %v", err)
 	}
-	if h.events[0] != "release" {
-		t.Errorf("the KTMB hold must be released even when zinc refuses, events = %v", h.events)
+	if h.snapshot()[0] != "release:bd2" {
+		t.Errorf("the KTMB hold must be released even when zinc refuses, events = %v", h.snapshot())
 	}
 	reverts := 0
-	for _, e := range h.events {
+	for _, e := range h.snapshot() {
 		if strings.HasPrefix(e, "revert") {
 			reverts++
 		}
 	}
-	if reverts != 2 {
-		t.Errorf("expected ParkRetries (2) revert attempts, got %d", reverts)
+	if reverts != 1 {
+		t.Errorf("a 4xx means zinc refused the transition: send it once, never re-send; got %d attempts", reverts)
 	}
 }
 
@@ -142,10 +169,10 @@ func TestRevertRetriesTransientZincFailure(t *testing.T) {
 	h := &revertHarness{revertStatus: []int{http.StatusBadGateway, http.StatusOK}}
 	c := h.client(t)
 
-	if err := c.revert(context.Background(), revertId(t), "ud", "bd"); err != nil {
+	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(h.events, ","); got != "release,revert force=true,revert force=true" {
+	if got := strings.Join(h.snapshot(), ","); got != "release:bd2,revert force=true,revert force=true" {
 		t.Errorf("events = %s", got)
 	}
 }
@@ -156,10 +183,10 @@ func TestRevertContinuesWhenReleaseFails(t *testing.T) {
 	h := &revertHarness{revertStatus: []int{http.StatusOK}, releaseErr: errors.New("ktmb down")}
 	c := h.client(t)
 
-	if err := c.revert(context.Background(), revertId(t), "ud", "bd"); err != nil {
+	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(h.events, ","); got != "release,revert force=true" {
+	if got := strings.Join(h.snapshot(), ","); got != "release:bd2,release:bd,revert force=true" {
 		t.Errorf("events = %s", got)
 	}
 	if !h.mr.Exists(walletlow.Key) {
@@ -174,8 +201,70 @@ func TestRevertDefaultsHoldWhenUnset(t *testing.T) {
 	c := h.client(t)
 	c.buyerCfg.WalletLowHoldMinutes = 0
 
-	_ = c.revert(context.Background(), revertId(t), "ud", "bd")
+	_ = c.revert(context.Background(), revertId(t), latest, original)
 	if ttl := h.mr.TTL(walletlow.Key); ttl != defaultWalletLowHold {
 		t.Errorf("hold TTL = %v, want default %v", ttl, defaultWalletLowHold)
+	}
+}
+
+// KTMB re-issues booking tokens at every step: the reservation is cancelled
+// with the refused Pay's tokens, and only falls back to the original queue
+// tokens when KTMB refuses those.
+func TestRevertReleasesWithLatestTokensThenFallsBack(t *testing.T) {
+	withFastBackoff(t)
+	h := &revertHarness{revertStatus: []int{http.StatusOK}, refuse: map[string]bool{"bd2": true}}
+	c := h.client(t)
+
+	_ = c.revert(context.Background(), revertId(t), latest, original)
+	if got := strings.Join(h.snapshot(), ","); got != "release:bd2,release:bd,revert force=true" {
+		t.Errorf("events = %s, want latest tokens first, then the original ones", got)
+	}
+}
+
+// Without Pay tokens (defensive), the original tokens are used once.
+func TestRevertWithoutLatestTokensUsesOriginal(t *testing.T) {
+	withFastBackoff(t)
+	h := &revertHarness{revertStatus: []int{http.StatusOK}}
+	c := h.client(t)
+
+	_ = c.revert(context.Background(), revertId(t), ktmbTokens{}, original)
+	if got := strings.Join(h.snapshot(), ","); got != "release:bd,revert force=true" {
+		t.Errorf("events = %s", got)
+	}
+}
+
+// Redis refusing the flag write must not stop the release or the revert.
+func TestRevertProceedsWhenTheFlagCannotBeWritten(t *testing.T) {
+	withFastBackoff(t)
+	h := &revertHarness{revertStatus: []int{http.StatusOK}}
+	c := h.client(t)
+	h.mr.Close()
+
+	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(h.snapshot(), ","); got != "release:bd2,revert force=true" {
+		t.Errorf("events = %s", got)
+	}
+}
+
+// A hung zinc must not stall the buyer: each attempt is bounded, then retried.
+func TestRevertAttemptIsBounded(t *testing.T) {
+	withFastBackoff(t)
+	old := revertAttemptTimeout
+	revertAttemptTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { revertAttemptTimeout = old })
+	h := &revertHarness{revertStatus: []int{http.StatusOK}, delay: 5 * time.Second}
+	c := h.client(t)
+
+	start := time.Now()
+	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Errorf("revert took %v; each attempt must give up after its timeout", d)
+	}
+	if got := strings.Count(strings.Join(h.snapshot(), ","), "revert force=true"); got != 2 {
+		t.Errorf("expected ParkRetries (2) bounded attempts, got %d", got)
 	}
 }

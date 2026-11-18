@@ -117,7 +117,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	}
 	if !pay.Status {
 		if matchesConflict(c.revertPatterns, pay.Messages) {
-			e := &RevertError{Messages: pay.Messages}
+			e := &RevertError{Messages: pay.Messages, UserData: ud2, BookingData: bd2}
 			c.logger.Warn().Err(e).Strs("errors", pay.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Transient pay failure with no ticket bought (revertable)")
 			return PurchaseResult{}, e
 		}

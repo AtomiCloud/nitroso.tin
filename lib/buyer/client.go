@@ -256,7 +256,7 @@ func (c *Client) buy(ctx context.Context, direction, date, t, userData, bookingD
 			// release the KTMB reservation, raise the wallet-low hold and put the
 			// booking back to Pending. Safe: no ticket exists. Never errors.
 			c.logger.Warn().Ctx(ctx).Err(err).Str("date", date).Str("time", t).Str("dir", direction).Msg("Transient buy failure, reverting booking to Pending")
-			return c.revert(ctx, data.Id, userData, bookingData)
+			return c.revert(ctx, data.Id, ktmbTokens{revertErr.UserData, revertErr.BookingData}, ktmbTokens{userData, bookingData})
 		case errors.As(err, &conflictErr):
 			// this passenger already holds a ticket for this slot — park the
 			// booking for the recoverer and free the KTMB reservation
@@ -343,30 +343,76 @@ func (c *Client) completeOnce(ctx context.Context, id openapi_types.UUID, bookin
 // the wallet stays empty. A booking whose revert failed stays Buying and the
 // helium reverter cron (every 5 min: zinc non-force revert of bookings stuck
 // in Buying > 5 min) recycles it.
-func (c *Client) revert(ctx context.Context, id openapi_types.UUID, userData, bookingData string) error {
-	if e := c.release(userData, bookingData); e != nil {
-		c.logger.Error().Ctx(ctx).Err(e).Msg("Failed to release KTMB reservation after a ticket-less pay failure (it expires on its own)")
-	}
+//
+// latest are the KTMB tokens of the refused Pay (KTMB re-issues them at every
+// step); the reservation is cancelled with those first and with the original
+// queue tokens only if KTMB refuses that.
+func (c *Client) revert(ctx context.Context, id openapi_types.UUID, latest, original ktmbTokens) error {
+	c.releaseLatest(ctx, latest, original)
 	c.markWalletLow(ctx)
 
+	// a 4xx means zinc refused the transition (the booking is no longer an
+	// uncaptured Buying booking, e.g. an earlier attempt already committed and
+	// only its response was lost): stop, never re-send. Only transport errors
+	// and 5xx are retried, each bounded so a hung zinc cannot stall the queue.
+	var refused error
 	err := retryBackoff(c.buyerCfg.ParkRetries, func(attempt int) error {
-		resp, err := c.zinc.PostApiVVersionBookingRevertId(ctx, "1.0", id, forceRevert)
+		actx, cancel := context.WithTimeout(ctx, revertAttemptTimeout)
+		defer cancel()
+		resp, err := c.zinc.PostApiVVersionBookingRevertId(actx, "1.0", id, forceRevert)
 		if err != nil {
 			return err
 		}
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
+		switch {
+		case resp.StatusCode == http.StatusOK:
+			return nil
+		case resp.StatusCode >= 400 && resp.StatusCode < 500:
+			refused = fmt.Errorf("zinc refused the revert: status %d: %s", resp.StatusCode, string(body))
+			return nil
+		default:
 			return fmt.Errorf("failed to revert booking: status %d: %s", resp.StatusCode, string(body))
 		}
-		return nil
 	})
+	if err == nil {
+		err = refused
+	}
 	if err != nil {
 		c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", id.String()).Msg("Failed to revert booking to Pending (helium reverter cron recycles it after 5 min)")
 		return nil
 	}
 	c.logger.Info().Ctx(ctx).Str("bookingId", id.String()).Msg("Booking reverted to Pending, held until the KTMB wallet can pay")
 	return nil
+}
+
+// ktmbTokens identify a KTMB reservation at one step of the buy flow
+type ktmbTokens struct {
+	UserData    string
+	BookingData string
+}
+
+// revertAttemptTimeout bounds each zinc revert attempt
+var revertAttemptTimeout = 30 * time.Second
+
+// releaseLatest cancels the KTMB reservation with the newest tokens, falling
+// back to the original queue tokens when KTMB refuses them; best effort
+func (c *Client) releaseLatest(ctx context.Context, latest, original ktmbTokens) {
+	first := latest
+	if first.BookingData == "" {
+		first = original
+	}
+	err := c.release(first.UserData, first.BookingData)
+	if err == nil {
+		return
+	}
+	if first != original {
+		c.logger.Warn().Ctx(ctx).Err(err).Msg("KTMB refused to release with the latest tokens, retrying with the original ones")
+		if err = c.release(original.UserData, original.BookingData); err == nil {
+			return
+		}
+	}
+	c.logger.Error().Ctx(ctx).Err(err).Msg("Failed to release KTMB reservation after a ticket-less pay failure (it expires on its own)")
 }
 
 // forceRevert adds force=true to zinc's revert call (the generated SDK
