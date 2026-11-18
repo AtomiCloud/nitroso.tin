@@ -31,7 +31,7 @@ type revertHarness struct {
 	revertStatus []int // answered in order; the last one repeats
 	releaseErr   error
 	refuse       map[string]bool // bookingData values KTMB refuses to cancel
-	delay        time.Duration    // zinc answers after this long
+	delay        time.Duration   // zinc answers after this long
 	mr           *miniredis.Miniredis
 }
 
