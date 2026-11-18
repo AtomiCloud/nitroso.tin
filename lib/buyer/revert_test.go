@@ -159,12 +159,13 @@ func TestRevertZincRefusalIsNotAnError(t *testing.T) {
 		}
 	}
 	if reverts != 1 {
-		t.Errorf("a 4xx means zinc refused the transition: send it once, never re-send; got %d attempts", reverts)
+		t.Errorf("the force-revert is sent once, never re-sent; got %d attempts", reverts)
 	}
 }
 
-// A transient zinc blip is retried.
-func TestRevertRetriesTransientZincFailure(t *testing.T) {
+// The force-revert is NEVER re-sent, even on a 5xx: a late copy could undo a
+// newer purchase attempt. The helium reverter (age-guarded) is the retry.
+func TestRevertIsNeverResentOnTransientFailure(t *testing.T) {
 	withFastBackoff(t)
 	h := &revertHarness{revertStatus: []int{http.StatusBadGateway, http.StatusOK}}
 	c := h.client(t)
@@ -172,7 +173,7 @@ func TestRevertRetriesTransientZincFailure(t *testing.T) {
 	if err := c.revert(context.Background(), revertId(t), latest, original); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(h.snapshot(), ","); got != "release:bd2,revert force=true,revert force=true" {
+	if got := strings.Join(h.snapshot(), ","); got != "release:bd2,revert force=true" {
 		t.Errorf("events = %s", got)
 	}
 }
@@ -248,7 +249,7 @@ func TestRevertProceedsWhenTheFlagCannotBeWritten(t *testing.T) {
 	}
 }
 
-// A hung zinc must not stall the buyer: each attempt is bounded, then retried.
+// A hung zinc must not stall the buyer: the single attempt is bounded.
 func TestRevertAttemptIsBounded(t *testing.T) {
 	withFastBackoff(t)
 	old := revertAttemptTimeout
@@ -264,7 +265,7 @@ func TestRevertAttemptIsBounded(t *testing.T) {
 	if d := time.Since(start); d > 2*time.Second {
 		t.Errorf("revert took %v; each attempt must give up after its timeout", d)
 	}
-	if got := strings.Count(strings.Join(h.snapshot(), ","), "revert force=true"); got != 2 {
-		t.Errorf("expected ParkRetries (2) bounded attempts, got %d", got)
+	if got := strings.Count(strings.Join(h.snapshot(), ","), "revert force=true"); got != 1 {
+		t.Errorf("expected exactly one bounded attempt, got %d", got)
 	}
 }

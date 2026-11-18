@@ -351,38 +351,34 @@ func (c *Client) revert(ctx context.Context, id openapi_types.UUID, latest, orig
 	c.releaseLatest(ctx, latest, original)
 	c.markWalletLow(ctx)
 
-	// a 4xx means zinc refused the transition (the booking is no longer an
-	// uncaptured Buying booking, e.g. an earlier attempt already committed and
-	// only its response was lost): stop, never re-send. Only transport errors
-	// and 5xx are retried, each bounded so a hung zinc cannot stall the queue.
-	var refused error
-	err := retryBackoff(c.buyerCfg.ParkRetries, func(attempt int) error {
-		actx, cancel := context.WithTimeout(ctx, revertAttemptTimeout)
-		defer cancel()
-		resp, err := c.zinc.PostApiVVersionBookingRevertId(actx, "1.0", id, forceRevert)
-		if err != nil {
-			return err
-		}
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		switch {
-		case resp.StatusCode == http.StatusOK:
-			return nil
-		case resp.StatusCode >= 400 && resp.StatusCode < 500:
-			refused = fmt.Errorf("zinc refused the revert: status %d: %s", resp.StatusCode, string(body))
-			return nil
-		default:
-			return fmt.Errorf("failed to revert booking: status %d: %s", resp.StatusCode, string(body))
-		}
-	})
-	if err == nil {
-		err = refused
-	}
-	if err != nil {
+	// exactly ONE force-revert, never retried: force skips zinc's age guard,
+	// so a re-sent (or late-arriving) copy could land after this booking was
+	// recycled and picked up again, and pull that NEWER purchase back to
+	// Pending mid-payment. The helium reverter is the safe retry: its
+	// non-force revert only touches bookings in Buying for > 5 minutes, which
+	// a fresh attempt never is. The attempt is bounded so a hung zinc cannot
+	// stall the queue.
+	if err := c.forceRevertOnce(ctx, id); err != nil {
 		c.logger.Error().Ctx(ctx).Err(err).Str("bookingId", id.String()).Msg("Failed to revert booking to Pending (helium reverter cron recycles it after 5 min)")
 		return nil
 	}
 	c.logger.Info().Ctx(ctx).Str("bookingId", id.String()).Msg("Booking reverted to Pending, held until the KTMB wallet can pay")
+	return nil
+}
+
+// forceRevertOnce sends a single bounded force-revert to zinc
+func (c *Client) forceRevertOnce(ctx context.Context, id openapi_types.UUID) error {
+	actx, cancel := context.WithTimeout(ctx, revertAttemptTimeout)
+	defer cancel()
+	resp, err := c.zinc.PostApiVVersionBookingRevertId(actx, "1.0", id, forceRevert)
+	if err != nil {
+		return err
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to revert booking: status %d: %s", resp.StatusCode, string(body))
+	}
 	return nil
 }
 
