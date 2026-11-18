@@ -306,6 +306,15 @@ func (c *Client) recycleOrDuplicate(ctx context.Context, l zerolog.Logger, booki
 				Msg("Recycle refused but the passenger holds no live ticket, parking for manual intervention")
 			return c.markManualIntervention(ctx, bookingId)
 		}
+		if c.holdForWallet(ctx) {
+			// the KTMB wallet is (or just was) empty: the passport conflicts
+			// that spent this budget are most likely our own unpaid holds, so a
+			// Duplicate refund would be wrong — hold it for a human (admin
+			// force-revert puts it back in the queue) instead
+			l.Warn().Str("problem", problemTypeOf(body)).
+				Msg("Recovery retries exhausted while the KTMB wallet is low, holding for manual intervention instead of Duplicate")
+			return c.markManualIntervention(ctx, bookingId)
+		}
 		l.Warn().Str("problem", problemTypeOf(body)).
 			Msg("Recovery retries exhausted, marking duplicate")
 		return c.markDuplicate(ctx, bookingId)

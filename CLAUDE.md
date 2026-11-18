@@ -100,6 +100,10 @@ The booking pipeline (stages 1→6):
 5. **buyer** (`lib/buyer`) — Consumes the `Reserver` queue. For each item: fetches/marks the
    booking in `zinc`, then drives KTMB `BookStart → SetPassenger → Pay → Complete →
 PrintTicket`, and reports the completed ticket back to `zinc`. Releases on a 404.
+   When KTMB refuses Pay because the KTM e-wallet is empty (`buyer.revertPatterns`), it
+   releases the KTMB hold FIRST (the passport is already bound to it), force-reverts the
+   booking to Pending and raises the shared **wallet-low hold** flag (`lib/walletlow`,
+   `buyer.walletLowHoldMinutes` after the latest refusal). It never crash-loops on this.
 6. **terminator** (`lib/terminator`) — Consumes a separate termination queue; looks up the
    booking in KTMB, fetches the refund policy, and refunds the ticket.
 
@@ -110,7 +114,10 @@ PrintTicket`, and reports the completed ticket back to `zinc`. Releases on a 404
   the booking `Duplicate` (full refund) when the ticket is not on our account (the passenger
   holds it via another channel), or parks it as `RequireManualIntervention` when it cannot
   decide safely. It never re-buys. The buyer feeds it by parking conflicted bookings instead of
-  crash-looping.
+  crash-looping. While the wallet-low hold flag is up, a budget-exhausted
+  booking is parked as `RequireManualIntervention` instead of refunded as `Duplicate`, and
+  recycled-booking expiry is skipped. (A ticket on our account already claimed by another
+  `Completed` booking is still a true double-booking and still marks `Duplicate`.)
 
 Operational / utility subcommands:
 

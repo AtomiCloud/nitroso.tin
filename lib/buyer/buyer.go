@@ -103,7 +103,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 		return PurchaseResult{}, e
 	}
 
-	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Passenger Set. Sleeping to prevent overloading...")
+	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Float32("walletBalance", passenger.Data.EWalletBalanceAmount).Float32("paymentAmount", passenger.Data.PaymentAmount).Msg("Passenger Set. Sleeping to prevent overloading...")
 	time.Sleep(sd)
 	c.logger.Info().Int("sleepDuration", c.sleepBuffer).Msg("Sleep Complete. Performing Payment...")
 
@@ -117,7 +117,7 @@ func (c *Buyer) Buy(userData, bookingData string, p Passenger, direction, date, 
 	}
 	if !pay.Status {
 		if matchesConflict(c.revertPatterns, pay.Messages) {
-			e := &RevertError{Messages: pay.Messages}
+			e := &RevertError{Messages: pay.Messages, UserData: ud2, BookingData: bd2}
 			c.logger.Warn().Err(e).Strs("errors", pay.Messages).Str("date", date).Str("time", t).Str("dir", direction).Msg("Transient pay failure with no ticket bought (revertable)")
 			return PurchaseResult{}, e
 		}
