@@ -1,3 +1,12 @@
+## [1.59.3](https://github.com/AtomiCloud/nitroso.tin/compare/v1.59.2...v1.59.3) (2026-11-18)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **buyer:** cancel with the latest KTMB tokens; bound revert attempts ([0cb5483](https://github.com/AtomiCloud/nitroso.tin/commit/0cb54839515ab70a7d202bc11548fac8cae1afd5))
+* **buyer:** hold bookings while KTMB wallet is low, never Duplicate ([34cec2d](https://github.com/AtomiCloud/nitroso.tin/commit/34cec2d0f541112be2433c375e921e05b2561ade))
+* **buyer:** send the wallet-low force-revert exactly once ([60f101b](https://github.com/AtomiCloud/nitroso.tin/commit/60f101b1700dba80597e9934bdf6cacd188db264))
+
 ## [1.59.2](https://github.com/AtomiCloud/nitroso.tin/compare/v1.59.1...v1.59.2) (2026-11-12)
 
 
